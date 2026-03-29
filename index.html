@@ -22,6 +22,8 @@ html,body{height:100%;overflow:hidden;background:#0f172a}
 button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .app{display:flex;height:100vh;height:100dvh}
+
+/* ── Sidebar (desktop) ── */
 .sidebar{width:230px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06)}
 .sidebar-header{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
 .logo{width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(16,185,129,.3)}
@@ -29,21 +31,30 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .tab-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:14px;text-align:left;width:100%;transition:all .15s}
 .tab-btn.active{background:rgba(16,185,129,.12);color:#10b981;font-weight:600}
 .tab-btn:hover:not(.active){background:rgba(255,255,255,.05);color:#94a3b8}
-.tab-icon{font-size:17px;width:22px;text-align:center}
+.tab-icon{font-size:17px;width:22px;text-align:center;line-height:1}
 .sidebar-footer{padding:12px 10px 24px;border-top:1px solid rgba(255,255,255,.08)}
 .log-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#10b981;color:white;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(16,185,129,.35);transition:all .15s}
 .log-btn:hover{background:#059669;transform:translateY(-1px)}
 .log-btn:active{transform:translateY(0)}
+
+/* ── Main content ── */
 .main{flex:1;overflow:hidden;position:relative;background:#f8fafc}
 .tab-panel{position:absolute;inset:0;display:none;flex-direction:column}
 .tab-panel.active{display:flex}
+
+/* ── Map ── */
 #map{width:100%;height:100%}
 .map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px 20px;border-radius:999px;box-shadow:0 2px 16px rgba(0,0,0,.14);font-size:13px;color:#475569;pointer-events:none;white-space:nowrap;font-weight:500}
 .locate-btn{position:absolute;bottom:24px;right:16px;z-index:1000;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .locate-btn:active{transform:scale(.93)}
+/* Blue dot for current location */
 .my-dot{width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,.3);position:relative}
-.my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(59,130,246,.4);animation:pulseRing 2s ease-out infinite}
+.my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(59,130,246,.35);animation:pulseRing 2s ease-out infinite}
+
+/* ── Panel header ── */
 .panel-header{background:white;border-bottom:1px solid #e2e8f0;padding:18px 18px 14px;flex-shrink:0}
+
+/* ── Entry cards (compact) ── */
 .entries-list{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
 .entry-card{background:white;border-radius:14px;border:1px solid #e2e8f0;padding:14px 14px 14px 16px;margin-bottom:8px;animation:fadeIn .2s ease;display:flex;align-items:center;gap:10px;transition:border-color .15s}
 .entry-card:hover{border-color:#d1fae5}
@@ -52,6 +63,8 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .card-icon-btn{width:36px;height:36px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .card-map-btn:hover{border-color:#10b981;background:#f0fdf4}
 .card-del-btn:hover{border-color:#fca5a5;background:#fef2f2}
+
+/* ── Form inputs ── */
 .inp{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:14px;color:#1e293b;transition:border-color .15s}
 .inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
 .inp-sm{padding:6px 10px;font-size:12px;width:auto}
@@ -60,6 +73,8 @@ textarea.inp{resize:none}
 .lbl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px}
 .lbl-hint{font-weight:400;color:#94a3b8;font-size:11px}
 .badge{background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;margin:2px}
+
+/* ── Modals ── */
 .overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.7);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
 .modal{background:white;border-radius:20px;width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);margin:auto;max-height:94vh;animation:fadeIn .2s ease}
@@ -73,6 +88,8 @@ textarea.inp{resize:none}
 .amenity-box{background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;padding:16px}
 .amenity-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#475569;padding:3px 0}
 .amenity-check input{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
+
+/* ── AI ── */
 .ai-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch}
 .msg-row{display:flex;gap:10px;align-items:flex-start;animation:fadeIn .2s ease}
 .msg-row.user{flex-direction:row-reverse}
@@ -83,28 +100,68 @@ textarea.inp{resize:none}
 .quick-wrap{padding:0 18px 12px;display:flex;flex-wrap:wrap;gap:8px}
 .quick-btn{background:white;border:1.5px solid #e2e8f0;border-radius:20px;padding:7px 14px;font-size:12px;color:#475569;font-weight:500}
 .ai-input-row{padding:12px 14px;background:white;border-top:1px solid #e2e8f0;display:flex;gap:8px;flex-shrink:0}
+
+/* ── Alerts ── */
 .err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:13px;color:#dc2626;width:100%;margin-bottom:10px}
 .info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 14px;font-size:13px;color:#166534;width:100%;margin-bottom:10px}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;gap:12px;padding:40px;text-align:center}
 #offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:white;text-align:center;padding:8px;font-size:13px;font-weight:600}
+
+/* ── Photos ── */
 .photo-wrap{position:relative;width:80px;height:80px;flex-shrink:0}
 .photo-wrap img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid #e2e8f0;display:block}
 .photo-remove{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;padding:0;line-height:20px;text-align:center}
+
+/* ── Delete confirm ── */
 .confirm-overlay{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .confirm-overlay.open{display:flex}
 .confirm-box{background:white;border-radius:20px;padding:32px;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:fadeIn .2s ease}
+
+/* ── Mobile: bottom nav bar ── */
 @media(max-width:640px){
-  .sidebar{width:100%;height:60px;flex-direction:row;position:fixed;bottom:0;left:0;right:0;z-index:100;border-right:none;border-top:1px solid rgba(255,255,255,.08)}
-  .sidebar-header,.sidebar-footer{display:none}
-  .sidebar-nav{flex-direction:row;padding:6px 8px;align-items:center;justify-content:space-around;gap:0}
-  .tab-btn{flex-direction:column;gap:3px;padding:6px 10px;font-size:10px;align-items:center;width:auto;flex:1}
-  .tab-icon{font-size:20px;width:auto}
   .app{flex-direction:column}
-  .main{padding-bottom:60px}
+  .sidebar{
+    width:100%;height:68px;
+    flex-direction:row;
+    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    border-right:none;border-top:1px solid rgba(255,255,255,.1);
+    padding:0;background:#0f172a
+  }
+  .sidebar-header,.sidebar-footer{display:none}
+  .sidebar-nav{
+    flex-direction:row;padding:4px 0 6px;
+    align-items:center;justify-content:space-around;
+    gap:0;width:100%
+  }
+  .tab-btn{
+    flex-direction:column;gap:2px;
+    padding:6px 4px;font-size:10px;
+    align-items:center;width:auto;flex:1;
+    border-radius:8px;color:#64748b
+  }
+  .tab-btn.active{background:rgba(16,185,129,.15);color:#10b981}
+  .tab-icon{font-size:22px;width:auto}
+  /* Mobile "+" log button in nav */
+  .mobile-log-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;padding:4px;border:none;background:transparent;cursor:pointer
+  }
+  .mobile-log-icon{
+    width:36px;height:36px;background:#10b981;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;color:white;font-weight:700;
+    box-shadow:0 2px 8px rgba(16,185,129,.4)
+  }
+  .mobile-log-label{font-size:10px;color:#10b981;font-weight:600}
+  .main{padding-bottom:68px}
   .modal{max-height:88vh}
   .form-grid{grid-template-columns:1fr}
   .full{grid-column:1}
-  .map-hint{font-size:11px;padding:6px 14px;top:10px}
+  .map-hint{font-size:11px;padding:6px 14px;top:10px;max-width:85%;white-space:normal;text-align:center}
+  .locate-btn{bottom:80px}
+}
+@media(min-width:641px){
+  .mobile-log-tab{display:none!important}
 }
 </style>
 </head>
@@ -113,6 +170,8 @@ textarea.inp{resize:none}
 <div id="offline-banner">⚠ You're offline — map tiles may not load, but your data is safe</div>
 
 <div class="app">
+
+  <!-- ── Sidebar / bottom nav ── -->
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="logo">🚗</div>
@@ -122,22 +181,37 @@ textarea.inp{resize:none}
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="tab-btn active" onclick="showTab('map',this)"><span class="tab-icon">🗺</span><span>Map View</span></button>
-      <button class="tab-btn" onclick="showTab('entries',this)"><span class="tab-icon">☰</span><span>Logged Entries</span></button>
-      <button class="tab-btn" onclick="showTab('ai',this)"><span class="tab-icon">✨</span><span>AI Assistant</span></button>
+      <button class="tab-btn active" onclick="showTab('map',this)">
+        <span class="tab-icon">🗺</span><span>Map View</span>
+      </button>
+      <button class="tab-btn" onclick="showTab('entries',this)">
+        <span class="tab-icon">☰</span><span>Logged Entries</span>
+      </button>
+      <!-- Mobile + button (hidden on desktop) -->
+      <button class="mobile-log-tab" onclick="openForm(null)">
+        <div class="mobile-log-icon">+</div>
+        <span class="mobile-log-label">Log</span>
+      </button>
+      <button class="tab-btn" onclick="showTab('ai',this)">
+        <span class="tab-icon">✨</span><span>AI</span>
+      </button>
     </div>
     <div class="sidebar-footer">
       <button class="log-btn" onclick="openForm(null)">+ Log Location</button>
     </div>
   </div>
 
+  <!-- ── Main ── -->
   <div class="main">
+
+    <!-- Map tab -->
     <div id="tab-map" class="tab-panel active" style="position:absolute;inset:0">
       <div id="map"></div>
       <div class="map-hint">Tap anywhere on the map to log a location</div>
       <button class="locate-btn" onclick="locateMe()" title="Find my location">📍</button>
     </div>
 
+    <!-- Entries tab -->
     <div id="tab-entries" class="tab-panel" style="background:#f8fafc">
       <div class="panel-header">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -153,10 +227,13 @@ textarea.inp{resize:none}
           </select>
           <select class="inp inp-sm" id="f-status" onchange="renderEntries()">
             <option value="">All Statuses</option>
-            <option value="visited">Visited</option><option value="current">Currently Here</option><option value="planned">Planned</option>
+            <option value="visited">Visited</option>
+            <option value="current">Currently Here</option>
+            <option value="planned">Planned</option>
           </select>
           <select class="inp inp-sm" id="f-rating" onchange="renderEntries()">
-            <option value="0">Any Rating</option><option value="1">1+ ★</option><option value="2">2+ ★</option>
+            <option value="0">Any Rating</option>
+            <option value="1">1+ ★</option><option value="2">2+ ★</option>
             <option value="3">3+ ★</option><option value="4">4+ ★</option><option value="5">5 ★</option>
           </select>
         </div>
@@ -164,6 +241,7 @@ textarea.inp{resize:none}
       <div id="entries-list" class="entries-list"></div>
     </div>
 
+    <!-- AI tab -->
     <div id="tab-ai" class="tab-panel" style="background:#f8fafc">
       <div class="panel-header">
         <h2 style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px">✨ AI Assistant</h2>
@@ -176,10 +254,11 @@ textarea.inp{resize:none}
         <button onclick="sendAI()" style="background:#10b981;color:white;border:none;border-radius:10px;padding:0 18px;font-weight:700;font-size:20px;flex-shrink:0">→</button>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- FORM MODAL -->
+<!-- ── Log / Edit form modal ── -->
 <div class="overlay" id="form-overlay">
   <div class="modal">
     <div class="modal-header">
@@ -197,7 +276,7 @@ textarea.inp{resize:none}
           <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites, Keller Peak"/>
         </div>
         <div class="full">
-          <label class="lbl">Address <span class="lbl-hint">(used to find map pin if no coords entered)</span></label>
+          <label class="lbl">Address <span class="lbl-hint">(geocoded to map pin if no coords entered)</span></label>
           <input class="inp" id="f-address" placeholder="e.g. Forest Rd 2N10, Big Bear, CA"/>
         </div>
         <div class="full">
@@ -274,7 +353,7 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- DELETE CONFIRM -->
+<!-- ── Delete confirm ── -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
     <div style="font-size:40px;margin-bottom:12px">🗑</div>
@@ -288,127 +367,163 @@ textarea.inp{resize:none}
 </div>
 
 <script>
-const STORAGE_KEY='road-tripping-v1';
-const TYPE_ICONS={"National Park":"🏔","National Forest":"🌲","BLM":"🏜","Dispersed":"⛺","Private":"🏠","Other":"📍"};
-const STATUS_LABEL={visited:"Visited",current:"Currently Here",planned:"Planned"};
-const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal','a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'};
-const AMENITY_META=[
-  {id:'hasPotableWater',label:'Potable Water',icon:'💧'},{id:'hasDumpStation',label:'Dump Station',icon:'🗑'},
-  {id:'isSeasonal',label:'Seasonal Closure',icon:'⚠'},{id:'hasFireAllowed',label:'Fire Allowed',icon:'🔥'},
-  {id:'hasPets',label:'Pet Friendly',icon:'🐾'},{id:'hasHookups',label:'Electric Hookups',icon:'⚡'},
+// ── Config — paste your Geocodio API key here ─────────────────────────────────
+const GEOCODIO_KEY = 'YOUR_GEOCODIO_API_KEY';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const STORAGE_KEY  = 'road-tripping-v1';
+const STATUS_LABEL = {visited:'Visited', current:'Currently Here', planned:'Planned'};
+const AMENITY_MAP  = {
+  'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal',
+  'a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'
+};
+const AMENITY_META = [
+  {id:'hasPotableWater',label:'Potable Water',icon:'💧'},
+  {id:'hasDumpStation', label:'Dump Station', icon:'🗑'},
+  {id:'isSeasonal',     label:'Seasonal Closure',icon:'⚠'},
+  {id:'hasFireAllowed', label:'Fire Allowed', icon:'🔥'},
+  {id:'hasPets',        label:'Pet Friendly', icon:'🐾'},
+  {id:'hasHookups',     label:'Electric Hookups',icon:'⚡'},
 ];
 
-let entries=[],editId=null,pendingLat=null,pendingLng=null,currentRating=0,pendingPhotos=[];
-let map,markers=[],myDotMarker=null,myDotCircle=null;
-let aiMessages=[],deleteTargetId=null;
+// ── State ─────────────────────────────────────────────────────────────────────
+let entries=[], editId=null, pendingLat=null, pendingLng=null;
+let currentRating=0, pendingPhotos=[];
+let map, markers=[], myDotMarker=null, myDotCircle=null;
+let aiMessages=[], deleteTargetId=null;
 
-function genId(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
-function today(){return new Date().toISOString().split('T')[0];}
-function tomorrow(){return new Date(Date.now()+86400000).toISOString().split('T')[0];}
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function genId(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function today(){ return new Date().toISOString().split('T')[0]; }
+function tomorrow(){ return new Date(Date.now()+86400000).toISOString().split('T')[0]; }
 
 function costLabel(c){
   if(c===null||c===undefined) return '?';
-  if(c===0) return 'Free!';
-  if(c<10)  return '$';
-  if(c<100) return '$$';
-  if(c<500) return '$$$';
+  if(c===0)   return 'Free!';
+  if(c<10)    return '$';
+  if(c<100)   return '$$';
+  if(c<500)   return '$$$';
   return '$$$$';
 }
 function costColor(c){
   if(c===null||c===undefined) return '#94a3b8';
-  if(c===0) return '#10b981';
-  if(c<10)  return '#059669';
-  if(c<100) return '#d97706';
+  if(c===0)  return '#10b981';
+  if(c<10)   return '#059669';
+  if(c<100)  return '#d97706';
   return '#dc2626';
 }
 
-function saveData(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(entries));}catch(e){}}
-function loadData(){try{const d=localStorage.getItem(STORAGE_KEY);if(d)entries=JSON.parse(d);}catch(e){}}
+// ── Storage ───────────────────────────────────────────────────────────────────
+function saveData(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(entries)); }catch(e){} }
+function loadData(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d) entries=JSON.parse(d); }catch(e){} }
 
-window.addEventListener('online', ()=>document.getElementById('offline-banner').style.display='none');
-window.addEventListener('offline',()=>document.getElementById('offline-banner').style.display='block');
+// ── Offline banner ────────────────────────────────────────────────────────────
+window.addEventListener('online',  ()=>document.getElementById('offline-banner').style.display='none');
+window.addEventListener('offline', ()=>document.getElementById('offline-banner').style.display='block');
 if(!navigator.onLine) document.getElementById('offline-banner').style.display='block';
 
+// ── Geocodio geocoding ────────────────────────────────────────────────────────
+async function geocodeAddress(address){
+  const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error('Geocodio request failed: '+res.status);
+  const data=await res.json();
+  if(data.lat&&data.lng) return {lat:data.lat, lng:data.lng};
+  return null;
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-function showTab(name,btn){
+function showTab(name, btn){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(btn) btn.classList.add('active');
   if(name==='entries') renderEntries();
-  if(name==='ai') renderAI();
-  if(name==='map') setTimeout(()=>map&&map.invalidateSize(),150);
+  if(name==='ai')      renderAI();
+  if(name==='map')     setTimeout(()=>map&&map.invalidateSize(),150);
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([39.8283,-98.5795],4);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:19
   }).addTo(map);
-  map.on('click',e=>openForm(null,e.latlng.lat,e.latlng.lng));
+  map.on('click', e=>openForm(null, e.latlng.lat, e.latlng.lng));
   locateMe();
   renderMarkers();
 }
 
-function updateMyDot(lat,lng){
-  if(myDotCircle){myDotCircle.remove();myDotCircle=null;}
-  if(myDotMarker){myDotMarker.remove();myDotMarker=null;}
-  myDotCircle=L.circle([lat,lng],{radius:40,color:'#3b82f6',fillColor:'#bfdbfe',fillOpacity:.3,weight:1.5}).addTo(map);
+// Blue dot — current user location
+function updateMyDot(lat, lng){
+  if(myDotCircle){ myDotCircle.remove(); myDotCircle=null; }
+  if(myDotMarker){ myDotMarker.remove(); myDotMarker=null; }
+  myDotCircle=L.circle([lat,lng],{
+    radius:50, color:'#3b82f6', fillColor:'#bfdbfe', fillOpacity:.25, weight:1.5
+  }).addTo(map);
   const icon=L.divIcon({html:'<div class="my-dot"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
   myDotMarker=L.marker([lat,lng],{icon,zIndexOffset:2000,interactive:false}).addTo(map);
 }
 
 function locateMe(){
   if(!navigator.geolocation){
-    alert('Geolocation not supported.\n\nOn iPhone, make sure you\'re using Safari and go to:\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App');
+    alert('Geolocation not available.\n\nOn iPhone: Settings → Privacy & Security → Location Services → Safari → Allow While Using App');
     return;
   }
   navigator.geolocation.getCurrentPosition(
     pos=>{
-      updateMyDot(pos.coords.latitude,pos.coords.longitude);
-      map.setView([pos.coords.latitude,pos.coords.longitude],12);
+      updateMyDot(pos.coords.latitude, pos.coords.longitude);
+      map.setView([pos.coords.latitude, pos.coords.longitude], 12);
     },
     err=>{
-      if(err.code===1){
-        alert('Location access denied.\n\nTo enable on iPhone:\n1. Open Settings\n2. Privacy & Security → Location Services\n3. Safari (or Road Tripping) → Allow While Using App\n\nThen tap 📍 again.');
-      }
+      if(err.code===1) alert('Location access denied.\n\nTo enable on iPhone:\n1. Settings → Privacy & Security → Location Services\n2. Find Safari (or Road Tripping)\n3. Set to "Allow While Using App"\n4. Tap 📍 again.');
     },
-    {enableHighAccuracy:true,timeout:12000}
+    {enableHighAccuracy:true, timeout:12000}
   );
 }
 
 function startWatchingLocation(){
   if(!navigator.geolocation) return;
   navigator.geolocation.watchPosition(
-    pos=>updateMyDot(pos.coords.latitude,pos.coords.longitude),
+    pos=>updateMyDot(pos.coords.latitude, pos.coords.longitude),
     ()=>{},
-    {enableHighAccuracy:true,maximumAge:15000}
+    {enableHighAccuracy:true, maximumAge:15000}
   );
 }
 
+// Plain red pins for logged locations
 function renderMarkers(){
   markers.forEach(m=>m.remove());
   markers=[];
   entries.filter(e=>e.lat!=null&&e.lng!=null).forEach(entry=>{
     const icon=L.divIcon({
-      html:`<div style="background:#10b981;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:14px;display:block;text-align:center;line-height:26px">${TYPE_ICONS[entry.type]||'📍'}</span></div>`,
-      className:'',iconSize:[32,32],iconAnchor:[16,32],popupAnchor:[0,-36]
+      html:`<div style="width:22px;height:32px;position:relative">
+        <div style="width:22px;height:22px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div>
+      </div>`,
+      className:'', iconSize:[22,32], iconAnchor:[11,32], popupAnchor:[0,-34]
     });
-    const m=L.marker([entry.lat,entry.lng],{icon}).addTo(map);
-    const cost=entry.cost===0?'Free!':entry.cost==null?'?':'$'+entry.cost+'/night';
-    m.bindPopup(`<div style="font-family:system-ui;min-width:190px;padding:4px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
-      <div style="font-size:12px;color:#475569;margin-bottom:8px">${entry.arrivalDate} → ${entry.departureDate}<br/>${cost}</div>
-      <button onclick="window._editEntry('${entry.id}')" style="background:#10b981;color:white;border:none;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
-    </div>`);
+    const m=L.marker([entry.lat, entry.lng],{icon}).addTo(map);
+    const cost=entry.cost===0?'Free!':entry.cost==null?'Unknown':'$'+entry.cost+'/night';
+    m.bindPopup(`
+      <div style="font-family:system-ui;min-width:190px;padding:4px">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px">
+          ${entry.arrivalDate} → ${entry.departureDate}<br/>${cost}
+        </div>
+        <button onclick="window._editEntry('${entry.id}')"
+          style="background:#10b981;color:white;border:none;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
+          Edit / View Details
+        </button>
+      </div>`
+    );
     markers.push(m);
   });
 }
-window._editEntry=id=>{map.closePopup();openForm(entries.find(e=>e.id===id));};
+window._editEntry = id => { map.closePopup(); openForm(entries.find(e=>e.id===id)); };
 
-// Fly map to entry and open its popup
+// Fly to entry from logged entries list
 function flyToEntry(id){
   const entry=entries.find(e=>e.id===id);
   if(!entry||entry.lat==null) return;
@@ -421,18 +536,18 @@ function flyToEntry(id){
   document.getElementById('tab-map').classList.add('active');
   setTimeout(()=>{
     map.invalidateSize();
-    map.flyTo([entry.lat,entry.lng],14,{duration:1.2});
-    // Find and open the matching marker popup
+    map.flyTo([entry.lat, entry.lng], 14, {duration:1.2});
+    // Open popup after fly animation
     setTimeout(()=>{
       const coordEntries=entries.filter(e=>e.lat!=null&&e.lng!=null);
       const idx=coordEntries.findIndex(e=>e.id===id);
       if(idx>=0&&markers[idx]) markers[idx].openPopup();
-    },1400);
-  },150);
+    }, 1400);
+  }, 150);
 }
 
 // ── Form ──────────────────────────────────────────────────────────────────────
-function openForm(entry,lat,lng){
+function openForm(entry, lat, lng){
   editId=entry?entry.id:null;
   pendingLat=entry?entry.lat:(lat!=null?lat:null);
   pendingLng=entry?entry.lng:(lng!=null?lng:null);
@@ -442,14 +557,18 @@ function openForm(entry,lat,lng){
   document.getElementById('form-title').textContent=entry?'✏️ Edit Location':'⛺ Log New Location';
   document.getElementById('f-name').value=entry?entry.name:'';
   document.getElementById('f-address').value=entry?(entry.address||''):'';
-  document.getElementById('f-coords').value=(entry&&entry.lat!=null)?entry.lat.toFixed(6)+', '+entry.lng.toFixed(6):(lat!=null?lat.toFixed(6)+', '+lng.toFixed(6):'');
+  document.getElementById('f-coords').value=(entry&&entry.lat!=null)
+    ? entry.lat.toFixed(6)+', '+entry.lng.toFixed(6)
+    : (lat!=null ? lat.toFixed(6)+', '+lng.toFixed(6) : '');
   document.getElementById('f-arrival').value=entry?entry.arrivalDate:today();
   document.getElementById('f-departure').value=entry?entry.departureDate:tomorrow();
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
   document.getElementById('f-status-sel').value=entry?entry.status:'visited';
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
   document.getElementById('f-notes').value=entry?(entry.notes||''):'';
-  Object.entries(AMENITY_MAP).forEach(([el,key])=>{document.getElementById(el).checked=entry?!!entry[key]:false;});
+  Object.entries(AMENITY_MAP).forEach(([el,key])=>{
+    document.getElementById(el).checked=entry?!!entry[key]:false;
+  });
 
   const hint=document.getElementById('coords-hint');
   hint.style.display=(lat!=null&&!entry)?'block':'none';
@@ -458,34 +577,37 @@ function openForm(entry,lat,lng){
   document.getElementById('geo-error').style.display='none';
   document.getElementById('geo-info').style.display='none';
 
+  // Trash icon in header only when editing
   const trashBtn=document.getElementById('form-trash-btn');
   trashBtn.style.display=entry?'flex':'none';
 
   updateStars(currentRating);
   renderPhotoRow();
   document.getElementById('form-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('f-name').focus(),100);
+  setTimeout(()=>document.getElementById('f-name').focus(), 100);
 }
 
 function closeForm(){
   document.getElementById('form-overlay').classList.remove('open');
-  editId=null;pendingLat=null;pendingLng=null;pendingPhotos=[];
+  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
 }
 
+// Stars
 function updateStars(v){
   currentRating=v;
   document.querySelectorAll('#stars .star').forEach(s=>s.classList.toggle('on',parseInt(s.dataset.v)<=v));
 }
 document.querySelectorAll('#stars .star').forEach(s=>{
-  s.addEventListener('click',()=>updateStars(parseInt(s.dataset.v)===currentRating?0:parseInt(s.dataset.v)));
-  s.addEventListener('mouseenter',()=>document.querySelectorAll('#stars .star').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.v)<=parseInt(s.dataset.v))));
-  s.addEventListener('mouseleave',()=>updateStars(currentRating));
+  s.addEventListener('click', ()=>updateStars(parseInt(s.dataset.v)===currentRating?0:parseInt(s.dataset.v)));
+  s.addEventListener('mouseenter', ()=>document.querySelectorAll('#stars .star').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.v)<=parseInt(s.dataset.v))));
+  s.addEventListener('mouseleave', ()=>updateStars(currentRating));
 });
 
+// Photos
 function handlePhotos(input){
   Array.from(input.files).forEach(file=>{
     const reader=new FileReader();
-    reader.onload=ev=>{pendingPhotos.push({id:genId(),data:ev.target.result,name:file.name});renderPhotoRow();};
+    reader.onload=ev=>{ pendingPhotos.push({id:genId(),data:ev.target.result,name:file.name}); renderPhotoRow(); };
     reader.readAsDataURL(file);
   });
   input.value='';
@@ -500,79 +622,94 @@ function renderPhotoRow(){
     row.appendChild(wrap);
   });
 }
-function removePhoto(id){pendingPhotos=pendingPhotos.filter(p=>p.id!==id);renderPhotoRow();}
+function removePhoto(id){ pendingPhotos=pendingPhotos.filter(p=>p.id!==id); renderPhotoRow(); }
 
+// Save
 async function saveEntry(){
   const name=document.getElementById('f-name').value.trim();
-  if(!name){showErr('Please enter a location name.');return;}
-  const errEl=document.getElementById('geo-error'),infoEl=document.getElementById('geo-info'),btn=document.getElementById('save-btn');
-  errEl.style.display='none';infoEl.style.display='none';
-  let lat=pendingLat,lng=pendingLng;
+  if(!name){ showErr('Please enter a location name.'); return; }
+
+  const errEl=document.getElementById('geo-error');
+  const infoEl=document.getElementById('geo-info');
+  const btn=document.getElementById('save-btn');
+  errEl.style.display='none'; infoEl.style.display='none';
+
+  let lat=pendingLat, lng=pendingLng;
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
+  // Priority 1: typed coordinates
   if(coordsText){
     const parts=coordsText.split(',').map(p=>parseFloat(p.trim()));
-    if(!isNaN(parts[0])&&!isNaN(parts[1])){lat=parts[0];lng=parts[1];}
-    else{showErr('Invalid coordinates — use format: 37.6137, -113.0998');return;}
+    if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
+    else{ showErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
-  if(lat==null&&address){
-    btn.textContent='Finding location…';btn.disabled=true;
-    infoEl.textContent='🔍 Looking up address…';infoEl.style.display='block';
+
+  // Priority 2: geocode address via Geocodio
+  if(lat==null && address){
+    btn.textContent='Finding location…'; btn.disabled=true;
+    infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
-      const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(address)+'&limit=1',{headers:{'Accept-Language':'en','User-Agent':'RoadTripping/1.0'}});
-      const data=await res.json();
-      if(data&&data.length){lat=parseFloat(data[0].lat);lng=parseFloat(data[0].lon);infoEl.textContent='✓ Found: '+address;}
-      else{showErr('Could not find that address. Try being more specific, or paste lat/lng from Google Maps.');btn.textContent='Save Location';btn.disabled=false;return;}
+      const result=await geocodeAddress(address);
+      if(result){ lat=result.lat; lng=result.lng; infoEl.textContent='✓ Found: '+address; }
+      else{
+        showErr('Could not find that address. Try being more specific, or paste lat/lng from Google Maps (long-press any spot to copy).');
+        btn.textContent='Save Location'; btn.disabled=false; return;
+      }
     }catch(e){
-      showErr('Could not reach geocoding service. Enter coordinates manually (long-press in Google Maps to copy lat/lng).');btn.textContent='Save Location';btn.disabled=false;return;
+      showErr('Geocoding failed — check your connection. You can also enter coordinates manually.');
+      btn.textContent='Save Location'; btn.disabled=false; return;
     }
-    btn.textContent='Save Location';btn.disabled=false;
+    btn.textContent='Save Location'; btn.disabled=false;
   }
 
   const amenities={};
-  Object.entries(AMENITY_MAP).forEach(([el,key])=>{amenities[key]=document.getElementById(el).checked;});
+  Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
   const costVal=document.getElementById('f-cost').value;
+
   const entry={
-    id:editId||genId(),
-    createdAt:editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
-    name,address,lat,lng,
-    arrivalDate:document.getElementById('f-arrival').value,
+    id: editId||genId(),
+    createdAt: editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
+    name, address, lat, lng,
+    arrivalDate:  document.getElementById('f-arrival').value,
     departureDate:document.getElementById('f-departure').value,
-    type:document.getElementById('f-type-sel').value,
-    status:document.getElementById('f-status-sel').value,
-    cost:costVal===''?null:parseFloat(costVal),
-    rating:currentRating,
-    notes:document.getElementById('f-notes').value.trim(),
-    photos:pendingPhotos.slice(),
+    type:   document.getElementById('f-type-sel').value,
+    status: document.getElementById('f-status-sel').value,
+    cost:   costVal===''?null:parseFloat(costVal),
+    rating: currentRating,
+    notes:  document.getElementById('f-notes').value.trim(),
+    photos: pendingPhotos.slice(),
     ...amenities
   };
-  if(editId){entries=entries.map(e=>e.id===editId?entry:e);}
-  else{entries=[entry,...entries];}
-  saveData();closeForm();updateCount();renderMarkers();renderEntries();
+
+  if(editId){ entries=entries.map(e=>e.id===editId?entry:e); }
+  else{ entries=[entry,...entries]; }
+
+  saveData(); closeForm(); updateCount(); renderMarkers(); renderEntries();
 }
 
-function showErr(msg){const el=document.getElementById('geo-error');el.textContent=msg;el.style.display='block';}
+function showErr(msg){ const el=document.getElementById('geo-error'); el.textContent=msg; el.style.display='block'; }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function confirmDelete(id){
   deleteTargetId=id||editId;
   document.getElementById('confirm-overlay').classList.add('open');
 }
-function closeConfirm(){document.getElementById('confirm-overlay').classList.remove('open');deleteTargetId=null;}
+function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); deleteTargetId=null; }
 function executeDelete(){
   if(!deleteTargetId) return;
   entries=entries.filter(e=>e.id!==deleteTargetId);
-  saveData();closeConfirm();closeForm();updateCount();renderMarkers();renderEntries();
+  saveData(); closeConfirm(); closeForm(); updateCount(); renderMarkers(); renderEntries();
   deleteTargetId=null;
 }
 
-// ── Entries ───────────────────────────────────────────────────────────────────
+// ── Entries list ──────────────────────────────────────────────────────────────
 function renderEntries(){
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
   const ft=document.getElementById('f-type').value;
   const fs=document.getElementById('f-status').value;
   const fr=parseInt(document.getElementById('f-rating').value||'0');
+
   const filtered=entries.filter(e=>{
     const match=!q||[e.name,e.notes||'',e.address||'',e.type].some(s=>s.toLowerCase().includes(q));
     return match&&(!ft||e.type===ft)&&(!fs||e.status===fs)&&(e.rating||0)>=fr;
@@ -604,7 +741,7 @@ function renderEntries(){
           <div style="min-width:0;flex:1">
             <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
             <div style="font-size:12px;color:#64748b;margin-top:2px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-              <span>${TYPE_ICONS[e.type]||'📍'} ${e.type}</span>
+              <span>${e.type}</span>
               <span style="color:#e2e8f0">·</span>
               <span style="color:${sc};font-weight:600">${STATUS_LABEL[e.status]||e.status}</span>
             </div>
@@ -624,15 +761,30 @@ function renderEntries(){
   }).join('');
 }
 
-// ── AI ────────────────────────────────────────────────────────────────────────
-const QUICK=['Suggest free BLM camping near me','What are my highest-rated spots?','Dispersed camping in Northern CA','Best stops between Chico and Lake Tahoe'];
+// ── AI Assistant ──────────────────────────────────────────────────────────────
+const QUICK=[
+  'Suggest free BLM camping near me',
+  'What are my highest-rated spots?',
+  'Dispersed camping in Northern CA',
+  'Best stops between Chico and Lake Tahoe'
+];
+
 function renderAI(){
-  if(!aiMessages.length) aiMessages=[{role:'assistant',text:'Hi! I can suggest nearby camping spots, BLM land, dispersed sites, or stops along a route — tailored to van life. Where are you headed?'}];
+  if(!aiMessages.length){
+    aiMessages=[{role:'assistant',text:'Hi! I can suggest nearby camping spots, BLM land, dispersed sites, or stops along a route — tailored to van life. Where are you headed?'}];
+  }
   const wrap=document.getElementById('ai-messages');
-  wrap.innerHTML=aiMessages.map(m=>`<div class="msg-row ${m.role==='user'?'user':''}"><div class="avatar" style="background:${m.role==='user'?'#10b981':'#e2e8f0'}">${m.role==='user'?'👤':'🤖'}</div><div class="msg-bubble ${m.role==='assistant'?'ai':'user'}">${m.text}</div></div>`).join('');
+  wrap.innerHTML=aiMessages.map(m=>`
+    <div class="msg-row ${m.role==='user'?'user':''}">
+      <div class="avatar" style="background:${m.role==='user'?'#10b981':'#e2e8f0'}">${m.role==='user'?'👤':'🤖'}</div>
+      <div class="msg-bubble ${m.role==='assistant'?'ai':'user'}">${m.text}</div>
+    </div>`).join('');
   wrap.scrollTop=wrap.scrollHeight;
-  document.getElementById('quick-prompts').innerHTML=aiMessages.length<=1?QUICK.map(p=>`<button class="quick-btn" onclick="document.getElementById('ai-inp').value='${p}'">${p}</button>`).join(''):'';
+  document.getElementById('quick-prompts').innerHTML=aiMessages.length<=1
+    ? QUICK.map(p=>`<button class="quick-btn" onclick="document.getElementById('ai-inp').value='${p}'">${p}</button>`).join('')
+    : '';
 }
+
 async function sendAI(){
   const inp=document.getElementById('ai-inp');
   const text=inp.value.trim();
@@ -640,29 +792,56 @@ async function sendAI(){
   inp.value='';
   aiMessages.push({role:'user',text});
   renderAI();
+
   const wrap=document.getElementById('ai-messages');
   const loader=document.createElement('div');
   loader.className='msg-row';
-  loader.innerHTML=`<div class="avatar" style="background:#e2e8f0">🤖</div><div class="msg-bubble ai" style="display:flex;gap:6px;padding:14px 18px">${[0,.2,.4].map(d=>`<span style="width:8px;height:8px;background:#94a3b8;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}</div>`;
-  wrap.appendChild(loader);wrap.scrollTop=wrap.scrollHeight;
-  const system=`You are a travel assistant for a full-time van dweller in a Sprinter van. Suggest real, specific nearby camping spots, BLM dispersed sites, national forest camps, dump stations, and interesting stops. Always mention: distances, cell service, road conditions (2WD vs 4WD), cost, and grey water disposal nearby. User is vegetarian and never dumps grey water outside designated stations. Their logged history: ${JSON.stringify(entries.map(e=>({name:e.name,type:e.type,lat:e.lat,lng:e.lng,rating:e.rating,notes:e.notes,arrivalDate:e.arrivalDate,cost:e.cost})))}`;
+  loader.innerHTML=`<div class="avatar" style="background:#e2e8f0">🤖</div>
+    <div class="msg-bubble ai" style="display:flex;gap:6px;padding:14px 18px">
+      ${[0,.2,.4].map(d=>`<span style="width:8px;height:8px;background:#94a3b8;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}
+    </div>`;
+  wrap.appendChild(loader); wrap.scrollTop=wrap.scrollHeight;
+
+  const system=`You are a travel assistant for a full-time van dweller in a Sprinter van with a dog. Suggest real, specific nearby camping spots, BLM dispersed sites, national forest camps, dump stations, and interesting stops. Always mention: distances, cell service quality, road conditions (2WD vs 4WD), cost, and grey water disposal options nearby. The user is vegetarian and never dumps grey water outside designated stations. Their logged travel history: ${JSON.stringify(entries.map(e=>({name:e.name,type:e.type,lat:e.lat,lng:e.lng,rating:e.rating,notes:e.notes,arrivalDate:e.arrivalDate,cost:e.cost})))}`;
+
   const history=aiMessages.slice(0,-1).map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.text}));
+
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[...history,{role:'user',content:text}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system,
+        messages:[...history,{role:'user',content:text}]
+      })
+    });
     const data=await res.json();
     const reply=data.content&&data.content.find(c=>c.type==='text');
     aiMessages.push({role:'assistant',text:reply?reply.text:'Sorry, could not get a response.'});
-  }catch(e){aiMessages.push({role:'assistant',text:'Something went wrong — check your connection and try again.'});}
-  loader.remove();renderAI();
+  }catch(e){
+    aiMessages.push({role:'assistant',text:'Something went wrong — check your connection and try again.'});
+  }
+  loader.remove();
+  renderAI();
 }
 
-function updateCount(){document.getElementById('loc-count').textContent=entries.length+' location'+(entries.length!==1?'s':'')+' logged';}
+// ── Count ─────────────────────────────────────────────────────────────────────
+function updateCount(){
+  document.getElementById('loc-count').textContent=
+    entries.length+' location'+(entries.length!==1?'s':'')+' logged';
+}
 
-if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+// ── Service Worker ────────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 
+// ── Init ──────────────────────────────────────────────────────────────────────
 loadData();
 updateCount();
-window.addEventListener('load',()=>{
+window.addEventListener('load', ()=>{
   initMap();
   startWatchingLocation();
   renderEntries();
