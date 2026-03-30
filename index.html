@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<!-- Firebase modular SDK (supports named databases) -->
+<!-- Firebase modular SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -26,73 +26,52 @@ const firebaseConfig = {
   messagingSenderId: "659366672596",
   appId:             "1:659366672596:web:9a8fe8502a0769fdafe341"
 };
-
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app, 'ai-studio-c0969653-1687-41bd-9dbc-30380f72c788');
-
 const googleProvider = new GoogleAuthProvider();
 
-// ── Auth helpers (exposed to global scope for HTML onclick handlers) ───────────
 window._firebaseAuth = {
   signInWithGoogle(){
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if(isMobile){
-      signInWithRedirect(auth, googleProvider).catch(err=>{
-        const el=document.getElementById('login-error');
-        el.textContent=err.message; el.style.display='block';
-      });
+      signInWithRedirect(auth,googleProvider).catch(err=>showLoginError(err.message));
     } else {
-      signInWithPopup(auth, googleProvider).catch(err=>{
-        if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'){
-          signInWithRedirect(auth, googleProvider);
-        } else {
-          const el=document.getElementById('login-error');
-          el.textContent=err.message; el.style.display='block';
-        }
+      signInWithPopup(auth,googleProvider).catch(err=>{
+        if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user') signInWithRedirect(auth,googleProvider);
+        else showLoginError(err.message);
       });
     }
   },
   signOut(){ signOut(auth); }
 };
 
-// Handle redirect result
-getRedirectResult(auth).then(result=>{
-  if(result?.user) console.log('Signed in via redirect:', result.user.email);
-}).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect error:',err); });
+function showLoginError(msg){ const el=document.getElementById('login-error'); if(el){el.textContent=msg;el.style.display='block';} }
 
-// Auth state changes
+getRedirectResult(auth).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect:',err); });
+
 onAuthStateChanged(auth, user=>{
-  window._currentUser = user;
+  window._currentUser=user;
   if(user){
-    const btn=document.getElementById('user-info');
-    if(btn) btn.textContent='Sign out ('+(user.displayName||user.email)+')';
-    window._showApp && window._showApp();
-    window._subscribeToFirestore && window._subscribeToFirestore(user.uid);
+    const btn=document.getElementById('user-name'); if(btn) btn.textContent=user.displayName||user.email;
+    window._showApp&&window._showApp();
+    window._subscribeFirestore&&window._subscribeFirestore(user.uid);
   } else {
-    window._showLogin && window._showLogin();
+    window._showLogin&&window._showLogin();
   }
 });
 
-// ── Firestore helpers (exposed to global scope) ───────────────────────────────
-window._db = {
-  subscribe(uid, callback, errCallback){
-    const q = query(
-      collection(db, 'users', uid, 'logs'),
-      orderBy('createdAt','desc')
-    );
-    return onSnapshot(q, snap=>{
-      callback(snap.docs.map(d=>({id:d.id,...d.data()})));
-    }, errCallback);
+window._db={
+  subscribe(uid,cb,errCb){
+    return onSnapshot(query(collection(db,'users',uid,'logs'),orderBy('createdAt','desc')),
+      snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()}))), errCb);
   },
-  async save(uid, entry){
-    const {id, ...data} = entry;
-    const clean = Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
-    await setDoc(doc(db,'users',uid,'logs',id), clean, {merge:true});
+  async save(uid,entry){
+    const{id,...data}=entry;
+    const clean=Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
+    await setDoc(doc(db,'users',uid,'logs',id),clean,{merge:true});
   },
-  async remove(uid, id){
-    await deleteDoc(doc(db,'users',uid,'logs',id));
-  }
+  async remove(uid,id){ await deleteDoc(doc(db,'users',uid,'logs',id)); }
 };
 </script>
 <style>
@@ -100,340 +79,344 @@ window._db = {
 html,body{height:100%;overflow:hidden;background:#0f172a}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 @keyframes pulseRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(3);opacity:0}}
 button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
-.app{display:flex;height:100vh;height:100dvh}
 
-/* Sidebar */
-.sidebar{width:230px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06)}
-.sidebar-header{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
-.logo{width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(16,185,129,.3)}
-.sidebar-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:4px}
-.tab-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:14px;text-align:left;width:100%;transition:all .15s}
-.tab-btn.active{background:rgba(16,185,129,.12);color:#10b981;font-weight:600}
-.tab-btn:hover:not(.active){background:rgba(255,255,255,.05);color:#94a3b8}
-.tab-icon{font-size:17px;width:22px;text-align:center;line-height:1}
-.sidebar-footer{padding:12px 10px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
-.log-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#10b981;color:white;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(16,185,129,.35);transition:all .15s}
-.log-btn:hover{background:#059669;transform:translateY(-1px)}
-.log-btn:active{transform:translateY(0)}
-.signout-btn{width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:12px;font-weight:500;transition:all .15s}
-.signout-btn:hover{color:#94a3b8;border-color:rgba(255,255,255,.2)}
-
-/* Main */
-.main{flex:1;overflow:hidden;position:relative;background:#f8fafc}
-.tab-panel{position:absolute;inset:0;display:none;flex-direction:column}
-.tab-panel.active{display:flex}
-
-/* Map */
+/* ── Full-screen map base ── */
+#map-container{position:fixed;inset:0;z-index:0}
 #map{width:100%;height:100%}
-.map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px 20px;border-radius:999px;box-shadow:0 2px 16px rgba(0,0,0,.14);font-size:13px;color:#475569;pointer-events:none;white-space:nowrap;font-weight:500}
-.locate-btn{position:absolute;bottom:24px;right:16px;z-index:1000;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.locate-btn:active{transform:scale(.93)}
+
+/* ── Map overlay buttons ── */
+.map-btn{position:absolute;z-index:500;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.map-btn:active{transform:scale(.93)}
+#btn-locate{bottom:100px;right:12px}
+#btn-satellite{bottom:152px;right:12px}
+#btn-log{bottom:100px;left:12px;background:#10b981;color:white;box-shadow:0 4px 14px rgba(16,185,129,.4);font-size:22px;font-weight:700}
+.map-hint-bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:500;background:white;padding:7px 18px;border-radius:999px;box-shadow:0 2px 12px rgba(0,0,0,.14);font-size:13px;color:#475569;pointer-events:none;white-space:nowrap;font-weight:500;max-width:90%;text-align:center}
+
+/* ── Top bar (always visible) ── */
+#top-bar{position:absolute;top:0;left:0;right:0;z-index:600;height:54px;background:#0f172a;display:flex;align-items:center;padding:0 12px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#menu-btn{width:40px;height:40px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:white;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#top-title{color:white;font-weight:700;font-size:16px;flex:1}
+#top-count{font-size:11px;color:#64748b;white-space:nowrap}
+
+/* ── Drawer (slides in from left, map stays visible) ── */
+#drawer-overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.4);display:none;animation:fadeIn .2s ease}
+#drawer-overlay.open{display:block}
+#drawer{position:fixed;top:0;bottom:0;left:0;z-index:900;width:min(360px,92vw);background:#0f172a;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.4)}
+#drawer.open{transform:translateX(0)}
+#drawer-header{padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#drawer-close{width:36px;height:36px;border-radius:8px;border:none;background:rgba(255,255,255,.06);color:#94a3b8;font-size:18px;display:flex;align-items:center;justify-content:center}
+.drawer-nav{display:flex;flex-direction:column;gap:4px;padding:10px 10px 0}
+.dnav-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:14px;text-align:left;width:100%;transition:all .15s}
+.dnav-btn.active{background:rgba(16,185,129,.12);color:#10b981;font-weight:600}
+.dnav-btn:hover:not(.active){background:rgba(255,255,255,.05);color:#94a3b8}
+.dnav-icon{font-size:18px;width:22px;text-align:center}
+#drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#drawer-footer{padding:12px 10px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
+.log-btn-full{padding:12px;border-radius:12px;border:none;background:#10b981;color:white;font-weight:700;font-size:14px;width:100%;box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.signout-row{display:flex;align-items:center;gap:8px;padding:4px 4px}
+.signout-btn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:12px;text-align:left}
+#user-name{font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+
+/* ── Drawer panel sections ── */
+.drawer-section{display:none;flex-direction:column;height:100%}
+.drawer-section.active{display:flex}
+.dsec-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.dsec-list{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+
+/* ── Entry cards in drawer ── */
+.entry-card{background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:12px 12px 12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;transition:border-color .15s;cursor:pointer}
+.entry-card:hover{border-color:rgba(16,185,129,.4)}
+.entry-body{flex:1;min-width:0}
+.entry-name{font-size:14px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.entry-meta{font-size:11px;color:#64748b;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.entry-cost{font-size:14px;font-weight:800;flex-shrink:0}
+.entry-stars{font-size:10px;color:#f59e0b}
+.entry-badges{display:flex;flex-wrap:wrap;margin-top:5px}
+.badge{background:rgba(16,185,129,.15);color:#6ee7b7;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;margin:2px}
+.card-icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.card-map-btn:hover{border-color:#10b981;color:#10b981}
+.card-del-btn:hover{border-color:#ef4444;color:#ef4444}
+
+/* ── AI panel ── */
+.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.msg-row{display:flex;gap:8px;align-items:flex-start}
+.msg-row.user{flex-direction:row-reverse}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.msg-bubble{max-width:85%;padding:10px 13px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.msg-bubble.ai{background:rgba(255,255,255,.08);color:#e2e8f0;border-radius:4px 12px 12px 12px}
+.msg-bubble.user{background:#10b981;color:white;border-radius:12px 4px 12px 12px}
+.quick-wrap{padding:0 10px 8px;display:flex;flex-wrap:wrap;gap:6px}
+.quick-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:6px 12px;font-size:11px;color:#94a3b8;font-weight:500}
+.ai-input-row{padding:10px;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-shrink:0}
+
+/* ── Form panel (slide-in panel over map, from left, partial) ── */
+#form-panel{position:fixed;top:0;bottom:0;left:0;z-index:1000;width:min(400px,100vw);background:white;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.3)}
+#form-panel.open{transform:translateX(0)}
+#form-panel-header{padding:16px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#form-panel-body{overflow-y:auto;padding:16px 18px;flex:1;-webkit-overflow-scrolling:touch}
+#form-panel-footer{padding:12px 18px;border-top:1px solid #f1f5f9;background:#f8fafc;flex-shrink:0}
+
+/* ── Inputs ── */
+.inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:14px;color:#1e293b;transition:border-color .15s}
+.inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
+.inp-sm{padding:5px 9px;font-size:12px;width:auto}
+select.inp{background:white}
+textarea.inp{resize:none}
+.lbl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px}
+.lbl-hint{font-weight:400;color:#94a3b8;font-size:11px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+.star{font-size:26px;cursor:pointer;user-select:none;color:#d1d5db;transition:color .1s;padding:1px}
+.star.on{color:#f59e0b}
+.amenity-box{background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;padding:12px}
+.amenity-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#475569;padding:3px 0}
+.amenity-check input{width:15px;height:15px;accent-color:#10b981;flex-shrink:0}
+
+/* ── Photo ── */
+.photo-wrap{position:relative;width:72px;height:72px;flex-shrink:0}
+.photo-wrap img{width:72px;height:72px;object-fit:cover;border-radius:9px;border:2px solid #e2e8f0;display:block}
+.photo-remove{position:absolute;top:-5px;right:-5px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;padding:0;line-height:18px;text-align:center}
+
+/* ── Alerts ── */
+.err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 12px;font-size:13px;color:#dc2626;width:100%;margin-bottom:8px}
+.inf{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 12px;font-size:13px;color:#166534;width:100%;margin-bottom:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;color:#64748b;gap:10px}
+
+/* ── Delete confirm ── */
+.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:white;border-radius:20px;padding:28px;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+
+/* ── Login ── */
+#login-screen{position:fixed;inset:0;z-index:9998;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:white;border-radius:24px;padding:36px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:15px;font-weight:600;color:#1e293b;margin-top:6px}
+.google-btn:hover{background:#f8fafc}
+
+/* ── Loading ── */
+#loading-screen{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid rgba(16,185,129,.2);border-top-color:#10b981;border-radius:50%;animation:spin 1s linear infinite}
+
+/* ── My location dot ── */
 .my-dot{width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,.3);position:relative}
 .my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(59,130,246,.35);animation:pulseRing 2s ease-out infinite}
 
-/* Panel */
-.panel-header{background:white;border-bottom:1px solid #e2e8f0;padding:18px 18px 14px;flex-shrink:0}
-.entries-list{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+/* ── Offline banner ── */
+#offline-banner{display:none;position:fixed;top:54px;left:0;right:0;z-index:700;background:#f59e0b;color:white;text-align:center;padding:6px;font-size:13px;font-weight:600}
 
-/* Entry cards */
-.entry-card{background:white;border-radius:14px;border:1px solid #e2e8f0;padding:14px 14px 14px 16px;margin-bottom:8px;animation:fadeIn .2s ease;display:flex;align-items:center;gap:10px;transition:border-color .15s}
-.entry-card:hover{border-color:#d1fae5}
-.entry-body{flex:1;min-width:0;cursor:pointer}
-.entry-body:active{opacity:.8}
-.card-icon-btn{width:36px;height:36px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
-.card-map-btn:hover{border-color:#10b981;background:#f0fdf4}
-.card-del-btn:hover{border-color:#fca5a5;background:#fef2f2}
-
-/* Inputs */
-.inp{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:14px;color:#1e293b;transition:border-color .15s}
-.inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
-.inp-sm{padding:6px 10px;font-size:12px;width:auto}
-select.inp{background:white}
-textarea.inp{resize:none}
-.lbl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px}
-.lbl-hint{font-weight:400;color:#94a3b8;font-size:11px}
-.badge{background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;margin:2px}
-
-/* Modals */
-.overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.7);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px)}
-.overlay.open{display:flex}
-.modal{background:white;border-radius:20px;width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);margin:auto;max-height:94vh;animation:fadeIn .2s ease}
-.modal-header{padding:18px 22px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.modal-body{overflow-y:auto;padding:20px 22px;flex:1;-webkit-overflow-scrolling:touch}
-.modal-footer{padding:14px 22px;border-top:1px solid #f1f5f9;background:#f8fafc;border-radius:0 0 20px 20px;flex-shrink:0}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.full{grid-column:1/-1}
-.star{font-size:28px;cursor:pointer;user-select:none;color:#d1d5db;transition:color .1s;padding:2px}
-.star.on{color:#f59e0b}
-.amenity-box{background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;padding:16px}
-.amenity-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#475569;padding:3px 0}
-.amenity-check input{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
-
-/* AI */
-.ai-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch}
-.msg-row{display:flex;gap:10px;align-items:flex-start;animation:fadeIn .2s ease}
-.msg-row.user{flex-direction:row-reverse}
-.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.msg-bubble{max-width:80%;padding:12px 16px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.msg-bubble.ai{background:white;border:1px solid #e2e8f0;color:#1e293b;border-radius:4px 16px 16px 16px}
-.msg-bubble.user{background:#10b981;color:white;border-radius:16px 4px 16px 16px}
-.quick-wrap{padding:0 18px 12px;display:flex;flex-wrap:wrap;gap:8px}
-.quick-btn{background:white;border:1.5px solid #e2e8f0;border-radius:20px;padding:7px 14px;font-size:12px;color:#475569;font-weight:500}
-.ai-input-row{padding:12px 14px;background:white;border-top:1px solid #e2e8f0;display:flex;gap:8px;flex-shrink:0}
-
-/* Alerts */
-.err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:13px;color:#dc2626;width:100%;margin-bottom:10px}
-.info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 14px;font-size:13px;color:#166534;width:100%;margin-bottom:10px}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;gap:12px;padding:40px;text-align:center}
-#offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:white;text-align:center;padding:8px;font-size:13px;font-weight:600}
-
-/* Photos */
-.photo-wrap{position:relative;width:80px;height:80px;flex-shrink:0}
-.photo-wrap img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid #e2e8f0;display:block}
-.photo-remove{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;padding:0;line-height:20px;text-align:center}
-
-/* Delete confirm */
-.confirm-overlay{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
-.confirm-overlay.open{display:flex}
-.confirm-box{background:white;border-radius:20px;padding:32px;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:fadeIn .2s ease}
-
-/* Login screen */
-#login-screen{position:fixed;inset:0;z-index:99998;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{background:white;border-radius:24px;padding:40px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4)}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:15px;font-weight:600;color:#1e293b;transition:all .15s;margin-top:8px}
-.google-btn:hover{background:#f8fafc;border-color:#cbd5e1}
-.google-btn svg{flex-shrink:0}
-
-/* Loading spinner */
-#loading-screen{position:fixed;inset:0;z-index:99999;background:#0f172a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-.spinner{width:40px;height:40px;border:3px solid rgba(16,185,129,.2);border-top-color:#10b981;border-radius:50%;animation:spin 1s linear infinite}
-
-/* Mobile bottom nav — fix z-index so it's always above map */
-@media(max-width:640px){
-  .app{flex-direction:column}
-  .sidebar{
-    width:100%;height:68px;
-    flex-direction:row;
-    position:fixed;bottom:0;left:0;right:0;
-    z-index:1001;/* above Leaflet's z-index of 1000 */
-    border-right:none;border-top:1px solid rgba(255,255,255,.1);
-    padding:0;background:#0f172a
-  }
-  .sidebar-header,.sidebar-footer{display:none}
-  .sidebar-nav{flex-direction:row;padding:4px 0 6px;align-items:center;justify-content:space-around;gap:0;width:100%}
-  .tab-btn{flex-direction:column;gap:2px;padding:6px 4px;font-size:10px;align-items:center;width:auto;flex:1;border-radius:8px;color:#64748b}
-  .tab-btn.active{background:rgba(16,185,129,.15);color:#10b981}
-  .tab-icon{font-size:22px;width:auto}
-  .mobile-log-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;border:none;background:transparent;cursor:pointer}
-  .mobile-log-icon{width:36px;height:36px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:white;font-weight:700;box-shadow:0 2px 8px rgba(16,185,129,.4)}
-  .mobile-log-label{font-size:10px;color:#10b981;font-weight:600}
-  /* Push main content above the bottom nav */
-  .main{padding-bottom:68px}
-  /* Map tab needs explicit height so it doesn't bleed under nav */
-  #tab-map{bottom:68px!important}
-  .modal{max-height:88vh}
+/* ── Responsive tweaks ── */
+@media(max-width:480px){
+  #form-panel{width:100vw}
   .form-grid{grid-template-columns:1fr}
   .full{grid-column:1}
-  .map-hint{font-size:11px;padding:6px 14px;top:10px;max-width:85%;white-space:normal;text-align:center}
-  .locate-btn{bottom:80px}
-}
-@media(min-width:641px){
-  .mobile-log-tab{display:none!important}
 }
 </style>
 </head>
 <body>
 
-<!-- Loading screen -->
+<!-- Loading -->
 <div id="loading-screen">
   <div class="spinner"></div>
   <div style="color:#64748b;font-size:14px">Loading Road Tripping…</div>
 </div>
 
-<!-- Login screen -->
+<!-- Login -->
 <div id="login-screen" style="display:none">
   <div class="login-card">
-    <div style="width:56px;height:56px;background:linear-gradient(135deg,#10b981,#059669);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 24px rgba(16,185,129,.3)">🚗</div>
-    <h1 style="font-size:24px;font-weight:800;color:#0f172a;margin-bottom:8px">Road Tripping</h1>
-    <p style="font-size:14px;color:#64748b;margin-bottom:28px;line-height:1.5">Log your camping spots, track routes, and get AI suggestions — synced across all your devices.</p>
-    <button class="google-btn" onclick="signInWithGoogle()">
+    <div style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;box-shadow:0 8px 24px rgba(16,185,129,.3)">🚗</div>
+    <h1 style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:6px">Road Tripping</h1>
+    <p style="font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.5">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
+    <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Continue with Google
     </button>
-    <div id="login-error" style="display:none;margin-top:14px;font-size:12px;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px"></div>
-    <p style="font-size:11px;color:#94a3b8;margin-top:20px">Your data is private and only visible to you.</p>
+    <div id="login-error" style="display:none;margin-top:12px;font-size:12px;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px"></div>
+    <p style="font-size:11px;color:#94a3b8;margin-top:18px">Your data is private and only visible to you.</p>
   </div>
 </div>
 
-<div id="offline-banner">⚠ You're offline — map tiles may not load, but your logged data is safe</div>
+<div id="offline-banner">⚠ You're offline — your data is safe</div>
 
-<!-- Main app -->
-<div class="app" id="app" style="display:none">
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">🚗</div>
-      <div style="min-width:0">
-        <div style="color:white;font-weight:700;font-size:15px">Road Tripping</div>
-        <div id="loc-count" style="font-size:11px;color:#64748b;margin-top:2px">0 locations</div>
+<!-- MAP (always full-screen behind everything) -->
+<div id="map-container">
+  <div id="map"></div>
+</div>
+
+<!-- Top bar -->
+<div id="top-bar">
+  <button id="menu-btn" onclick="openDrawer()">☰</button>
+  <span id="top-title">🚗 Road Tripping</span>
+  <span id="top-count">0 locations</span>
+</div>
+
+<!-- Map overlay buttons -->
+<button class="map-btn" id="btn-log" onclick="openFormPanel(null)" title="Log location" style="top:66px;left:12px;bottom:auto">+</button>
+<button class="map-btn" id="btn-satellite" onclick="toggleSatellite()" title="Satellite view" style="bottom:112px;right:12px">🛰</button>
+<button class="map-btn" id="btn-locate" onclick="locateMe()" title="My location" style="bottom:60px;right:12px">📍</button>
+<div class="map-hint-bar" id="map-hint">Tap the map to log a location</div>
+
+<!-- Drawer overlay (click to close) -->
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- Drawer -->
+<div id="drawer">
+  <div id="drawer-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#10b981,#059669);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px">🚗</div>
+      <div>
+        <div style="color:white;font-weight:700;font-size:14px">Road Tripping</div>
+        <div id="top-count2" style="font-size:11px;color:#64748b">0 locations</div>
       </div>
     </div>
-    <div class="sidebar-nav">
-      <button class="tab-btn active" onclick="showTab('map',this)"><span class="tab-icon">🗺</span><span>Map View</span></button>
-      <button class="tab-btn" onclick="showTab('entries',this)"><span class="tab-icon">☰</span><span>Logged Entries</span></button>
-      <button class="tab-btn" onclick="showTab('ai',this)"><span class="tab-icon">✨</span><span>AI Assistant</span></button>
-    </div>
-    <div class="sidebar-footer">
-      <button class="log-btn" onclick="openForm(null)">+ Log Location</button>
-      <button class="signout-btn" onclick="signOutUser()" id="user-info">Sign out</button>
-    </div>
+    <button id="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
 
-  <div class="main">
-    <!-- Map -->
-    <div id="tab-map" class="tab-panel active" style="position:absolute;inset:0">
-      <div id="map"></div>
-      <div class="map-hint">Tap anywhere on the map to log a location</div>
-      <button class="locate-btn" onclick="locateMe()" title="Find my location">📍</button>
-      <button id="sat-btn" onclick="toggleSatellite()" title="Switch to satellite view"
-        style="position:absolute;bottom:24px;right:70px;z-index:1000;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s">🛰</button>
-    </div>
+  <div class="drawer-nav">
+    <button class="dnav-btn active" onclick="showDrawerSection('entries',this)"><span class="dnav-icon">☰</span> Logged Entries</button>
+    <button class="dnav-btn" onclick="showDrawerSection('ai',this)"><span class="dnav-icon">✨</span> AI Assistant</button>
+  </div>
 
-    <!-- Entries -->
-    <div id="tab-entries" class="tab-panel" style="background:#f8fafc">
-      <div class="panel-header">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h2 style="font-size:18px;font-weight:700;color:#0f172a">Logged Entries</h2>
-          <span id="entries-badge" style="background:#f1f5f9;color:#64748b;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:600">0</span>
-        </div>
-        <input class="inp" id="search-inp" placeholder="🔍  Search locations…" oninput="renderEntries()" style="margin-bottom:8px"/>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select class="inp inp-sm" id="f-type" onchange="renderEntries()">
+  <div id="drawer-content">
+    <!-- Entries section -->
+    <div id="dsec-entries" class="drawer-section active">
+      <div class="dsec-header">
+        <input class="inp" id="search-inp" placeholder="🔍 Search…" oninput="renderEntries()" style="margin-bottom:8px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white"/>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select class="inp inp-sm" id="f-type" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
             <option value="">All Types</option>
             <option>National Park</option><option>National Forest</option><option>BLM</option>
             <option>Dispersed</option><option>Private</option><option>Other</option>
           </select>
-          <select class="inp inp-sm" id="f-status" onchange="renderEntries()">
+          <select class="inp inp-sm" id="f-status" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
             <option value="">All Statuses</option>
-            <option value="visited">Visited</option><option value="current">Currently Here</option><option value="planned">Planned</option>
+            <option value="visited">Visited</option><option value="current">Here Now</option><option value="planned">Planned</option>
           </select>
-          <select class="inp inp-sm" id="f-rating" onchange="renderEntries()">
-            <option value="0">Any Rating</option><option value="1">1+ ★</option><option value="2">2+ ★</option>
-            <option value="3">3+ ★</option><option value="4">4+ ★</option><option value="5">5 ★</option>
+          <select class="inp inp-sm" id="f-rating" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
+            <option value="0">Any ★</option><option value="1">1+★</option><option value="2">2+★</option>
+            <option value="3">3+★</option><option value="4">4+★</option><option value="5">5★</option>
           </select>
         </div>
       </div>
-      <div id="entries-list" class="entries-list"></div>
+      <div id="entries-list" class="dsec-list"></div>
     </div>
 
-    <!-- AI -->
-    <div id="tab-ai" class="tab-panel" style="background:#f8fafc">
-      <div class="panel-header">
-        <h2 style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px">✨ AI Assistant</h2>
-        <p style="font-size:13px;color:#64748b">Ask for nearby camping suggestions or route stops.</p>
-      </div>
+    <!-- AI section -->
+    <div id="dsec-ai" class="drawer-section">
       <div id="ai-messages" class="ai-messages"></div>
       <div id="quick-prompts" class="quick-wrap"></div>
       <div class="ai-input-row">
-        <input class="inp" id="ai-inp" placeholder="e.g. Free BLM camping near Chico, CA?" style="flex:1" onkeydown="if(event.key==='Enter')sendAI()"/>
-        <button onclick="sendAI()" style="background:#10b981;color:white;border:none;border-radius:10px;padding:0 18px;font-weight:700;font-size:20px;flex-shrink:0">→</button>
+        <input class="inp" id="ai-inp" placeholder="Free BLM camping near me?" style="flex:1;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white;font-size:13px" onkeydown="if(event.key==='Enter')sendAI()"/>
+        <button onclick="sendAI()" style="background:#10b981;color:white;border:none;border-radius:9px;padding:0 14px;font-weight:700;font-size:18px;flex-shrink:0">→</button>
       </div>
+    </div>
+  </div>
+
+  <div id="drawer-footer">
+    <button class="log-btn-full" onclick="closeDrawer();openFormPanel(null)">+ Log Location</button>
+    <div class="signout-row">
+      <span id="user-name" style="font-size:11px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <button class="signout-btn" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
 </div>
 
-<!-- Form modal -->
-<div class="overlay" id="form-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 style="font-size:17px;font-weight:700" id="form-title">⛺ Log New Location</h2>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button id="form-trash-btn" onclick="confirmDelete(null)" style="display:none;width:36px;height:36px;border-radius:9px;border:1.5px solid #fca5a5;background:white;font-size:16px;color:#ef4444;align-items:center;justify-content:center">🗑</button>
-        <button onclick="closeForm()" style="background:none;border:none;font-size:22px;color:#94a3b8;line-height:1;padding:4px">✕</button>
+<!-- Form panel (slides in from left, partial width so map shows) -->
+<div id="form-panel">
+  <div id="form-panel-header">
+    <h2 style="font-size:16px;font-weight:700" id="form-title">⛺ Log New Location</h2>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="form-trash-btn" onclick="confirmDelete(null)" style="display:none;width:34px;height:34px;border-radius:8px;border:1.5px solid #fca5a5;background:white;font-size:15px;color:#ef4444;align-items:center;justify-content:center">🗑</button>
+      <button onclick="closeFormPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;line-height:1;padding:4px">✕</button>
+    </div>
+  </div>
+
+  <div id="form-panel-body">
+    <div id="pin-hint" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#166534;margin-bottom:12px;display:none">
+      📍 Drag the yellow pin on the map to fine-tune the location
+    </div>
+    <div class="form-grid">
+      <div class="full">
+        <label class="lbl">Location Name *</label>
+        <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites"/>
+      </div>
+      <div class="full">
+        <label class="lbl">Address <span class="lbl-hint">(geocoded if no coords)</span></label>
+        <input class="inp" id="f-address" placeholder="e.g. Forest Rd 2N10, Big Bear, CA"/>
+      </div>
+      <div class="full">
+        <label class="lbl">📍 Coordinates <span class="lbl-hint">— or drag the yellow pin</span></label>
+        <input class="inp" id="f-coords" placeholder="e.g. 37.6137, -113.0998"/>
+        <div id="coords-hint" style="font-size:11px;color:#10b981;margin-top:3px;display:none"></div>
+      </div>
+      <div>
+        <label class="lbl">📅 Arrival</label>
+        <input class="inp" type="date" id="f-arrival"/>
+      </div>
+      <div>
+        <label class="lbl">📅 Departure</label>
+        <input class="inp" type="date" id="f-departure"/>
+      </div>
+      <div>
+        <label class="lbl">Type</label>
+        <select class="inp" id="f-type-sel">
+          <option>National Park</option><option>National Forest</option><option>BLM</option>
+          <option selected>Dispersed</option><option>Private</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Status</label>
+        <select class="inp" id="f-status-sel">
+          <option value="visited">Visited</option>
+          <option value="current">Currently Here</option>
+          <option value="planned">Planned</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">💵 Cost/night ($)</label>
+        <input class="inp" type="number" min="0" step="0.01" id="f-cost" placeholder="0 = free"/>
+      </div>
+      <div>
+        <label class="lbl">Rating</label>
+        <div id="stars" style="display:flex;gap:2px;padding-top:4px">
+          <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+        </div>
+      </div>
+      <div class="full amenity-box">
+        <div style="font-weight:700;font-size:12px;margin-bottom:10px;color:#374151">Amenities & Tags</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <label class="amenity-check"><input type="checkbox" id="a-water"/> 💧 Potable Water</label>
+          <label class="amenity-check"><input type="checkbox" id="a-dump"/> 🗑 Dump Station</label>
+          <label class="amenity-check"><input type="checkbox" id="a-seasonal"/> ⚠ Seasonal</label>
+          <label class="amenity-check"><input type="checkbox" id="a-fire"/> 🔥 Fire Allowed</label>
+          <label class="amenity-check"><input type="checkbox" id="a-pets"/> 🐾 Pet Friendly</label>
+          <label class="amenity-check"><input type="checkbox" id="a-hookups"/> ⚡ Hookups</label>
+        </div>
+      </div>
+      <div class="full">
+        <label class="lbl">Notes</label>
+        <textarea class="inp" id="f-notes" rows="3" placeholder="Cell service? Road conditions? Grey water?"></textarea>
+      </div>
+      <div class="full">
+        <label class="lbl">Photos</label>
+        <div id="photo-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+        <input type="file" id="photo-inp" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)"/>
+        <button type="button" onclick="document.getElementById('photo-inp').click()" style="width:72px;height:72px;border:2px dashed #cbd5e1;border-radius:9px;background:white;font-size:24px;color:#94a3b8;display:flex;align-items:center;justify-content:center">+</button>
       </div>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="full">
-          <label class="lbl">Location Name *</label>
-          <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites, Keller Peak"/>
-        </div>
-        <div class="full">
-          <label class="lbl">Address <span class="lbl-hint">(geocoded to map pin if no coords entered)</span></label>
-          <input class="inp" id="f-address" placeholder="e.g. Forest Rd 2N10, Big Bear, CA"/>
-        </div>
-        <div class="full">
-          <label class="lbl">📍 Coordinates <span class="lbl-hint">— tap the map to place pin, then drag it to fine-tune</span></label>
-          <input class="inp" id="f-coords" placeholder="e.g. 37.6137, -113.0998"/>
-          <div id="coords-hint" style="font-size:11px;color:#10b981;margin-top:4px;display:none"></div>
-        </div>
-        <div>
-          <label class="lbl">📅 Arrival Date</label>
-          <input class="inp" type="date" id="f-arrival"/>
-        </div>
-        <div>
-          <label class="lbl">📅 Departure Date</label>
-          <input class="inp" type="date" id="f-departure"/>
-        </div>
-        <div>
-          <label class="lbl">Type</label>
-          <select class="inp" id="f-type-sel">
-            <option>National Park</option><option>National Forest</option><option>BLM</option>
-            <option selected>Dispersed</option><option>Private</option><option>Other</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">Visit Status</label>
-          <select class="inp" id="f-status-sel">
-            <option value="visited">Visited</option>
-            <option value="current">Currently Here</option>
-            <option value="planned">Planned</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">💵 Cost per night ($)</label>
-          <input class="inp" type="number" min="0" step="0.01" id="f-cost" placeholder="0 = free"/>
-        </div>
-        <div>
-          <label class="lbl">Rating</label>
-          <div id="stars" style="display:flex;gap:2px;padding-top:6px">
-            <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
-            <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
-          </div>
-        </div>
-        <div class="full amenity-box">
-          <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151">Amenities & Tags</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <label class="amenity-check"><input type="checkbox" id="a-water"/> 💧 Potable Water</label>
-            <label class="amenity-check"><input type="checkbox" id="a-dump"/> 🗑 Dump Station</label>
-            <label class="amenity-check"><input type="checkbox" id="a-seasonal"/> ⚠ Seasonal Closure</label>
-            <label class="amenity-check"><input type="checkbox" id="a-fire"/> 🔥 Fire Allowed</label>
-            <label class="amenity-check"><input type="checkbox" id="a-pets"/> 🐾 Pet Friendly</label>
-            <label class="amenity-check"><input type="checkbox" id="a-hookups"/> ⚡ Electric Hookups</label>
-          </div>
-        </div>
-        <div class="full">
-          <label class="lbl">Notes</label>
-          <textarea class="inp" id="f-notes" rows="3" placeholder="Cell service? Road conditions? Best spots? Grey water disposal?"></textarea>
-        </div>
-        <div class="full">
-          <label class="lbl">Photos</label>
-          <div id="photo-row" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
-          <input type="file" id="photo-inp" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)"/>
-          <button type="button" onclick="document.getElementById('photo-inp').click()" style="width:80px;height:80px;border:2px dashed #cbd5e1;border-radius:10px;background:white;font-size:28px;color:#94a3b8;display:flex;align-items:center;justify-content:center">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <div id="geo-error" class="err" style="display:none"></div>
-      <div id="geo-info" class="info" style="display:none"></div>
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
-        <button onclick="closeForm()" style="padding:10px 20px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
-        <button id="save-btn" onclick="saveEntry()" style="padding:10px 24px;border-radius:10px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save Location</button>
-      </div>
+  </div>
+
+  <div id="form-panel-footer">
+    <div id="geo-error" class="err" style="display:none"></div>
+    <div id="geo-info" class="inf" style="display:none"></div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+      <button onclick="closeFormPanel()" style="padding:9px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
+      <button id="save-btn" onclick="saveEntry()" style="padding:9px 22px;border-radius:9px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save Location</button>
     </div>
   </div>
 </div>
@@ -441,171 +424,112 @@ textarea.inp{resize:none}
 <!-- Delete confirm -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
-    <div style="font-size:40px;margin-bottom:12px">🗑</div>
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;color:#0f172a">Delete this location?</h3>
-    <p style="font-size:14px;color:#64748b;margin-bottom:24px">This cannot be undone.</p>
-    <div style="display:flex;gap:12px;justify-content:center">
-      <button onclick="closeConfirm()" style="padding:10px 24px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
-      <button onclick="executeDelete()" style="padding:10px 24px;border-radius:10px;border:none;background:#ef4444;color:white;font-weight:600;font-size:14px">Delete</button>
+    <div style="font-size:36px;margin-bottom:10px">🗑</div>
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:6px;color:#0f172a">Delete this location?</h3>
+    <p style="font-size:13px;color:#64748b;margin-bottom:20px">This cannot be undone.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="closeConfirm()" style="padding:9px 20px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
+      <button onclick="executeDelete()" style="padding:9px 20px;border-radius:9px;border:none;background:#ef4444;color:white;font-weight:600;font-size:14px">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- Mobile bottom nav (injected into sidebar via CSS) -->
 <script>
-// ── Geocodio ──────────────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────────
 const GEOCODIO_KEY = 'YOUR_GEOCODIO_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const STATUS_LABEL = {visited:'Visited', current:'Currently Here', planned:'Planned'};
-const AMENITY_MAP  = {
-  'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal',
-  'a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'
-};
-const AMENITY_META = [
-  {id:'hasPotableWater',label:'Potable Water',icon:'💧'},
-  {id:'hasDumpStation', label:'Dump Station', icon:'🗑'},
-  {id:'isSeasonal',     label:'Seasonal Closure',icon:'⚠'},
-  {id:'hasFireAllowed', label:'Fire Allowed', icon:'🔥'},
-  {id:'hasPets',        label:'Pet Friendly', icon:'🐾'},
-  {id:'hasHookups',     label:'Electric Hookups',icon:'⚡'},
+const STATUS_LABEL={visited:'Visited',current:'Currently Here',planned:'Planned'};
+const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal','a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'};
+const AMENITY_META=[
+  {id:'hasPotableWater',label:'Potable Water',icon:'💧'},{id:'hasDumpStation',label:'Dump Station',icon:'🗑'},
+  {id:'isSeasonal',label:'Seasonal',icon:'⚠'},{id:'hasFireAllowed',label:'Fire Allowed',icon:'🔥'},
+  {id:'hasPets',label:'Pet Friendly',icon:'🐾'},{id:'hasHookups',label:'Hookups',icon:'⚡'},
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let currentUser   = null;
-let entries       = [];
-let firestoreUnsub= null;
-let editId        = null;
-let pendingLat    = null;
-let pendingLng    = null;
-let currentRating = 0;
-let pendingPhotos = [];
-let map, markers  = [], myDotMarker = null, myDotCircle = null;
-let aiMessages    = [], deleteTargetId = null;
-let mapReady      = false;
+let entries=[],editId=null,pendingLat=null,pendingLng=null,currentRating=0,pendingPhotos=[];
+let map,markers=[],myDotMarker=null,myDotCircle=null,dragPin=null;
+let streetLayer,satelliteLayer,isSatellite=false;
+let aiMessages=[],deleteTargetId=null;
+let firestoreUnsub=null,mapReady=false;
 
-function genId(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
-function today(){ return new Date().toISOString().split('T')[0]; }
-function tomorrow(){ return new Date(Date.now()+86400000).toISOString().split('T')[0]; }
+function genId(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
+function today(){return new Date().toISOString().split('T')[0];}
+function tomorrow(){return new Date(Date.now()+86400000).toISOString().split('T')[0];}
 
 function costLabel(c){
   if(c===null||c===undefined) return '?';
-  if(c===0) return 'Free!';
-  if(c<10)  return '$';
-  if(c<100) return '$$';
-  if(c<500) return '$$$';
-  return '$$$$';
+  if(c===0) return 'Free!'; if(c<10) return '$'; if(c<100) return '$$'; if(c<500) return '$$$'; return '$$$$';
 }
 function costColor(c){
   if(c===null||c===undefined) return '#94a3b8';
-  if(c===0)  return '#10b981';
-  if(c<10)   return '#059669';
-  if(c<100)  return '#d97706';
-  return '#dc2626';
+  if(c===0) return '#10b981'; if(c<10) return '#059669'; if(c<100) return '#d97706'; return '#dc2626';
 }
 
 // ── Offline ───────────────────────────────────────────────────────────────────
-window.addEventListener('online',  ()=>document.getElementById('offline-banner').style.display='none');
-window.addEventListener('offline', ()=>document.getElementById('offline-banner').style.display='block');
+window.addEventListener('online', ()=>document.getElementById('offline-banner').style.display='none');
+window.addEventListener('offline',()=>document.getElementById('offline-banner').style.display='block');
 if(!navigator.onLine) document.getElementById('offline-banner').style.display='block';
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-function signInWithGoogle(){ window._firebaseAuth.signInWithGoogle(); }
-function signOutUser(){
+// ── Auth callbacks (called by Firebase module) ────────────────────────────────
+window._showApp=function(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  if(!mapReady){ initMap(); mapReady=true; }
+};
+window._showLogin=function(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  entries=[];
+  if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
+};
+window._subscribeFirestore=function(uid){
+  if(firestoreUnsub){ firestoreUnsub(); }
+  firestoreUnsub=window._db.subscribe(uid,docs=>{
+    entries=docs;
+    updateCount();
+    renderMarkers();
+    renderEntries();
+  }, err=>console.error('Firestore:',err));
+};
+
+function doSignOut(){
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
   window._firebaseAuth.signOut();
 }
 
-// These are called by the modular Firebase module above
-window._showApp   = showApp;
-window._showLogin = showLogin;
-window._subscribeToFirestore = subscribeToFirestore;
-
-function showApp(){
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  setTimeout(()=>{ if(!mapReady){ initMap(); mapReady=true; } }, 100);
-}
-
-function showLogin(){
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  entries=[];
-  if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
-}
-
-// ── Firestore ─────────────────────────────────────────────────────────────────
-function subscribeToFirestore(uid){
-  if(firestoreUnsub){ firestoreUnsub(); }
-  firestoreUnsub = window._db.subscribe(
-    uid,
-    docs=>{
-      entries=docs;
-      updateCount();
-      renderMarkers();
-      renderEntries();
-    },
-    err=>console.error('Firestore error:',err)
-  );
-}
-
-async function saveToFirestore(entry){
-  await window._db.save(window._currentUser.uid, entry);
-}
-
-async function deleteFromFirestore(id){
-  await window._db.remove(window._currentUser.uid, id);
-}
+// ── Firestore wrappers ────────────────────────────────────────────────────────
+async function saveToFirestore(entry){ await window._db.save(window._currentUser.uid,entry); }
+async function deleteFromFirestore(id){ await window._db.remove(window._currentUser.uid,id); }
 
 // ── Geocodio ──────────────────────────────────────────────────────────────────
 async function geocodeAddress(address){
   const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
   const res=await fetch(url);
-  if(!res.ok) throw new Error('Geocodio error '+res.status);
+  if(!res.ok) throw new Error('Geocodio '+res.status);
   const data=await res.json();
-  if(data.lat&&data.lng) return {lat:parseFloat(data.lat), lng:parseFloat(data.lng)};
+  if(data.lat&&data.lng) return {lat:parseFloat(data.lat),lng:parseFloat(data.lng)};
   return null;
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-function showTab(name, btn){
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  if(btn) btn.classList.add('active');
-  if(name==='entries') renderEntries();
-  if(name==='ai')      renderAI();
-  if(name==='map')     setTimeout(()=>map&&map.invalidateSize(),150);
-}
-
 // ── Map ───────────────────────────────────────────────────────────────────────
-let streetLayer, satelliteLayer, isSatellite=false, dragPin=null;
-
 function initMap(){
-  map=L.map('map',{zoomControl:true}).setView([39.8283,-98.5795],4);
-
-  streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom:19
+  map=L.map('map',{zoomControl:true,attributionControl:true}).setView([39.8283,-98.5795],4);
+  streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
   });
-  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-    attribution:'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-    maxZoom:19
+  satelliteLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri',maxZoom:19
   });
   streetLayer.addTo(map);
 
-  map.on('click', e=>{
-    // If form is open and drag pin is active, move it instead of opening new form
-    if(dragPin && document.getElementById('form-overlay').classList.contains('open')){
-      dragPin.setLatLng(e.latlng);
-      pendingLat=e.latlng.lat; pendingLng=e.latlng.lng;
-      document.getElementById('f-coords').value=e.latlng.lat.toFixed(6)+', '+e.latlng.lng.toFixed(6);
-      document.getElementById('coords-hint').textContent='✓ Pin moved to: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
-      document.getElementById('coords-hint').style.display='block';
-    } else if(!document.getElementById('form-overlay').classList.contains('open')){
-      openForm(null, e.latlng.lat, e.latlng.lng);
+  map.on('click',e=>{
+    if(document.getElementById('form-panel').classList.contains('open')){
+      // Move drag pin while form is open
+      moveDragPin(e.latlng.lat,e.latlng.lng);
+    } else {
+      openFormPanel(null,e.latlng.lat,e.latlng.lng);
     }
   });
 
@@ -615,48 +539,14 @@ function initMap(){
 
 function toggleSatellite(){
   isSatellite=!isSatellite;
-  if(isSatellite){
-    map.removeLayer(streetLayer);
-    satelliteLayer.addTo(map);
-    document.getElementById('sat-btn').textContent='🗺';
-    document.getElementById('sat-btn').title='Switch to map view';
-  } else {
-    map.removeLayer(satelliteLayer);
-    streetLayer.addTo(map);
-    document.getElementById('sat-btn').textContent='🛰';
-    document.getElementById('sat-btn').title='Switch to satellite view';
-  }
+  const btn=document.getElementById('btn-satellite');
+  if(isSatellite){ map.removeLayer(streetLayer); satelliteLayer.addTo(map); btn.textContent='🗺'; btn.title='Street view'; }
+  else { map.removeLayer(satelliteLayer); streetLayer.addTo(map); btn.textContent='🛰'; btn.title='Satellite view'; }
 }
 
-// Show a draggable pin when form is open so user can fine-tune location
-function showDragPin(lat, lng){
-  removeDragPin();
-  if(!map||lat==null) return;
-  const icon=L.divIcon({
-    html:`<div style="width:22px;height:32px;position:relative">
-      <div style="width:22px;height:22px;background:#f59e0b;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.5);position:absolute;top:0;left:0"></div>
-    </div>`,
-    className:'', iconSize:[22,32], iconAnchor:[11,32]
-  });
-  dragPin=L.marker([lat,lng],{icon,draggable:true,zIndexOffset:3000}).addTo(map);
-  dragPin.on('dragend', e=>{
-    const ll=e.target.getLatLng();
-    pendingLat=ll.lat; pendingLng=ll.lng;
-    document.getElementById('f-coords').value=ll.lat.toFixed(6)+', '+ll.lng.toFixed(6);
-    document.getElementById('coords-hint').textContent='✓ Pin moved to: '+ll.lat.toFixed(5)+', '+ll.lng.toFixed(5);
-    document.getElementById('coords-hint').style.display='block';
-  });
-  // Pan map to show pin
-  map.panTo([lat,lng]);
-}
-
-function removeDragPin(){
-  if(dragPin){ dragPin.remove(); dragPin=null; }
-}
-
-function updateMyDot(lat, lng){
-  if(myDotCircle){ myDotCircle.remove(); myDotCircle=null; }
-  if(myDotMarker){ myDotMarker.remove(); myDotMarker=null; }
+function updateMyDot(lat,lng){
+  if(myDotCircle){myDotCircle.remove();myDotCircle=null;}
+  if(myDotMarker){myDotMarker.remove();myDotMarker=null;}
   if(!map) return;
   myDotCircle=L.circle([lat,lng],{radius:50,color:'#3b82f6',fillColor:'#bfdbfe',fillOpacity:.25,weight:1.5}).addTo(map);
   const icon=L.divIcon({html:'<div class="my-dot"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
@@ -669,73 +559,103 @@ function locateMe(){
     return;
   }
   navigator.geolocation.getCurrentPosition(
-    pos=>{
-      updateMyDot(pos.coords.latitude, pos.coords.longitude);
-      if(map) map.setView([pos.coords.latitude, pos.coords.longitude], 12);
-    },
-    err=>{
-      if(err.code===1) alert('Location access denied.\n\nTo enable on iPhone:\n1. Settings → Privacy & Security → Location Services\n2. Find Safari (or Road Tripping) → Allow While Using App\n3. Tap 📍 again.');
-    },
-    {enableHighAccuracy:true, timeout:12000}
+    pos=>{ updateMyDot(pos.coords.latitude,pos.coords.longitude); if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12); },
+    err=>{ if(err.code===1) alert('Location access denied.\n\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App'); },
+    {enableHighAccuracy:true,timeout:12000}
   );
 }
-
 function startWatchingLocation(){
   if(!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(
-    pos=>updateMyDot(pos.coords.latitude, pos.coords.longitude),
-    ()=>{},
-    {enableHighAccuracy:true, maximumAge:15000}
-  );
+  navigator.geolocation.watchPosition(pos=>updateMyDot(pos.coords.latitude,pos.coords.longitude),()=>{},{enableHighAccuracy:true,maximumAge:15000});
 }
 
-// Plain red pins
+// Draggable yellow pin
+function showDragPin(lat,lng){
+  removeDragPin();
+  if(!map||lat==null) return;
+  const icon=L.divIcon({
+    html:`<div style="width:22px;height:32px;position:relative"><div style="width:22px;height:22px;background:#f59e0b;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 10px rgba(0,0,0,.5);position:absolute;top:0;left:0"></div></div>`,
+    className:'',iconSize:[22,32],iconAnchor:[11,32]
+  });
+  dragPin=L.marker([lat,lng],{icon,draggable:true,zIndexOffset:3000}).addTo(map);
+  dragPin.on('drag dragend',e=>{
+    const ll=e.target.getLatLng();
+    pendingLat=ll.lat; pendingLng=ll.lng;
+    document.getElementById('f-coords').value=ll.lat.toFixed(6)+', '+ll.lng.toFixed(6);
+    document.getElementById('coords-hint').textContent='📍 '+ll.lat.toFixed(5)+', '+ll.lng.toFixed(5);
+    document.getElementById('coords-hint').style.display='block';
+  });
+  document.getElementById('pin-hint').style.display='block';
+}
+function moveDragPin(lat,lng){
+  pendingLat=lat; pendingLng=lng;
+  document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
+  document.getElementById('coords-hint').textContent='📍 '+lat.toFixed(5)+', '+lng.toFixed(5);
+  document.getElementById('coords-hint').style.display='block';
+  if(dragPin) dragPin.setLatLng([lat,lng]);
+  else showDragPin(lat,lng);
+}
+function removeDragPin(){
+  if(dragPin){dragPin.remove();dragPin=null;}
+  const ph=document.getElementById('pin-hint'); if(ph) ph.style.display='none';
+}
+
+// Red pins for logged locations
 function renderMarkers(){
   if(!map) return;
-  markers.forEach(m=>m.remove());
-  markers=[];
+  markers.forEach(m=>m.remove()); markers=[];
   entries.filter(e=>e.lat!=null&&e.lng!=null).forEach(entry=>{
     const icon=L.divIcon({
       html:`<div style="width:22px;height:32px;position:relative"><div style="width:22px;height:22px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div></div>`,
-      className:'', iconSize:[22,32], iconAnchor:[11,32], popupAnchor:[0,-34]
+      className:'',iconSize:[22,32],iconAnchor:[11,32],popupAnchor:[0,-34]
     });
-    const m=L.marker([entry.lat, entry.lng],{icon}).addTo(map);
+    const m=L.marker([entry.lat,entry.lng],{icon}).addTo(map);
     const cost=entry.cost===0?'Free!':entry.cost==null?'Unknown':'$'+entry.cost+'/night';
-    m.bindPopup(`<div style="font-family:system-ui;min-width:190px;padding:4px">
+    m.bindPopup(`<div style="font-family:system-ui;min-width:180px;padding:4px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
-      <div style="font-size:12px;color:#475569;margin-bottom:8px">${entry.arrivalDate} → ${entry.departureDate}<br/>${cost}</div>
-      <button onclick="window._editEntry('${entry.id}')" style="background:#10b981;color:white;border:none;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
+      <div style="font-size:12px;color:#475569;margin-bottom:8px">${cost}</div>
+      <button onclick="window._editEntry('${entry.id}')" style="background:#10b981;color:white;border:none;padding:7px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
     </div>`);
     markers.push(m);
   });
 }
-window._editEntry = id => { map.closePopup(); openForm(entries.find(e=>e.id===id)); };
+window._editEntry=id=>{ map.closePopup(); openFormPanel(entries.find(e=>e.id===id)); };
 
-// Fly to entry from list — switches to map tab and opens popup
 function flyToEntry(id){
   const entry=entries.find(e=>e.id===id);
   if(!entry||entry.lat==null) return;
-  // Switch to map tab
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.classList.remove('active');
-    if(b.querySelector('.tab-icon')&&b.querySelector('.tab-icon').textContent.includes('🗺')) b.classList.add('active');
-  });
-  document.getElementById('tab-map').classList.add('active');
+  closeDrawer();
   setTimeout(()=>{
-    map.invalidateSize();
-    map.flyTo([entry.lat, entry.lng], 14, {duration:1.2});
+    map.flyTo([entry.lat,entry.lng],14,{duration:1.2});
     setTimeout(()=>{
       const coordEntries=entries.filter(e=>e.lat!=null&&e.lng!=null);
       const idx=coordEntries.findIndex(e=>e.id===id);
       if(idx>=0&&markers[idx]) markers[idx].openPopup();
-    }, 1400);
-  }, 150);
+    },1400);
+  },300);
 }
 
-// ── Form ──────────────────────────────────────────────────────────────────────
-function openForm(entry, lat, lng){
+// ── Drawer ────────────────────────────────────────────────────────────────────
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  renderEntries();
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+function showDrawerSection(name,btn){
+  document.querySelectorAll('.drawer-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.dnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('dsec-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='ai') renderAI();
+}
+
+// ── Form panel ────────────────────────────────────────────────────────────────
+function openFormPanel(entry,lat,lng){
   editId=entry?entry.id:null;
   pendingLat=entry?entry.lat:(lat!=null?lat:null);
   pendingLng=entry?entry.lng:(lng!=null?lng:null);
@@ -747,60 +667,57 @@ function openForm(entry, lat, lng){
   document.getElementById('f-address').value=entry?(entry.address||''):'';
   document.getElementById('f-coords').value=(entry&&entry.lat!=null)
     ? entry.lat.toFixed(6)+', '+entry.lng.toFixed(6)
-    : (lat!=null ? lat.toFixed(6)+', '+lng.toFixed(6) : '');
+    : (lat!=null?lat.toFixed(6)+', '+lng.toFixed(6):'');
   document.getElementById('f-arrival').value=entry?entry.arrivalDate:today();
   document.getElementById('f-departure').value=entry?entry.departureDate:tomorrow();
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
   document.getElementById('f-status-sel').value=entry?entry.status:'visited';
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
   document.getElementById('f-notes').value=entry?(entry.notes||''):'';
-  Object.entries(AMENITY_MAP).forEach(([el,key])=>{
-    document.getElementById(el).checked=entry?!!entry[key]:false;
-  });
+  Object.entries(AMENITY_MAP).forEach(([el,key])=>{ document.getElementById(el).checked=entry?!!entry[key]:false; });
 
   const hint=document.getElementById('coords-hint');
   hint.style.display=(lat!=null&&!entry)?'block':'none';
-  if(lat!=null&&!entry) hint.textContent='✓ Map pin: '+lat.toFixed(5)+', '+lng.toFixed(5);
+  if(lat!=null&&!entry) hint.textContent='📍 '+lat.toFixed(5)+', '+lng.toFixed(5);
 
   document.getElementById('geo-error').style.display='none';
   document.getElementById('geo-info').style.display='none';
-
-  const trashBtn=document.getElementById('form-trash-btn');
-  trashBtn.style.display=entry?'flex':'none';
+  document.getElementById('form-trash-btn').style.display=entry?'flex':'none';
 
   updateStars(currentRating);
   renderPhotoRow();
-  document.getElementById('form-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('f-name').focus(), 100);
 
-  // Show draggable yellow pin on the map for fine-tuning
-  const pinLat = entry ? entry.lat : lat;
-  const pinLng = entry ? entry.lng : lng;
-  if(pinLat!=null){
-    // Switch to map tab so user can see and drag the pin
-    if(!entry){
-      // New location — switch to map briefly to confirm pin position
-    }
-    showDragPin(pinLat, pinLng);
-  }
+  // Show form panel
+  document.getElementById('form-panel').classList.add('open');
+
+  // Show draggable yellow pin on map
+  const pinLat=entry?entry.lat:lat;
+  const pinLng=entry?entry.lng:lng;
+  if(pinLat!=null) showDragPin(pinLat,pinLng);
+
+  // Close drawer if open
+  closeDrawer();
+  setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
 
-function closeForm(){
-  document.getElementById('form-overlay').classList.remove('open');
+function closeFormPanel(){
+  document.getElementById('form-panel').classList.remove('open');
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
   removeDragPin();
 }
 
+// Stars
 function updateStars(v){
   currentRating=v;
   document.querySelectorAll('#stars .star').forEach(s=>s.classList.toggle('on',parseInt(s.dataset.v)<=v));
 }
 document.querySelectorAll('#stars .star').forEach(s=>{
-  s.addEventListener('click', ()=>updateStars(parseInt(s.dataset.v)===currentRating?0:parseInt(s.dataset.v)));
-  s.addEventListener('mouseenter', ()=>document.querySelectorAll('#stars .star').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.v)<=parseInt(s.dataset.v))));
-  s.addEventListener('mouseleave', ()=>updateStars(currentRating));
+  s.addEventListener('click',()=>updateStars(parseInt(s.dataset.v)===currentRating?0:parseInt(s.dataset.v)));
+  s.addEventListener('mouseenter',()=>document.querySelectorAll('#stars .star').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.v)<=parseInt(s.dataset.v))));
+  s.addEventListener('mouseleave',()=>updateStars(currentRating));
 });
 
+// Photos
 function handlePhotos(input){
   Array.from(input.files).forEach(file=>{
     const reader=new FileReader();
@@ -810,20 +727,19 @@ function handlePhotos(input){
   input.value='';
 }
 function renderPhotoRow(){
-  const row=document.getElementById('photo-row');
-  row.innerHTML='';
+  const row=document.getElementById('photo-row'); row.innerHTML='';
   pendingPhotos.forEach(p=>{
-    const wrap=document.createElement('div');
-    wrap.className='photo-wrap';
+    const wrap=document.createElement('div'); wrap.className='photo-wrap';
     wrap.innerHTML=`<img src="${p.data}" alt=""/><button class="photo-remove" onclick="removePhoto('${p.id}')">✕</button>`;
     row.appendChild(wrap);
   });
 }
 function removePhoto(id){ pendingPhotos=pendingPhotos.filter(p=>p.id!==id); renderPhotoRow(); }
 
+// Save
 async function saveEntry(){
   const name=document.getElementById('f-name').value.trim();
-  if(!name){ showErr('Please enter a location name.'); return; }
+  if(!name){ showFormErr('Please enter a location name.'); return; }
 
   const errEl=document.getElementById('geo-error');
   const infoEl=document.getElementById('geo-info');
@@ -834,243 +750,166 @@ async function saveEntry(){
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
-  // Priority 1: typed coordinates
+  // Priority 1: typed coords
   if(coordsText){
     const parts=coordsText.split(',').map(p=>parseFloat(p.trim()));
     if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
-    else{ showErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
+    else{ showFormErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
-
-  // Also pick up drag pin position if no coords typed manually
-  if(!coordsText && dragPin){
-    const ll=dragPin.getLatLng();
-    lat=ll.lat; lng=ll.lng;
-  }
-  if(lat==null && address){
-    btn.textContent='Finding location…'; btn.disabled=true;
+  // Priority 2: drag pin position
+  if(!coordsText&&dragPin){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
+  // Priority 3: geocode address
+  if(lat==null&&address){
+    btn.textContent='Finding…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
       const result=await geocodeAddress(address);
-      if(result){ lat=result.lat; lng=result.lng; }
-      else{
-        showErr('Could not find that address. Try being more specific, or paste lat/lng from Google Maps.');
-        btn.textContent='Save Location'; btn.disabled=false; return;
-      }
-    } catch(e){
-      showErr('Geocoding failed — check your connection or enter coordinates manually.');
-      btn.textContent='Save Location'; btn.disabled=false; return;
-    }
+      if(result){ lat=result.lat; lng=result.lng; document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6); infoEl.textContent='✓ Found: '+address; }
+      else{ showFormErr('Could not find that address. Try being more specific or paste lat/lng.'); btn.textContent='Save Location'; btn.disabled=false; return; }
+    }catch(e){ showFormErr('Geocoding failed — check connection or enter coords manually.'); btn.textContent='Save Location'; btn.disabled=false; return; }
     btn.textContent='Save Location'; btn.disabled=false;
   }
 
-  // Read ALL form values before closing anything
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
   const costVal=document.getElementById('f-cost').value;
   const entry={
-    id: editId||genId(),
-    uid: window._currentUser.uid,
-    createdAt: editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
-    name, address,
-    lat: lat!=null?lat:null,
-    lng: lng!=null?lng:null,
-    arrivalDate:  document.getElementById('f-arrival').value,
+    id:editId||genId(),
+    uid:window._currentUser.uid,
+    createdAt:editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
+    name,address,lat:lat!=null?lat:null,lng:lng!=null?lng:null,
+    arrivalDate:document.getElementById('f-arrival').value,
     departureDate:document.getElementById('f-departure').value,
-    type:   document.getElementById('f-type-sel').value,
-    status: document.getElementById('f-status-sel').value,
-    cost:   costVal===''?null:parseFloat(costVal),
-    rating: currentRating,
-    notes:  document.getElementById('f-notes').value.trim(),
-    photos: pendingPhotos.slice(),
+    type:document.getElementById('f-type-sel').value,
+    status:document.getElementById('f-status-sel').value,
+    cost:costVal===''?null:parseFloat(costVal),
+    rating:currentRating,
+    notes:document.getElementById('f-notes').value.trim(),
+    photos:pendingPhotos.slice(),
     ...amenities
   };
 
-  // Force-close modal NOW before any async work or snapshot re-renders
-  document.getElementById('form-overlay').classList.remove('open');
+  // Close immediately before async
+  document.getElementById('form-panel').classList.remove('open');
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
   removeDragPin();
 
-  try{
-    await saveToFirestore(entry);
-  } catch(e){
-    console.error('Save failed:',e);
-    alert('Failed to save — check your connection and try again.');
-  }
+  try{ await saveToFirestore(entry); }
+  catch(e){ console.error('Save failed:',e); alert('Failed to save — check your connection.'); }
 }
 
-function showErr(msg){
-  const el=document.getElementById('geo-error');
-  if(el && document.getElementById('form-overlay').classList.contains('open')){
-    el.textContent=msg; el.style.display='block';
-  } else {
-    alert(msg);
-  }
-}
+function showFormErr(msg){ const el=document.getElementById('geo-error'); el.textContent=msg; el.style.display='block'; }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function confirmDelete(id){
-  deleteTargetId = (id != null && id !== '') ? id : editId;
-  if(!deleteTargetId){ console.warn('confirmDelete: no target id'); return; }
+  deleteTargetId=(id!=null&&id!=='')?id:editId;
+  if(!deleteTargetId) return;
   document.getElementById('confirm-overlay').classList.add('open');
 }
-function closeConfirm(){
-  document.getElementById('confirm-overlay').classList.remove('open');
-  deleteTargetId=null;
-}
+function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); deleteTargetId=null; }
 async function executeDelete(){
   if(!deleteTargetId) return;
-  const idToDelete = deleteTargetId;
-
-  // Force-close BOTH overlays via direct DOM — immune to snapshot re-renders
+  const id=deleteTargetId;
   document.getElementById('confirm-overlay').classList.remove('open');
-  document.getElementById('form-overlay').classList.remove('open');
-  deleteTargetId=null;
-  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  document.getElementById('form-panel').classList.remove('open');
+  deleteTargetId=null; editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
   removeDragPin();
-
-  try{
-    await deleteFromFirestore(idToDelete);
-  } catch(e){
-    console.error('Delete failed:',e);
-    alert('Failed to delete — check your connection.');
-  }
+  try{ await deleteFromFirestore(id); }
+  catch(e){ console.error('Delete failed:',e); alert('Failed to delete — check your connection.'); }
 }
 
-// ── Entries list ──────────────────────────────────────────────────────────────
+// ── Entries ───────────────────────────────────────────────────────────────────
 function renderEntries(){
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
   const ft=document.getElementById('f-type').value;
   const fs=document.getElementById('f-status').value;
   const fr=parseInt(document.getElementById('f-rating').value||'0');
-
   const filtered=entries.filter(e=>{
     const match=!q||[e.name,e.notes||'',e.address||'',e.type].some(s=>s.toLowerCase().includes(q));
     return match&&(!ft||e.type===ft)&&(!fs||e.status===fs)&&(e.rating||0)>=fr;
   }).sort((a,b)=>new Date(b.arrivalDate)-new Date(a.arrivalDate));
 
-  document.getElementById('entries-badge').textContent=filtered.length;
   const list=document.getElementById('entries-list');
-
   if(!entries.length){
-    list.innerHTML='<div class="empty"><div style="font-size:52px">🏕</div><div style="font-size:16px;font-weight:600;color:#475569">No locations yet</div><div style="font-size:14px">Tap the map or "+ Log Location" to start</div></div>';
+    list.innerHTML='<div class="empty-state"><div style="font-size:44px">🏕</div><div style="color:#94a3b8;font-size:14px">No locations yet</div><div style="color:#64748b;font-size:12px">Tap + to log your first spot</div></div>';
     return;
   }
   if(!filtered.length){
-    list.innerHTML='<div class="empty"><div style="font-size:36px">🔍</div><div style="font-size:15px;font-weight:600;color:#475569">No matches</div><div>Try adjusting your filters</div></div>';
+    list.innerHTML='<div class="empty-state"><div style="font-size:32px">🔍</div><div style="color:#94a3b8;font-size:14px">No matches</div></div>';
     return;
   }
-
   list.innerHTML=filtered.map(e=>{
     const sc=e.status==='current'?'#3b82f6':e.status==='planned'?'#f59e0b':'#10b981';
-    const cl=costLabel(e.cost);
-    const cc=costColor(e.cost);
+    const cl=costLabel(e.cost); const cc=costColor(e.cost);
     const active=AMENITY_META.filter(a=>e[a.id]);
     const stars=e.rating>0?'★'.repeat(e.rating)+'☆'.repeat(5-e.rating):'';
     const hasPin=e.lat!=null&&e.lng!=null;
     const eJson=JSON.stringify(e).replace(/"/g,'&quot;');
     return `<div class="entry-card">
-      <div class="entry-body" onclick="openForm(JSON.parse(this.getAttribute('data-e')))" data-e="${eJson}">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:${active.length?'8px':'0'}">
-          <div style="min-width:0;flex:1">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-              <span>${e.type}</span><span style="color:#e2e8f0">·</span>
-              <span style="color:${sc};font-weight:600">${STATUS_LABEL[e.status]||e.status}</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
-            <span style="font-size:16px;font-weight:800;color:${cc};letter-spacing:.5px">${cl}</span>
-            ${e.rating>0?`<span style="font-size:11px;color:#f59e0b">${stars}</span>`:''}
-          </div>
+      <div class="entry-body" onclick="openFormPanel(JSON.parse(this.getAttribute('data-e')))" data-e="${eJson}">
+        <div class="entry-name">${e.name}</div>
+        <div class="entry-meta">
+          <span>${e.type}</span><span style="color:#334155">·</span>
+          <span style="color:${sc};font-weight:600">${STATUS_LABEL[e.status]||e.status}</span>
         </div>
-        ${active.length?`<div style="display:flex;flex-wrap:wrap">${active.map(a=>`<span class="badge">${a.icon} ${a.label}</span>`).join('')}</div>`:''}
+        ${active.length?`<div class="entry-badges">${active.map(a=>`<span class="badge">${a.icon} ${a.label}</span>`).join('')}</div>`:''}
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-        ${hasPin?`<button class="card-icon-btn card-map-btn" onclick="flyToEntry('${e.id}')" title="Show on map">🗺</button>`:''}
-        <button class="card-icon-btn card-del-btn" onclick="confirmDelete('${e.id}')" title="Delete">🗑</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+        <span class="entry-cost" style="color:${cc}">${cl}</span>
+        ${stars?`<span class="entry-stars">${stars}</span>`:''}
+        <div style="display:flex;gap:4px">
+          ${hasPin?`<button class="card-icon-btn card-map-btn" onclick="flyToEntry('${e.id}')" title="Show on map">🗺</button>`:''}
+          <button class="card-icon-btn card-del-btn" onclick="confirmDelete('${e.id}')" title="Delete">🗑</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
 // ── AI ────────────────────────────────────────────────────────────────────────
-const QUICK=['Suggest free BLM camping near me','What are my highest-rated spots?','Dispersed camping in Northern CA','Best stops between Chico and Lake Tahoe'];
-
+const QUICK=['Free BLM camping near me','My highest-rated spots','Dispersed camping in Northern CA','Stops between Chico and Lake Tahoe'];
 function renderAI(){
-  if(!aiMessages.length){
-    aiMessages=[{role:'assistant',text:'Hi! I can suggest nearby camping spots, BLM land, dispersed sites, or stops along a route — tailored to van life. Where are you headed?'}];
-  }
+  if(!aiMessages.length) aiMessages=[{role:'assistant',text:'Hi! I can suggest nearby camping spots, BLM land, dispersed sites, or stops along a route. Where are you headed?'}];
   const wrap=document.getElementById('ai-messages');
-  wrap.innerHTML=aiMessages.map(m=>`
-    <div class="msg-row ${m.role==='user'?'user':''}">
-      <div class="avatar" style="background:${m.role==='user'?'#10b981':'#e2e8f0'}">${m.role==='user'?'👤':'🤖'}</div>
-      <div class="msg-bubble ${m.role==='assistant'?'ai':'user'}">${m.text}</div>
-    </div>`).join('');
+  wrap.innerHTML=aiMessages.map(m=>`<div class="msg-row ${m.role==='user'?'user':''}">
+    <div class="avatar" style="background:${m.role==='user'?'#10b981':'rgba(255,255,255,.1)'}">${m.role==='user'?'👤':'🤖'}</div>
+    <div class="msg-bubble ${m.role==='assistant'?'ai':'user'}">${m.text}</div>
+  </div>`).join('');
   wrap.scrollTop=wrap.scrollHeight;
   document.getElementById('quick-prompts').innerHTML=aiMessages.length<=1
-    ? QUICK.map(p=>`<button class="quick-btn" onclick="document.getElementById('ai-inp').value='${p}'">${p}</button>`).join('')
-    : '';
+    ?QUICK.map(p=>`<button class="quick-btn" onclick="document.getElementById('ai-inp').value='${p}'">${p}</button>`).join(''):'';
 }
-
 async function sendAI(){
   const inp=document.getElementById('ai-inp');
-  const text=inp.value.trim();
-  if(!text) return;
-  inp.value='';
-  aiMessages.push({role:'user',text});
-  renderAI();
+  const text=inp.value.trim(); if(!text) return;
+  inp.value=''; aiMessages.push({role:'user',text}); renderAI();
   const wrap=document.getElementById('ai-messages');
-  const loader=document.createElement('div');
-  loader.className='msg-row';
-  loader.innerHTML=`<div class="avatar" style="background:#e2e8f0">🤖</div><div class="msg-bubble ai" style="display:flex;gap:6px;padding:14px 18px">${[0,.2,.4].map(d=>`<span style="width:8px;height:8px;background:#94a3b8;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}</div>`;
+  const loader=document.createElement('div'); loader.className='msg-row';
+  loader.innerHTML=`<div class="avatar" style="background:rgba(255,255,255,.1)">🤖</div><div class="msg-bubble ai" style="display:flex;gap:5px;padding:10px 13px">${[0,.2,.4].map(d=>`<span style="width:7px;height:7px;background:#475569;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}</div>`;
   wrap.appendChild(loader); wrap.scrollTop=wrap.scrollHeight;
-
-  const system=`You are a travel assistant for a full-time van dweller in a Sprinter van with a dog. Suggest real, specific nearby camping spots, BLM dispersed sites, national forest camps, dump stations, and interesting stops. Always mention: distances, cell service quality, road conditions (2WD vs 4WD), cost, and grey water disposal options nearby. The user is vegetarian and never dumps grey water outside designated stations. Their logged travel history: ${JSON.stringify(entries.map(e=>({name:e.name,type:e.type,lat:e.lat,lng:e.lng,rating:e.rating,notes:e.notes,arrivalDate:e.arrivalDate,cost:e.cost})))}`;
+  const system=`You are a travel assistant for a full-time van dweller in a Sprinter van with a dog. Suggest real, specific nearby camping spots, BLM dispersed sites, national forest camps, dump stations, and stops. Always mention distances, cell service, road conditions (2WD vs 4WD), cost, and grey water disposal. User is vegetarian and never dumps grey water outside designated stations. Logged history: ${JSON.stringify(entries.map(e=>({name:e.name,type:e.type,lat:e.lat,lng:e.lng,rating:e.rating,notes:e.notes,cost:e.cost})))}`;
   const history=aiMessages.slice(0,-1).map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.text}));
-
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[...history,{role:'user',content:text}]})
-    });
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[...history,{role:'user',content:text}]})});
     const data=await res.json();
     const reply=data.content&&data.content.find(c=>c.type==='text');
     aiMessages.push({role:'assistant',text:reply?reply.text:'Sorry, could not get a response.'});
-  } catch(e){
-    aiMessages.push({role:'assistant',text:'Something went wrong — check your connection and try again.'});
-  }
+  }catch(e){ aiMessages.push({role:'assistant',text:'Something went wrong — check your connection.'}); }
   loader.remove(); renderAI();
 }
 
 // ── Count ─────────────────────────────────────────────────────────────────────
 function updateCount(){
-  const el=document.getElementById('loc-count');
-  if(el) el.textContent=entries.length+' location'+(entries.length!==1?'s':'')+' logged';
+  const t=entries.length+' location'+(entries.length!==1?'s':'');
+  const a=document.getElementById('top-count'); if(a) a.textContent=t;
+  const b=document.getElementById('top-count2'); if(b) b.textContent=t;
 }
-
-// ── Mobile nav: inject log button between entries and AI tabs ─────────────────
-window.addEventListener('DOMContentLoaded', ()=>{
-  const nav=document.querySelector('.sidebar-nav');
-  const logBtn=document.createElement('button');
-  logBtn.className='mobile-log-tab';
-  logBtn.onclick=()=>openForm(null);
-  logBtn.innerHTML=`<div class="mobile-log-icon">+</div><span class="mobile-log-label">Log</span>`;
-  // Insert between 2nd and 3rd tab buttons
-  const btns=nav.querySelectorAll('.tab-btn');
-  if(btns[1]) nav.insertBefore(logBtn, btns[1].nextSibling);
-  else nav.appendChild(logBtn);
-});
 
 // ── Service Worker ────────────────────────────────────────────────────────────
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-}
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
-// ── Start location watching ───────────────────────────────────────────────────
-window.addEventListener('load', ()=>{
-  startWatchingLocation();
-  renderAI();
-});
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{ startWatchingLocation(); renderAI(); });
 </script>
 </body>
 </html>
