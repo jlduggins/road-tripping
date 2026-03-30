@@ -255,9 +255,14 @@ textarea.inp{resize:none}
 </div>
 
 <!-- Map overlay buttons -->
-<button class="map-btn" id="btn-log" onclick="openFormPanel(null)" title="Log location" style="top:66px;left:12px;bottom:auto">+</button>
-<button class="map-btn" id="btn-satellite" onclick="toggleSatellite()" title="Satellite view" style="bottom:112px;right:12px">🛰</button>
-<button class="map-btn" id="btn-locate" onclick="locateMe()" title="My location" style="bottom:60px;right:12px">📍</button>
+<button class="map-btn" id="btn-log" onclick="openFormPanel(null)" title="Log location" style="top:66px;left:12px;bottom:auto;background:#10b981;color:white;font-size:26px;font-weight:300;box-shadow:0 4px 14px rgba(16,185,129,.4)">+</button>
+<button class="map-btn" id="btn-satellite" onclick="toggleSatellite()" title="Satellite view" style="bottom:120px;right:12px;font-size:18px">🛰</button>
+<button class="map-btn" id="btn-locate" onclick="locateMe()" title="My location" style="bottom:64px;right:12px;background:#1a1a2e;border:2px solid rgba(255,255,255,.15)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    <circle cx="12" cy="12" r="8" stroke-opacity=".4"/>
+  </svg>
+</button>
 <div class="map-hint-bar" id="map-hint">Tap the map to log a location</div>
 
 <!-- Drawer overlay (click to close) -->
@@ -416,7 +421,7 @@ textarea.inp{resize:none}
     <div id="geo-info" class="inf" style="display:none"></div>
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
       <button onclick="closeFormPanel()" style="padding:9px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
-      <button id="save-btn" onclick="saveEntry()" style="padding:9px 22px;border-radius:9px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save Location</button>
+      <button id="save-btn" onclick="saveEntry()" style="padding:9px 22px;border-radius:9px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save</button>
     </div>
   </div>
 </div>
@@ -668,6 +673,9 @@ function openFormPanel(entry,lat,lng){
   document.getElementById('f-coords').value=(entry&&entry.lat!=null)
     ? entry.lat.toFixed(6)+', '+entry.lng.toFixed(6)
     : (lat!=null?lat.toFixed(6)+', '+lng.toFixed(6):'');
+
+  // Always set pendingLat/Lng from entry so save logic has them
+  if(entry&&entry.lat!=null){ pendingLat=entry.lat; pendingLng=entry.lng; }
   document.getElementById('f-arrival').value=entry?entry.arrivalDate:today();
   document.getElementById('f-departure').value=entry?entry.departureDate:tomorrow();
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
@@ -750,24 +758,25 @@ async function saveEntry(){
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
-  // Priority 1: typed coords
+  // Priority 1: typed coordinates in the field
   if(coordsText){
     const parts=coordsText.split(',').map(p=>parseFloat(p.trim()));
     if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
     else{ showFormErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
-  // Priority 2: drag pin position
+  // Priority 2: drag pin position (overrides pendingLat if user moved it)
   if(!coordsText&&dragPin){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
-  // Priority 3: geocode address
+  // Priority 3: geocode address — ONLY if we genuinely have no coordinates at all
+  // (don't geocode when editing an entry that already has lat/lng)
   if(lat==null&&address){
     btn.textContent='Finding…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
       const result=await geocodeAddress(address);
       if(result){ lat=result.lat; lng=result.lng; document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6); infoEl.textContent='✓ Found: '+address; }
-      else{ showFormErr('Could not find that address. Try being more specific or paste lat/lng.'); btn.textContent='Save Location'; btn.disabled=false; return; }
-    }catch(e){ showFormErr('Geocoding failed — check connection or enter coords manually.'); btn.textContent='Save Location'; btn.disabled=false; return; }
-    btn.textContent='Save Location'; btn.disabled=false;
+      else{ showFormErr('Could not find that address. Try being more specific or paste lat/lng.'); btn.textContent='Save'; btn.disabled=false; return; }
+    }catch(e){ showFormErr('Geocoding failed — check connection or enter coords manually.'); btn.textContent='Save'; btn.disabled=false; return; }
+    btn.textContent='Save'; btn.disabled=false;
   }
 
   const amenities={};
