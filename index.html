@@ -209,6 +209,9 @@ textarea.inp{resize:none}
 /* ── Offline banner ── */
 #offline-banner{display:none;position:fixed;top:54px;left:0;right:0;z-index:700;background:#f59e0b;color:white;text-align:center;padding:6px;font-size:13px;font-weight:600}
 
+/* Push Leaflet zoom controls below the + log button */
+.leaflet-top.leaflet-left .leaflet-control-zoom{margin-top:116px!important;margin-left:12px!important}
+
 /* ── Responsive tweaks ── */
 @media(max-width:480px){
   #form-panel{width:100vw}
@@ -256,11 +259,17 @@ textarea.inp{resize:none}
 
 <!-- Map overlay buttons -->
 <button class="map-btn" id="btn-log" onclick="openFormPanel(null)" title="Log location" style="top:66px;left:12px;bottom:auto;background:#10b981;color:white;font-size:26px;font-weight:300;box-shadow:0 4px 14px rgba(16,185,129,.4)">+</button>
-<button class="map-btn" id="btn-satellite" onclick="toggleSatellite()" title="Satellite view" style="bottom:120px;right:12px;font-size:18px">🛰</button>
-<button class="map-btn" id="btn-locate" onclick="locateMe()" title="My location" style="bottom:64px;right:12px;background:#1a1a2e;border:2px solid rgba(255,255,255,.15)">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-    <circle cx="12" cy="12" r="8" stroke-opacity=".4"/>
+<!-- Layers icon (switch satellite/street) -->
+<button class="map-btn" id="btn-satellite" onclick="toggleSatellite()" title="Satellite view" style="bottom:120px;right:12px">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+  </svg>
+</button>
+<!-- GPS target locate icon -->
+<button class="map-btn" id="btn-locate" onclick="locateMe()" title="My location" style="bottom:64px;right:12px">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+    <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
   </svg>
 </button>
 <div class="map-hint-bar" id="map-hint">Tap the map to log a location</div>
@@ -441,7 +450,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY = 'YOUR_GEOCODIO_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',current:'Currently Here',planned:'Planned'};
@@ -674,8 +683,9 @@ function openFormPanel(entry,lat,lng){
     ? entry.lat.toFixed(6)+', '+entry.lng.toFixed(6)
     : (lat!=null?lat.toFixed(6)+', '+lng.toFixed(6):'');
 
-  // Always set pendingLat/Lng from entry so save logic has them
-  if(entry&&entry.lat!=null){ pendingLat=entry.lat; pendingLng=entry.lng; }
+  // Always set pendingLat/Lng from entry so drag pin knows where to start
+  pendingLat = (entry&&entry.lat!=null) ? entry.lat : (lat!=null?lat:null);
+  pendingLng = (entry&&entry.lng!=null) ? entry.lng : (lng!=null?lng:null);
   document.getElementById('f-arrival').value=entry?entry.arrivalDate:today();
   document.getElementById('f-departure').value=entry?entry.departureDate:tomorrow();
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
@@ -754,7 +764,7 @@ async function saveEntry(){
   const btn=document.getElementById('save-btn');
   errEl.style.display='none'; infoEl.style.display='none';
 
-  let lat=pendingLat, lng=pendingLng;
+  let lat=null, lng=null;
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
@@ -764,10 +774,9 @@ async function saveEntry(){
     if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
     else{ showFormErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
-  // Priority 2: drag pin position (overrides pendingLat if user moved it)
-  if(!coordsText&&dragPin){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
-  // Priority 3: geocode address — ONLY if we genuinely have no coordinates at all
-  // (don't geocode when editing an entry that already has lat/lng)
+  // Priority 2: drag pin (only if no coords typed and pin was actively moved)
+  if(lat==null&&dragPin){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
+  // Priority 3: geocode address — only if coords field is empty and no drag pin
   if(lat==null&&address){
     btn.textContent='Finding…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
@@ -778,6 +787,7 @@ async function saveEntry(){
     }catch(e){ showFormErr('Geocoding failed — check connection or enter coords manually.'); btn.textContent='Save'; btn.disabled=false; return; }
     btn.textContent='Save'; btn.disabled=false;
   }
+  // If coords field was explicitly cleared, lat/lng will be null — that's intentional
 
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
