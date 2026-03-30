@@ -765,33 +765,45 @@ async function saveEntry(){
     ...amenities
   };
 
+  // Close form immediately before async save so UI feels instant
+  closeForm();
   try{
     await saveToFirestore(entry);
-    closeForm();
   } catch(e){
-    showErr('Failed to save — check your connection and try again.');
-    console.error(e);
+    console.error('Save failed:',e);
+    alert('Failed to save — check your connection and try again.');
   }
 }
 
-function showErr(msg){ const el=document.getElementById('geo-error'); el.textContent=msg; el.style.display='block'; }
+function showErr(msg){
+  const el=document.getElementById('geo-error');
+  if(el && document.getElementById('form-overlay').classList.contains('open')){
+    el.textContent=msg; el.style.display='block';
+  } else {
+    alert(msg);
+  }
+}
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function confirmDelete(id){
-  deleteTargetId=id||editId;
+  // Always use the explicitly passed id first; fall back to editId only if id is truly null/undefined
+  deleteTargetId = (id != null && id !== '') ? id : editId;
+  if(!deleteTargetId){ console.warn('confirmDelete: no target id'); return; }
   document.getElementById('confirm-overlay').classList.add('open');
 }
 function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); deleteTargetId=null; }
 async function executeDelete(){
   if(!deleteTargetId) return;
+  const idToDelete = deleteTargetId;
+  // Close both overlays immediately so UI feels instant
+  closeConfirm();
+  closeForm();
   try{
-    await deleteFromFirestore(deleteTargetId);
-    closeConfirm(); closeForm();
+    await deleteFromFirestore(idToDelete);
   } catch(e){
-    closeConfirm();
+    console.error('Delete failed:',e);
     alert('Failed to delete — check your connection.');
   }
-  deleteTargetId=null;
 }
 
 // ── Entries list ──────────────────────────────────────────────────────────────
