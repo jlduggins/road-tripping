@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Road Tripping"/>
-<meta name="theme-color" content="#0f172a"/>
+<meta name="theme-color" content="#1c3829"/>
 <title>Road Tripping</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
@@ -75,200 +75,325 @@ window._db={
 };
 </script>
 <style>
+/* ── Design tokens ── */
+:root{
+  --bg:#f2f0eb;
+  --forest:#1c3829;
+  --teal:#2a9d8f;
+  --teal-light:#e8f5f3;
+  --teal-mid:rgba(42,157,143,.15);
+  --amber:#e76f51;
+  --text:#1c3829;
+  --text-mid:#4a6358;
+  --text-muted:#8fa899;
+  --card:#ffffff;
+  --border:#e4e0d8;
+  --shadow:0 2px 16px rgba(28,56,41,.1);
+  --shadow-lg:0 8px 40px rgba(28,56,41,.16);
+  --radius:16px;
+  --radius-sm:10px;
+}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:#0f172a}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pulseRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(3);opacity:0}}
 button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 
-/* ── Full-screen map base ── */
+/* ── Map ── */
 #map-container{position:fixed;inset:0;z-index:0}
 #map{width:100%;height:100%}
-
-/* ── Top bar — fixed, respects iOS status bar ── */
-#top-bar{
-  position:fixed;top:0;left:0;right:0;z-index:600;
-  height:calc(54px + env(safe-area-inset-top));
-  padding:env(safe-area-inset-top) 12px 0;
-  background:#0f172a;display:flex;align-items:center;gap:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,.3)
-}
-#menu-btn{width:40px;height:40px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:white;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-#top-title{color:white;font-weight:700;font-size:16px;flex:1}
-#top-count{font-size:11px;color:#64748b;white-space:nowrap}
-
-/* ── Map overlay buttons ── */
-.map-btn{
-  position:fixed;z-index:500;width:44px;height:44px;border-radius:12px;
-  background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.2);
-  display:flex;align-items:center;justify-content:center;transition:all .15s
-}
-.map-btn:active{transform:scale(.93)}
-/* Stack from bottom — add safe-area-inset-bottom so they clear Safari's toolbar */
-#btn-locate{bottom:calc(16px + env(safe-area-inset-bottom));right:12px}
-#btn-satellite{bottom:calc(72px + env(safe-area-inset-bottom));right:12px}
-/* + log button — sits below the top bar */
-#btn-log{
-  top:calc(64px + env(safe-area-inset-top));left:12px;
-  background:#10b981;color:white;
-  box-shadow:0 4px 14px rgba(16,185,129,.4);font-size:26px;font-weight:300
-}
-.map-hint-bar{
-  position:fixed;
-  top:calc(64px + env(safe-area-inset-top));
-  left:50%;transform:translateX(-50%);
-  z-index:500;background:white;padding:7px 18px;border-radius:999px;
-  box-shadow:0 2px 12px rgba(0,0,0,.14);font-size:13px;color:#475569;
-  pointer-events:none;white-space:nowrap;font-weight:500;max-width:80%;text-align:center
-}
-
-/* ── Leaflet — hide all built-in controls, we use custom ones ── */
 .leaflet-control-zoom{display:none!important}
 .leaflet-top.leaflet-left{display:none!important}
-.leaflet-bottom.leaflet-right .leaflet-control-attribution{margin-bottom:4px;margin-right:6px;font-size:9px}
+.leaflet-bottom.leaflet-right .leaflet-control-attribution{margin:0 6px 4px 0;font-size:9px;background:rgba(255,255,255,.7);border-radius:4px;padding:2px 4px}
+
+/* ── Top bar ── */
+#top-bar{
+  position:fixed;top:0;left:0;right:0;z-index:600;
+  height:calc(56px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 16px 0;
+  background:var(--forest);
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 1px 0 rgba(255,255,255,.06)
+}
+#menu-btn{
+  width:38px;height:38px;border-radius:10px;border:none;
+  background:rgba(255,255,255,.1);color:white;font-size:18px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+#menu-btn:active{background:rgba(255,255,255,.18)}
+#top-title{color:white;font-weight:700;font-size:17px;letter-spacing:-.3px;flex:1}
+#top-count{font-size:12px;color:rgba(255,255,255,.5);white-space:nowrap}
+
+/* ── Map controls — grouped card on right ── */
+#map-controls{
+  position:fixed;z-index:500;right:14px;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);
+  display:flex;flex-direction:column;overflow:hidden
+}
+#map-controls button{
+  width:48px;height:48px;border:none;background:transparent;
+  color:var(--text);display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:background .12s;flex-shrink:0
+}
+#map-controls button:active{background:#f5f3ee}
+#map-controls button+button{border-top:1px solid var(--border)}
+
+/* ── Log button ── */
+#btn-log{
+  position:fixed;z-index:500;
+  top:calc(66px + env(safe-area-inset-top));left:14px;
+  width:48px;height:48px;border-radius:var(--radius);border:none;
+  background:var(--teal);color:white;font-size:28px;font-weight:300;
+  box-shadow:0 4px 18px rgba(42,157,143,.45);
+  display:flex;align-items:center;justify-content:center
+}
+#btn-log:active{transform:scale(.94)}
+
+/* ── Map hint ── */
+.map-hint-bar{
+  position:fixed;top:calc(66px + env(safe-area-inset-top));
+  left:50%;transform:translateX(-50%);z-index:500;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+  padding:7px 18px;border-radius:999px;
+  box-shadow:0 2px 12px rgba(0,0,0,.1);
+  font-size:13px;color:var(--text-mid);pointer-events:none;
+  white-space:nowrap;font-weight:500;max-width:80%;text-align:center
+}
 
 /* ── Offline banner ── */
 #offline-banner{
-  display:none;position:fixed;
-  top:calc(54px + env(safe-area-inset-top));
-  left:0;right:0;z-index:700;
-  background:#f59e0b;color:white;text-align:center;padding:6px;font-size:13px;font-weight:600
+  display:none;position:fixed;z-index:700;
+  top:calc(56px + env(safe-area-inset-top));
+  left:0;right:0;background:#e76f51;
+  color:white;text-align:center;padding:7px;font-size:13px;font-weight:600
 }
 
-/* ── Drawer ── */
-#drawer-overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.4);display:none;animation:fadeIn .2s ease}
+/* ── Drawer overlay ── */
+#drawer-overlay{position:fixed;inset:0;z-index:800;background:rgba(28,56,41,.35);display:none;animation:fadeIn .2s ease;backdrop-filter:blur(2px)}
 #drawer-overlay.open{display:block}
-#drawer{position:fixed;top:0;bottom:0;left:0;z-index:900;width:min(360px,92vw);background:#0f172a;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.4)}
+
+/* ── DESKTOP: left drawer ── */
+#drawer{
+  position:fixed;top:0;bottom:0;left:0;z-index:900;
+  width:320px;background:var(--forest);
+  display:flex;flex-direction:column;
+  transform:translateX(-100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 32px rgba(0,0,0,.25)
+}
 #drawer.open{transform:translateX(0)}
-#drawer-header{padding:calc(16px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-#drawer-close{width:36px;height:36px;border-radius:8px;border:none;background:rgba(255,255,255,.06);color:#94a3b8;font-size:18px;display:flex;align-items:center;justify-content:center}
-.drawer-nav{display:flex;flex-direction:column;gap:4px;padding:10px 10px 0}
-.dnav-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:14px;text-align:left;width:100%;transition:all .15s}
-.dnav-btn.active{background:rgba(16,185,129,.12);color:#10b981;font-weight:600}
-.dnav-btn:hover:not(.active){background:rgba(255,255,255,.05);color:#94a3b8}
-.dnav-icon{font-size:18px;width:22px;text-align:center}
-#drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-#drawer-footer{padding:12px 10px calc(20px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
-.log-btn-full{padding:12px;border-radius:12px;border:none;background:#10b981;color:white;font-weight:700;font-size:14px;width:100%;box-shadow:0 4px 14px rgba(16,185,129,.3)}
-.signout-row{display:flex;align-items:center;gap:8px;padding:4px 4px}
-.signout-btn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:12px;text-align:left}
-#user-name{font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+#drawer-header{
+  padding:calc(18px + env(safe-area-inset-top)) 16px 14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+#drawer-close{
+  width:34px;height:34px;border-radius:8px;border:none;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);font-size:16px;
+  display:flex;align-items:center;justify-content:center
+}
+.drawer-nav{display:flex;gap:6px;padding:10px 12px}
+.dnav-btn{
+  flex:1;padding:8px 4px;border-radius:var(--radius-sm);border:none;
+  background:transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;
+  transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px
+}
+.dnav-btn.active{background:rgba(255,255,255,.1);color:white}
+.dnav-btn:hover:not(.active){color:rgba(255,255,255,.75)}
+.dnav-icon{font-size:18px}
+#drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
+#drawer-footer{
+  padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(255,255,255,.08);
+  display:flex;flex-direction:column;gap:8px;flex-shrink:0
+}
+.log-btn-full{
+  padding:13px;border-radius:var(--radius);border:none;
+  background:var(--teal);color:white;font-weight:700;font-size:14px;
+  width:100%;box-shadow:0 4px 14px rgba(42,157,143,.35);letter-spacing:.2px
+}
+.signout-row{display:flex;align-items:center;gap:8px}
+.signout-btn{
+  flex:1;padding:8px 12px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.1);background:transparent;
+  color:rgba(255,255,255,.4);font-size:12px;text-align:left
+}
+#user-name{font-size:11px;color:rgba(255,255,255,.35);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ── Drawer panel sections ── */
-.drawer-section{display:none;flex-direction:column;height:100%}
+/* ── Drawer sections ── */
+.drawer-section{display:none;flex-direction:column;flex:1;min-height:0}
 .drawer-section.active{display:flex}
-.dsec-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.dsec-list{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
+.dsec-header{padding:12px 12px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.dsec-list{flex:1;overflow-y:auto;padding:10px 12px;-webkit-overflow-scrolling:touch}
 
-/* ── Entry cards ── */
-.entry-card{background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:12px 12px 12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;transition:border-color .15s;cursor:pointer}
-.entry-card:hover{border-color:rgba(16,185,129,.4)}
+/* ── Entry cards — light inside dark drawer ── */
+.entry-card{
+  background:rgba(255,255,255,.06);
+  border-radius:var(--radius-sm);
+  border:1px solid rgba(255,255,255,.09);
+  padding:12px;margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+  transition:background .12s;cursor:pointer
+}
+.entry-card:hover,.entry-card:active{background:rgba(255,255,255,.1)}
 .entry-body{flex:1;min-width:0}
-.entry-name{font-size:14px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.entry-meta{font-size:11px;color:#64748b;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.entry-name{font-size:14px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;letter-spacing:-.2px}
+.entry-meta{font-size:11px;color:rgba(255,255,255,.4);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 .entry-cost{font-size:14px;font-weight:800;flex-shrink:0}
-.entry-stars{font-size:10px;color:#f59e0b}
-.entry-badges{display:flex;flex-wrap:wrap;margin-top:5px}
-.badge{background:rgba(16,185,129,.15);color:#6ee7b7;font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;margin:2px}
-.card-icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
-.card-map-btn:hover{border-color:#10b981;color:#10b981}
-.card-del-btn:hover{border-color:#ef4444;color:#ef4444}
+.entry-stars{font-size:10px;color:#f4a261}
+.entry-badges{display:flex;flex-wrap:wrap;margin-top:5px;gap:4px}
+.badge{
+  background:rgba(42,157,143,.2);color:#81c7bf;
+  font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px
+}
+.card-icon-btn{
+  width:32px;height:32px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.1);background:transparent;
+  color:rgba(255,255,255,.45);font-size:13px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s
+}
+.card-map-btn:hover{border-color:var(--teal);color:var(--teal)}
+.card-del-btn:hover{border-color:#e76f51;color:#e76f51}
 
 /* ── AI panel ── */
-.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
 .msg-row{display:flex;gap:8px;align-items:flex-start}
 .msg-row.user{flex-direction:row-reverse}
 .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-.msg-bubble{max-width:85%;padding:10px 13px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.msg-bubble.ai{background:rgba(255,255,255,.08);color:#e2e8f0;border-radius:4px 12px 12px 12px}
-.msg-bubble.user{background:#10b981;color:white;border-radius:12px 4px 12px 12px}
-.quick-wrap{padding:0 10px 8px;display:flex;flex-wrap:wrap;gap:6px}
-.quick-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:6px 12px;font-size:11px;color:#94a3b8;font-weight:500}
-.ai-input-row{padding:10px;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-shrink:0}
+.msg-bubble{max-width:85%;padding:10px 13px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.msg-bubble.ai{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);border-radius:4px 14px 14px 14px}
+.msg-bubble.user{background:var(--teal);color:white;border-radius:14px 4px 14px 14px}
+.quick-wrap{padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:6px}
+.quick-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,.6);font-weight:500}
+.ai-input-row{padding:10px 12px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-shrink:0}
 
-/* ── Form panel — full height using dvh (excludes Safari toolbar) ── */
+/* ── Drawer inputs ── */
+.inp-dark{
+  width:100%;padding:9px 12px;border-radius:var(--radius-sm);
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.06);
+  font-size:14px;color:white;
+}
+.inp-dark::placeholder{color:rgba(255,255,255,.3)}
+.inp-dark:focus{border-color:var(--teal);outline:none}
+select.inp-dark option{background:#1c3829;color:white}
+
+/* ── Form panel ── */
 #form-panel{
   position:fixed;top:0;left:0;z-index:1000;
-  width:min(420px,100%);max-width:100%;
+  width:min(440px,100%);max-width:100%;
   height:100vh;height:100dvh;
-  background:white;display:flex;flex-direction:column;
+  background:var(--bg);display:flex;flex-direction:column;
   transform:translateX(-100%);
-  transition:transform .28s cubic-bezier(.4,0,.2,1);
-  box-shadow:4px 0 32px rgba(0,0,0,.3);overflow:hidden
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:6px 0 40px rgba(0,0,0,.2);overflow:hidden
 }
 #form-panel.open{transform:translateX(0)}
 #form-panel-header{
-  padding:14px 16px;
+  padding:14px 18px;
   padding-top:calc(14px + env(safe-area-inset-top));
-  border-bottom:1px solid #f1f5f9;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;min-height:0
+  border-bottom:1px solid var(--border);
+  background:var(--card);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
 }
+#form-title{font-size:17px;font-weight:700;color:var(--forest);letter-spacing:-.3px}
 #form-panel-body{
-  flex:1;min-height:0;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:14px 16px
+  flex:1;min-height:0;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;padding:18px
 }
 #form-panel-footer{
-  padding:10px 16px;
-  padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  border-top:1px solid #f1f5f9;background:#f8fafc;
-  flex-shrink:0;min-height:0
+  padding:12px 18px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);background:var(--card);
+  flex-shrink:0
 }
 
-/* ── Inputs — 16px prevents iOS zoom on focus ── */
-.inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:16px;color:#1e293b;transition:border-color .15s}
-.inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
-.inp-sm{padding:5px 9px;font-size:14px;width:auto}
-select.inp{background:white}
+/* ── Form inputs ── */
+.inp{
+  width:100%;padding:11px 14px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--card);
+  font-size:16px;color:var(--text);transition:border-color .15s
+}
+.inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(42,157,143,.1)}
+.inp-sm{padding:6px 10px;font-size:14px;width:auto}
+select.inp{background:var(--card)}
 textarea.inp{resize:none}
-.lbl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px}
-.lbl-hint{font-weight:400;color:#94a3b8;font-size:11px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lbl{display:block;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase}
+.lbl-hint{font-weight:400;color:var(--text-muted);font-size:11px;text-transform:none;letter-spacing:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .full{grid-column:1/-1}
-.star{font-size:26px;cursor:pointer;user-select:none;color:#d1d5db;transition:color .1s;padding:1px}
-.star.on{color:#f59e0b}
-.amenity-box{background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;padding:12px}
-.amenity-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#475569;padding:4px 0}
-.amenity-check input{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
+.star{font-size:28px;cursor:pointer;user-select:none;color:#d8d4cc;transition:color .1s;padding:1px}
+.star.on{color:#f4a261}
+.amenity-box{background:var(--card);border-radius:var(--radius);border:1.5px solid var(--border);padding:14px}
+.amenity-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-mid);padding:5px 0}
+.amenity-check input{width:16px;height:16px;accent-color:var(--teal);flex-shrink:0}
 
 /* ── Photo ── */
-.photo-wrap{position:relative;width:72px;height:72px;flex-shrink:0}
-.photo-wrap img{width:72px;height:72px;object-fit:cover;border-radius:9px;border:2px solid #e2e8f0;display:block}
-.photo-remove{position:absolute;top:-5px;right:-5px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;padding:0;line-height:18px;text-align:center}
+.photo-wrap{position:relative;width:76px;height:76px;flex-shrink:0}
+.photo-wrap img{width:76px;height:76px;object-fit:cover;border-radius:var(--radius-sm);border:2px solid var(--border);display:block}
+.photo-remove{position:absolute;top:-5px;right:-5px;background:#e76f51;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;padding:0;line-height:20px;text-align:center}
 
 /* ── Alerts ── */
-.err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:7px 12px;font-size:13px;color:#dc2626;width:100%;margin-bottom:8px}
-.inf{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 12px;font-size:13px;color:#166534;width:100%;margin-bottom:8px}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;color:#64748b;gap:10px}
+.err{background:#fef3ef;border:1px solid #f4b5a0;border-radius:var(--radius-sm);padding:8px 13px;font-size:13px;color:#c44b2b;width:100%;margin-bottom:8px}
+.inf{background:var(--teal-light);border:1px solid #a8d8d4;border-radius:var(--radius-sm);padding:8px 13px;font-size:13px;color:#1a6b63;width:100%;margin-bottom:8px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;text-align:center;gap:10px}
 
 /* ── Delete confirm ── */
-.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(28,56,41,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .confirm-overlay.open{display:flex}
-.confirm-box{background:white;border-radius:20px;padding:28px;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{background:white;border-radius:24px;padding:36px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4)}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:15px;font-weight:600;color:#1e293b;margin-top:6px}
-.google-btn:hover{background:#f8fafc}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--card);border-radius:28px;padding:40px 32px;max-width:360px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);font-size:15px;font-weight:600;color:var(--text);margin-top:8px;transition:background .15s}
+.google-btn:hover{background:var(--bg)}
 
 /* ── Loading ── */
-#loading-screen{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
-.spinner{width:36px;height:36px;border:3px solid rgba(16,185,129,.2);border-top-color:#10b981;border-radius:50%;animation:spin 1s linear infinite}
+#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid rgba(42,157,143,.2);border-top-color:var(--teal);border-radius:50%;animation:spin 1s linear infinite}
 
 /* ── My location dot ── */
-.my-dot{width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,.3);position:relative}
-.my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(59,130,246,.35);animation:pulseRing 2s ease-out infinite}
+.my-dot{width:16px;height:16px;background:#4a9eff;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(74,158,255,.3);position:relative}
+.my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(74,158,255,.3);animation:pulseRing 2s ease-out infinite}
 
-/* ── Mobile: single-column form ── */
-@media(max-width:500px){
+/* ── Mobile bottom sheet drawer ── */
+@media(max-width:640px){
+  #drawer{
+    top:auto;bottom:0;left:0;right:0;width:100%;
+    height:75vh;border-radius:24px 24px 0 0;
+    transform:translateY(100%);
+    box-shadow:0 -8px 40px rgba(0,0,0,.25)
+  }
+  #drawer.open{transform:translateY(0)}
+  #drawer-header{
+    padding:8px 16px 12px;
+    padding-bottom:10px;
+  }
+  /* Drag handle */
+  #drawer-header::before{
+    content:'';display:block;position:absolute;
+    top:10px;left:50%;transform:translateX(-50%);
+    width:36px;height:4px;border-radius:2px;
+    background:rgba(255,255,255,.2)
+  }
+  #drawer-header{position:relative}
+  .drawer-nav{flex-direction:row}
+  .dnav-btn{flex-direction:row;gap:6px;justify-content:center}
+  #map-controls{bottom:calc(18px + env(safe-area-inset-bottom))}
+  #btn-log{top:calc(66px + env(safe-area-inset-top))}
   .form-grid{grid-template-columns:1fr!important}
   .full{grid-column:1!important}
+  #move-pin-btn{display:flex!important}
+}
+@media(min-width:641px){
+  #move-pin-btn{display:none!important}
 }
 </style>
 </head>
@@ -277,21 +402,21 @@ textarea.inp{resize:none}
 <!-- Loading -->
 <div id="loading-screen">
   <div class="spinner"></div>
-  <div style="color:#64748b;font-size:14px">Loading Road Tripping…</div>
+  <div style="color:rgba(255,255,255,.5);font-size:14px;font-weight:500">Loading Road Tripping…</div>
 </div>
 
 <!-- Login -->
 <div id="login-screen" style="display:none">
   <div class="login-card">
-    <div style="width:52px;height:52px;background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;box-shadow:0 8px 24px rgba(16,185,129,.3)">🚗</div>
-    <h1 style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:6px">Road Tripping</h1>
-    <p style="font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.5">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
+    <div style="width:56px;height:56px;background:var(--teal);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 24px rgba(42,157,143,.35)">🚗</div>
+    <h1 style="font-size:26px;font-weight:800;color:var(--forest);margin-bottom:8px;letter-spacing:-.5px">Road Tripping</h1>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
     <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Continue with Google
     </button>
-    <div id="login-error" style="display:none;margin-top:12px;font-size:12px;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px"></div>
-    <p style="font-size:11px;color:#94a3b8;margin-top:18px">Your data is private and only visible to you.</p>
+    <div id="login-error" style="display:none;margin-top:12px;font-size:12px;color:#c44b2b;background:#fef3ef;padding:8px 12px;border-radius:8px"></div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:20px">Your data is private and only visible to you.</p>
   </div>
 </div>
 
@@ -364,36 +489,36 @@ textarea.inp{resize:none}
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:34px;height:34px;background:linear-gradient(135deg,#10b981,#059669);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px">🚗</div>
+      <div style="width:34px;height:34px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">🚗</div>
       <div>
-        <div style="color:white;font-weight:700;font-size:14px">Road Tripping</div>
-        <div id="top-count2" style="font-size:11px;color:#64748b">0 locations</div>
+        <div style="color:white;font-weight:700;font-size:15px;letter-spacing:-.3px">Road Tripping</div>
+        <div id="top-count2" style="font-size:11px;color:rgba(255,255,255,.4)">0 locations</div>
       </div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
 
   <div class="drawer-nav">
-    <button class="dnav-btn active" onclick="showDrawerSection('entries',this)"><span class="dnav-icon">☰</span> Logged Entries</button>
-    <button class="dnav-btn" onclick="showDrawerSection('ai',this)"><span class="dnav-icon">✨</span> AI Assistant</button>
+    <button class="dnav-btn active" onclick="showDrawerSection('entries',this)"><span class="dnav-icon">☰</span> Entries</button>
+    <button class="dnav-btn" onclick="showDrawerSection('ai',this)"><span class="dnav-icon">✨</span> AI</button>
   </div>
 
   <div id="drawer-content">
     <!-- Entries section -->
     <div id="dsec-entries" class="drawer-section active">
       <div class="dsec-header">
-        <input class="inp" id="search-inp" placeholder="🔍 Search…" oninput="renderEntries()" style="margin-bottom:8px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white"/>
+        <input class="inp-dark" id="search-inp" placeholder="🔍  Search locations…" oninput="renderEntries()" style="margin-bottom:8px;width:100%"/>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select class="inp inp-sm" id="f-type" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
+          <select class="inp-dark inp-sm" id="f-type" onchange="renderEntries()">
             <option value="">All Types</option>
             <option>National Park</option><option>National Forest</option><option>BLM</option>
             <option>Dispersed</option><option>Private</option><option>Other</option>
           </select>
-          <select class="inp inp-sm" id="f-status" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
+          <select class="inp-dark inp-sm" id="f-status" onchange="renderEntries()">
             <option value="">All Statuses</option>
             <option value="visited">Visited</option><option value="current">Here Now</option><option value="planned">Planned</option>
           </select>
-          <select class="inp inp-sm" id="f-rating" onchange="renderEntries()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white">
+          <select class="inp-dark inp-sm" id="f-rating" onchange="renderEntries()">
             <option value="0">Any ★</option><option value="1">1+★</option><option value="2">2+★</option>
             <option value="3">3+★</option><option value="4">4+★</option><option value="5">5★</option>
           </select>
@@ -407,8 +532,8 @@ textarea.inp{resize:none}
       <div id="ai-messages" class="ai-messages"></div>
       <div id="quick-prompts" class="quick-wrap"></div>
       <div class="ai-input-row">
-        <input class="inp" id="ai-inp" placeholder="Free BLM camping near me?" style="flex:1;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:white;font-size:13px" onkeydown="if(event.key==='Enter')sendAI()"/>
-        <button onclick="sendAI()" style="background:#10b981;color:white;border:none;border-radius:9px;padding:0 14px;font-weight:700;font-size:18px;flex-shrink:0">→</button>
+        <input class="inp-dark" id="ai-inp" placeholder="Free BLM camping near me?" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')sendAI()"/>
+        <button onclick="sendAI()" style="background:var(--teal);color:white;border:none;border-radius:9px;padding:0 14px;font-weight:700;font-size:18px;flex-shrink:0">→</button>
       </div>
     </div>
   </div>
@@ -416,7 +541,7 @@ textarea.inp{resize:none}
   <div id="drawer-footer">
     <button class="log-btn-full" onclick="closeDrawer();openFormPanel(null)">+ Log Location</button>
     <div class="signout-row">
-      <span id="user-name" style="font-size:11px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span id="user-name"></span>
       <button class="signout-btn" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
@@ -427,15 +552,14 @@ textarea.inp{resize:none}
   <div id="form-panel-header">
     <h2 style="font-size:16px;font-weight:700" id="form-title">⛺ Log New Location</h2>
     <div style="display:flex;align-items:center;gap:8px">
-      <button id="form-trash-btn" onclick="confirmDelete(null)" style="display:none;width:34px;height:34px;border-radius:8px;border:1.5px solid #fca5a5;background:white;font-size:15px;color:#ef4444;align-items:center;justify-content:center">🗑</button>
-      <button onclick="closeFormPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;line-height:1;padding:4px">✕</button>
+      <button id="form-trash-btn" onclick="confirmDelete(null)" style="display:none;width:34px;height:34px;border-radius:8px;border:1.5px solid #f4b5a0;background:white;font-size:15px;color:#e76f51;align-items:center;justify-content:center">🗑</button>
+      <button onclick="closeFormPanel()" style="background:none;border:none;font-size:20px;color:var(--text-muted);line-height:1;padding:4px">✕</button>
     </div>
   </div>
 
   <div id="form-panel-body">
-    <div id="pin-hint" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#166534;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:8px">
-      <span>📍 Tap the map or drag the yellow pin to set location</span>
-      <button onclick="doneMovingPin()" style="background:#10b981;color:white;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">Done</button>
+    <div id="pin-hint" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#166534;margin-bottom:12px;display:none;align-items:center;gap:8px">
+      📍 Drag the yellow pin on the map to adjust the location
     </div>
     <div class="form-grid">
       <div class="full">
@@ -514,12 +638,12 @@ textarea.inp{resize:none}
     <div id="geo-info" class="inf" style="display:none"></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="startMovingPin()" id="move-pin-btn"
-        style="padding:9px 14px;border-radius:9px;border:1.5px solid #10b981;background:white;color:#10b981;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+        style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--teal);background:white;color:var(--teal);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
         📍 Move Pin
       </button>
       <div style="flex:1"></div>
-      <button onclick="closeFormPanel()" style="padding:9px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
-      <button id="save-btn" onclick="saveEntry()" style="padding:9px 22px;border-radius:9px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save</button>
+      <button onclick="closeFormPanel()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Cancel</button>
+      <button id="save-btn" onclick="saveEntry()" style="padding:10px 24px;border-radius:var(--radius-sm);border:none;background:var(--teal);color:white;font-weight:700;font-size:14px">Save</button>
     </div>
   </div>
 </div>
@@ -527,19 +651,19 @@ textarea.inp{resize:none}
 <!-- Delete confirm -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
-    <div style="font-size:36px;margin-bottom:10px">🗑</div>
-    <h3 style="font-size:17px;font-weight:700;margin-bottom:6px;color:#0f172a">Delete this location?</h3>
-    <p style="font-size:13px;color:#64748b;margin-bottom:20px">This cannot be undone.</p>
+    <div style="font-size:36px;margin-bottom:12px">🗑</div>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;color:var(--forest);letter-spacing:-.3px">Delete this location?</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.5">This cannot be undone.</p>
     <div style="display:flex;gap:10px;justify-content:center">
-      <button onclick="closeConfirm()" style="padding:9px 20px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
-      <button onclick="executeDelete()" style="padding:9px 20px;border-radius:9px;border:none;background:#ef4444;color:white;font-weight:600;font-size:14px">Delete</button>
+      <button onclick="closeConfirm()" style="padding:10px 22px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Cancel</button>
+      <button onclick="executeDelete()" style="padding:10px 22px;border-radius:var(--radius-sm);border:none;background:#e76f51;color:white;font-weight:700;font-size:14px">Delete</button>
     </div>
   </div>
 </div>
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -723,11 +847,11 @@ function renderMarkers(){
     });
     const m=L.marker([entry.lat,entry.lng],{icon}).addTo(map);
     const cost=entry.cost===0?'Free!':entry.cost==null?'Unknown':'$'+entry.cost+'/night';
-    m.bindPopup(`<div style="font-family:system-ui;min-width:180px;padding:4px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
-      <div style="font-size:12px;color:#475569;margin-bottom:8px">${cost}</div>
-      <button onclick="window._editEntry('${entry.id}')" style="background:#10b981;color:white;border:none;padding:7px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
+    m.bindPopup(`<div style="font-family:system-ui;min-width:190px;padding:4px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1c3829">${entry.name}</div>
+      <div style="font-size:12px;color:#4a6358;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
+      <div style="font-size:12px;color:#4a6358;margin-bottom:8px">${cost}</div>
+      <button onclick="window._editEntry('${entry.id}')" style="background:#2a9d8f;color:white;border:none;padding:8px 0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
     </div>`);
     markers.push(m);
   });
@@ -818,25 +942,63 @@ function openFormPanel(entry,lat,lng){
 
 function closeFormPanel(){
   document.getElementById('form-panel').classList.remove('open');
+  document.getElementById('form-panel').style.transform='';
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
   removeDragPin();
+  hideDoneBtn();
 }
 
-// Slide form off-screen so user can interact with map to move pin
+// Move Pin — on mobile: slide form away and show floating Done button over map
+// On desktop: form stays visible (map is beside it), nothing changes
 function startMovingPin(){
-  document.getElementById('form-panel').style.transform='translateX(-110%)';
-  document.getElementById('pin-hint').style.display='flex';
-  // If no drag pin yet, place one at map center
-  if(!dragPin){
-    const center=map.getCenter();
-    showDragPin(center.lat,center.lng);
+  const isMobile=window.innerWidth<=500;
+  if(isMobile){
+    // Slide form off-screen
+    document.getElementById('form-panel').style.transform='translateX(-110%)';
+    // Pan map to current pin location
+    if(dragPin){ map.panTo(dragPin.getLatLng()); }
+    else if(pendingLat!=null){ map.panTo([pendingLat,pendingLng]); }
+    else { map.panTo(map.getCenter()); }
+    // Show drag pin if not already
+    if(!dragPin){
+      const c=map.getCenter(); showDragPin(c.lat,c.lng);
+    }
+    // Show floating Done button over the map
+    showDoneBtn();
   }
+  // On desktop: pin is already draggable on the map beside the form — no action needed
 }
 
-// Bring form back after moving pin
 function doneMovingPin(){
   document.getElementById('form-panel').style.transform='';
   document.getElementById('form-panel').classList.add('open');
+  hideDoneBtn();
+}
+
+function showDoneBtn(){
+  let btn=document.getElementById('floating-done-btn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='floating-done-btn';
+    btn.textContent='✓ Done Moving Pin';
+    btn.onclick=doneMovingPin;
+    btn.style.cssText=`
+      position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;
+      transform:translateX(-50%);z-index:1001;
+      background:#2a9d8f;color:white;border:none;
+      padding:14px 28px;border-radius:999px;
+      font-size:15px;font-weight:700;
+      box-shadow:0 4px 20px rgba(42,157,143,.5);
+      white-space:nowrap;cursor:pointer;
+    `;
+    document.body.appendChild(btn);
+  }
+  btn.style.display='block';
+}
+
+function hideDoneBtn(){
+  const btn=document.getElementById('floating-done-btn');
+  if(btn) btn.style.display='none';
 }
 
 // Stars
@@ -970,11 +1132,11 @@ function renderEntries(){
 
   const list=document.getElementById('entries-list');
   if(!entries.length){
-    list.innerHTML='<div class="empty-state"><div style="font-size:44px">🏕</div><div style="color:#94a3b8;font-size:14px">No locations yet</div><div style="color:#64748b;font-size:12px">Tap + to log your first spot</div></div>';
+    list.innerHTML='<div class="empty-state"><div style="font-size:48px">🏕</div><div style="font-size:15px;font-weight:700;color:rgba(255,255,255,.7)">No locations yet</div><div style="font-size:13px;color:rgba(255,255,255,.35)">Tap + to log your first spot</div></div>';
     return;
   }
   if(!filtered.length){
-    list.innerHTML='<div class="empty-state"><div style="font-size:32px">🔍</div><div style="color:#94a3b8;font-size:14px">No matches</div></div>';
+    list.innerHTML='<div class="empty-state"><div style="font-size:36px">🔍</div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,.6)">No matches</div><div style="font-size:12px;color:rgba(255,255,255,.3)">Try adjusting your filters</div></div>';
     return;
   }
   list.innerHTML=filtered.map(e=>{
@@ -1011,7 +1173,7 @@ function renderAI(){
   if(!aiMessages.length) aiMessages=[{role:'assistant',text:'Hi! I can suggest nearby camping spots, BLM land, dispersed sites, or stops along a route. Where are you headed?'}];
   const wrap=document.getElementById('ai-messages');
   wrap.innerHTML=aiMessages.map(m=>`<div class="msg-row ${m.role==='user'?'user':''}">
-    <div class="avatar" style="background:${m.role==='user'?'#10b981':'rgba(255,255,255,.1)'}">${m.role==='user'?'👤':'🤖'}</div>
+    <div class="avatar" style="background:${m.role==='user'?'var(--teal)':'rgba(255,255,255,.12)'}">${m.role==='user'?'👤':'🤖'}</div>
     <div class="msg-bubble ${m.role==='assistant'?'ai':'user'}">${m.text}</div>
   </div>`).join('');
   wrap.scrollTop=wrap.scrollHeight;
