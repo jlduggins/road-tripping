@@ -1,4 +1,4 @@
-const CACHE_NAME = 'road-tripping-v1';
+const CACHE_NAME = 'road-tripping-v3';
 const CACHE_URLS = [
   '/',
   '/index.html',

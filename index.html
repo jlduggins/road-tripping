@@ -12,6 +12,10 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#0f172a}
@@ -23,7 +27,7 @@ button{cursor:pointer;font-family:inherit}
 input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .app{display:flex;height:100vh;height:100dvh}
 
-/* ── Sidebar (desktop) ── */
+/* Sidebar */
 .sidebar{width:230px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06)}
 .sidebar-header{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
 .logo{width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 12px rgba(16,185,129,.3)}
@@ -32,30 +36,31 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .tab-btn.active{background:rgba(16,185,129,.12);color:#10b981;font-weight:600}
 .tab-btn:hover:not(.active){background:rgba(255,255,255,.05);color:#94a3b8}
 .tab-icon{font-size:17px;width:22px;text-align:center;line-height:1}
-.sidebar-footer{padding:12px 10px 24px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-footer{padding:12px 10px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
 .log-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#10b981;color:white;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(16,185,129,.35);transition:all .15s}
 .log-btn:hover{background:#059669;transform:translateY(-1px)}
 .log-btn:active{transform:translateY(0)}
+.signout-btn{width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#64748b;font-size:12px;font-weight:500;transition:all .15s}
+.signout-btn:hover{color:#94a3b8;border-color:rgba(255,255,255,.2)}
 
-/* ── Main content ── */
+/* Main */
 .main{flex:1;overflow:hidden;position:relative;background:#f8fafc}
 .tab-panel{position:absolute;inset:0;display:none;flex-direction:column}
 .tab-panel.active{display:flex}
 
-/* ── Map ── */
+/* Map */
 #map{width:100%;height:100%}
 .map-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:white;padding:8px 20px;border-radius:999px;box-shadow:0 2px 16px rgba(0,0,0,.14);font-size:13px;color:#475569;pointer-events:none;white-space:nowrap;font-weight:500}
 .locate-btn{position:absolute;bottom:24px;right:16px;z-index:1000;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .locate-btn:active{transform:scale(.93)}
-/* Blue dot for current location */
 .my-dot{width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,.3);position:relative}
 .my-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(59,130,246,.35);animation:pulseRing 2s ease-out infinite}
 
-/* ── Panel header ── */
+/* Panel */
 .panel-header{background:white;border-bottom:1px solid #e2e8f0;padding:18px 18px 14px;flex-shrink:0}
-
-/* ── Entry cards (compact) ── */
 .entries-list{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+
+/* Entry cards */
 .entry-card{background:white;border-radius:14px;border:1px solid #e2e8f0;padding:14px 14px 14px 16px;margin-bottom:8px;animation:fadeIn .2s ease;display:flex;align-items:center;gap:10px;transition:border-color .15s}
 .entry-card:hover{border-color:#d1fae5}
 .entry-body{flex:1;min-width:0;cursor:pointer}
@@ -64,7 +69,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .card-map-btn:hover{border-color:#10b981;background:#f0fdf4}
 .card-del-btn:hover{border-color:#fca5a5;background:#fef2f2}
 
-/* ── Form inputs ── */
+/* Inputs */
 .inp{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:14px;color:#1e293b;transition:border-color .15s}
 .inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
 .inp-sm{padding:6px 10px;font-size:12px;width:auto}
@@ -74,7 +79,7 @@ textarea.inp{resize:none}
 .lbl-hint{font-weight:400;color:#94a3b8;font-size:11px}
 .badge{background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-block;margin:2px}
 
-/* ── Modals ── */
+/* Modals */
 .overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.7);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
 .modal{background:white;border-radius:20px;width:100%;max-width:640px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);margin:auto;max-height:94vh;animation:fadeIn .2s ease}
@@ -89,7 +94,7 @@ textarea.inp{resize:none}
 .amenity-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#475569;padding:3px 0}
 .amenity-check input{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
 
-/* ── AI ── */
+/* AI */
 .ai-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch}
 .msg-row{display:flex;gap:10px;align-items:flex-start;animation:fadeIn .2s ease}
 .msg-row.user{flex-direction:row-reverse}
@@ -101,59 +106,56 @@ textarea.inp{resize:none}
 .quick-btn{background:white;border:1.5px solid #e2e8f0;border-radius:20px;padding:7px 14px;font-size:12px;color:#475569;font-weight:500}
 .ai-input-row{padding:12px 14px;background:white;border-top:1px solid #e2e8f0;display:flex;gap:8px;flex-shrink:0}
 
-/* ── Alerts ── */
+/* Alerts */
 .err{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:13px;color:#dc2626;width:100%;margin-bottom:10px}
 .info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 14px;font-size:13px;color:#166534;width:100%;margin-bottom:10px}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#94a3b8;gap:12px;padding:40px;text-align:center}
 #offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#f59e0b;color:white;text-align:center;padding:8px;font-size:13px;font-weight:600}
 
-/* ── Photos ── */
+/* Photos */
 .photo-wrap{position:relative;width:80px;height:80px;flex-shrink:0}
 .photo-wrap img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid #e2e8f0;display:block}
 .photo-remove{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;padding:0;line-height:20px;text-align:center}
 
-/* ── Delete confirm ── */
+/* Delete confirm */
 .confirm-overlay{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .confirm-overlay.open{display:flex}
 .confirm-box{background:white;border-radius:20px;padding:32px;max-width:340px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:fadeIn .2s ease}
 
-/* ── Mobile: bottom nav bar ── */
+/* Login screen */
+#login-screen{position:fixed;inset:0;z-index:99998;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:white;border-radius:24px;padding:40px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:15px;font-weight:600;color:#1e293b;transition:all .15s;margin-top:8px}
+.google-btn:hover{background:#f8fafc;border-color:#cbd5e1}
+.google-btn svg{flex-shrink:0}
+
+/* Loading spinner */
+#loading-screen{position:fixed;inset:0;z-index:99999;background:#0f172a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid rgba(16,185,129,.2);border-top-color:#10b981;border-radius:50%;animation:spin 1s linear infinite}
+
+/* Mobile bottom nav — fix z-index so it's always above map */
 @media(max-width:640px){
   .app{flex-direction:column}
   .sidebar{
     width:100%;height:68px;
     flex-direction:row;
-    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    position:fixed;bottom:0;left:0;right:0;
+    z-index:1001;/* above Leaflet's z-index of 1000 */
     border-right:none;border-top:1px solid rgba(255,255,255,.1);
     padding:0;background:#0f172a
   }
   .sidebar-header,.sidebar-footer{display:none}
-  .sidebar-nav{
-    flex-direction:row;padding:4px 0 6px;
-    align-items:center;justify-content:space-around;
-    gap:0;width:100%
-  }
-  .tab-btn{
-    flex-direction:column;gap:2px;
-    padding:6px 4px;font-size:10px;
-    align-items:center;width:auto;flex:1;
-    border-radius:8px;color:#64748b
-  }
+  .sidebar-nav{flex-direction:row;padding:4px 0 6px;align-items:center;justify-content:space-around;gap:0;width:100%}
+  .tab-btn{flex-direction:column;gap:2px;padding:6px 4px;font-size:10px;align-items:center;width:auto;flex:1;border-radius:8px;color:#64748b}
   .tab-btn.active{background:rgba(16,185,129,.15);color:#10b981}
   .tab-icon{font-size:22px;width:auto}
-  /* Mobile "+" log button in nav */
-  .mobile-log-tab{
-    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:2px;padding:4px;border:none;background:transparent;cursor:pointer
-  }
-  .mobile-log-icon{
-    width:36px;height:36px;background:#10b981;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:20px;color:white;font-weight:700;
-    box-shadow:0 2px 8px rgba(16,185,129,.4)
-  }
+  .mobile-log-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;border:none;background:transparent;cursor:pointer}
+  .mobile-log-icon{width:36px;height:36px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:white;font-weight:700;box-shadow:0 2px 8px rgba(16,185,129,.4)}
   .mobile-log-label{font-size:10px;color:#10b981;font-weight:600}
+  /* Push main content above the bottom nav */
   .main{padding-bottom:68px}
+  /* Map tab needs explicit height so it doesn't bleed under nav */
+  #tab-map{bottom:68px!important}
   .modal{max-height:88vh}
   .form-grid{grid-template-columns:1fr}
   .full{grid-column:1}
@@ -167,51 +169,59 @@ textarea.inp{resize:none}
 </head>
 <body>
 
-<div id="offline-banner">⚠ You're offline — map tiles may not load, but your data is safe</div>
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div style="color:#64748b;font-size:14px">Loading Road Tripping…</div>
+</div>
 
-<div class="app">
+<!-- Login screen -->
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#10b981,#059669);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 24px rgba(16,185,129,.3)">🚗</div>
+    <h1 style="font-size:24px;font-weight:800;color:#0f172a;margin-bottom:8px">Road Tripping</h1>
+    <p style="font-size:14px;color:#64748b;margin-bottom:28px;line-height:1.5">Log your camping spots, track routes, and get AI suggestions — synced across all your devices.</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div id="login-error" style="display:none;margin-top:14px;font-size:12px;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px"></div>
+    <p style="font-size:11px;color:#94a3b8;margin-top:20px">Your data is private and only visible to you.</p>
+  </div>
+</div>
 
-  <!-- ── Sidebar / bottom nav ── -->
+<div id="offline-banner">⚠ You're offline — map tiles may not load, but your logged data is safe</div>
+
+<!-- Main app -->
+<div class="app" id="app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="logo">🚗</div>
-      <div>
+      <div style="min-width:0">
         <div style="color:white;font-weight:700;font-size:15px">Road Tripping</div>
-        <div id="loc-count" style="font-size:11px;color:#64748b;margin-top:2px">0 locations logged</div>
+        <div id="loc-count" style="font-size:11px;color:#64748b;margin-top:2px">0 locations</div>
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="tab-btn active" onclick="showTab('map',this)">
-        <span class="tab-icon">🗺</span><span>Map View</span>
-      </button>
-      <button class="tab-btn" onclick="showTab('entries',this)">
-        <span class="tab-icon">☰</span><span>Logged Entries</span>
-      </button>
-      <!-- Mobile + button (hidden on desktop) -->
-      <button class="mobile-log-tab" onclick="openForm(null)">
-        <div class="mobile-log-icon">+</div>
-        <span class="mobile-log-label">Log</span>
-      </button>
-      <button class="tab-btn" onclick="showTab('ai',this)">
-        <span class="tab-icon">✨</span><span>AI</span>
-      </button>
+      <button class="tab-btn active" onclick="showTab('map',this)"><span class="tab-icon">🗺</span><span>Map View</span></button>
+      <button class="tab-btn" onclick="showTab('entries',this)"><span class="tab-icon">☰</span><span>Logged Entries</span></button>
+      <button class="tab-btn" onclick="showTab('ai',this)"><span class="tab-icon">✨</span><span>AI Assistant</span></button>
     </div>
     <div class="sidebar-footer">
       <button class="log-btn" onclick="openForm(null)">+ Log Location</button>
+      <button class="signout-btn" onclick="signOutUser()" id="user-info">Sign out</button>
     </div>
   </div>
 
-  <!-- ── Main ── -->
   <div class="main">
-
-    <!-- Map tab -->
+    <!-- Map -->
     <div id="tab-map" class="tab-panel active" style="position:absolute;inset:0">
       <div id="map"></div>
       <div class="map-hint">Tap anywhere on the map to log a location</div>
       <button class="locate-btn" onclick="locateMe()" title="Find my location">📍</button>
     </div>
 
-    <!-- Entries tab -->
+    <!-- Entries -->
     <div id="tab-entries" class="tab-panel" style="background:#f8fafc">
       <div class="panel-header">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -227,13 +237,10 @@ textarea.inp{resize:none}
           </select>
           <select class="inp inp-sm" id="f-status" onchange="renderEntries()">
             <option value="">All Statuses</option>
-            <option value="visited">Visited</option>
-            <option value="current">Currently Here</option>
-            <option value="planned">Planned</option>
+            <option value="visited">Visited</option><option value="current">Currently Here</option><option value="planned">Planned</option>
           </select>
           <select class="inp inp-sm" id="f-rating" onchange="renderEntries()">
-            <option value="0">Any Rating</option>
-            <option value="1">1+ ★</option><option value="2">2+ ★</option>
+            <option value="0">Any Rating</option><option value="1">1+ ★</option><option value="2">2+ ★</option>
             <option value="3">3+ ★</option><option value="4">4+ ★</option><option value="5">5 ★</option>
           </select>
         </div>
@@ -241,7 +248,7 @@ textarea.inp{resize:none}
       <div id="entries-list" class="entries-list"></div>
     </div>
 
-    <!-- AI tab -->
+    <!-- AI -->
     <div id="tab-ai" class="tab-panel" style="background:#f8fafc">
       <div class="panel-header">
         <h2 style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px">✨ AI Assistant</h2>
@@ -254,18 +261,16 @@ textarea.inp{resize:none}
         <button onclick="sendAI()" style="background:#10b981;color:white;border:none;border-radius:10px;padding:0 18px;font-weight:700;font-size:20px;flex-shrink:0">→</button>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- ── Log / Edit form modal ── -->
+<!-- Form modal -->
 <div class="overlay" id="form-overlay">
   <div class="modal">
     <div class="modal-header">
       <h2 style="font-size:17px;font-weight:700" id="form-title">⛺ Log New Location</h2>
       <div style="display:flex;align-items:center;gap:8px">
-        <button id="form-trash-btn" onclick="confirmDelete(null)"
-          style="display:none;width:36px;height:36px;border-radius:9px;border:1.5px solid #fca5a5;background:white;font-size:16px;color:#ef4444;align-items:center;justify-content:center">🗑</button>
+        <button id="form-trash-btn" onclick="confirmDelete(null)" style="display:none;width:36px;height:36px;border-radius:9px;border:1.5px solid #fca5a5;background:white;font-size:16px;color:#ef4444;align-items:center;justify-content:center">🗑</button>
         <button onclick="closeForm()" style="background:none;border:none;font-size:22px;color:#94a3b8;line-height:1;padding:4px">✕</button>
       </div>
     </div>
@@ -337,14 +342,13 @@ textarea.inp{resize:none}
           <label class="lbl">Photos</label>
           <div id="photo-row" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
           <input type="file" id="photo-inp" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)"/>
-          <button type="button" onclick="document.getElementById('photo-inp').click()"
-            style="width:80px;height:80px;border:2px dashed #cbd5e1;border-radius:10px;background:white;font-size:28px;color:#94a3b8;display:flex;align-items:center;justify-content:center">+</button>
+          <button type="button" onclick="document.getElementById('photo-inp').click()" style="width:80px;height:80px;border:2px dashed #cbd5e1;border-radius:10px;background:white;font-size:28px;color:#94a3b8;display:flex;align-items:center;justify-content:center">+</button>
         </div>
       </div>
     </div>
     <div class="modal-footer">
       <div id="geo-error" class="err" style="display:none"></div>
-      <div id="geo-info"  class="info" style="display:none"></div>
+      <div id="geo-info" class="info" style="display:none"></div>
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
         <button onclick="closeForm()" style="padding:10px 20px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
         <button id="save-btn" onclick="saveEntry()" style="padding:10px 24px;border-radius:10px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save Location</button>
@@ -353,7 +357,7 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- ── Delete confirm ── -->
+<!-- Delete confirm -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
     <div style="font-size:40px;margin-bottom:12px">🗑</div>
@@ -366,12 +370,26 @@ textarea.inp{resize:none}
   </div>
 </div>
 
+<!-- Mobile bottom nav (injected into sidebar via CSS) -->
 <script>
-// ── Config — paste your Geocodio API key here ─────────────────────────────────
+// ── Firebase config ───────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyAXrhjv1t3520X7QKiVI0qqeMAvpWS5Rdw",
+  authDomain:        "gen-lang-client-0165143367.firebaseapp.com",
+  projectId:         "gen-lang-client-0165143367",
+  storageBucket:     "gen-lang-client-0165143367.firebasestorage.app",
+  messagingSenderId: "659366672596",
+  appId:             "1:659366672596:web:9a8fe8502a0769fdafe341"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+db.settings({ merge: true });
+
+// ── Geocodio ──────────────────────────────────────────────────────────────────
 const GEOCODIO_KEY = 'YOUR_GEOCODIO_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const STORAGE_KEY  = 'road-tripping-v1';
 const STATUS_LABEL = {visited:'Visited', current:'Currently Here', planned:'Planned'};
 const AMENITY_MAP  = {
   'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal',
@@ -387,22 +405,28 @@ const AMENITY_META = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let entries=[], editId=null, pendingLat=null, pendingLng=null;
-let currentRating=0, pendingPhotos=[];
-let map, markers=[], myDotMarker=null, myDotCircle=null;
-let aiMessages=[], deleteTargetId=null;
+let currentUser   = null;
+let entries       = [];
+let firestoreUnsub= null;
+let editId        = null;
+let pendingLat    = null;
+let pendingLng    = null;
+let currentRating = 0;
+let pendingPhotos = [];
+let map, markers  = [], myDotMarker = null, myDotCircle = null;
+let aiMessages    = [], deleteTargetId = null;
+let mapReady      = false;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function genId(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
 function today(){ return new Date().toISOString().split('T')[0]; }
 function tomorrow(){ return new Date(Date.now()+86400000).toISOString().split('T')[0]; }
 
 function costLabel(c){
   if(c===null||c===undefined) return '?';
-  if(c===0)   return 'Free!';
-  if(c<10)    return '$';
-  if(c<100)   return '$$';
-  if(c<500)   return '$$$';
+  if(c===0) return 'Free!';
+  if(c<10)  return '$';
+  if(c<100) return '$$';
+  if(c<500) return '$$$';
   return '$$$$';
 }
 function costColor(c){
@@ -413,22 +437,89 @@ function costColor(c){
   return '#dc2626';
 }
 
-// ── Storage ───────────────────────────────────────────────────────────────────
-function saveData(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(entries)); }catch(e){} }
-function loadData(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d) entries=JSON.parse(d); }catch(e){} }
-
-// ── Offline banner ────────────────────────────────────────────────────────────
+// ── Offline ───────────────────────────────────────────────────────────────────
 window.addEventListener('online',  ()=>document.getElementById('offline-banner').style.display='none');
 window.addEventListener('offline', ()=>document.getElementById('offline-banner').style.display='block');
 if(!navigator.onLine) document.getElementById('offline-banner').style.display='block';
 
-// ── Geocodio geocoding ────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function signInWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err=>{
+    const el=document.getElementById('login-error');
+    el.textContent=err.message;
+    el.style.display='block';
+  });
+}
+
+function signOutUser(){
+  if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user=>{
+  currentUser=user;
+  if(user){
+    // Update sign out button with user name
+    const btn=document.getElementById('user-info');
+    if(btn) btn.textContent='Sign out ('+( user.displayName||user.email)+')';
+    showApp();
+    subscribeToFirestore();
+  } else {
+    showLogin();
+  }
+});
+
+function showApp(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  // Init map after app is visible
+  setTimeout(()=>{ if(!mapReady){ initMap(); mapReady=true; } }, 100);
+}
+
+function showLogin(){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  entries=[];
+}
+
+// ── Firestore ─────────────────────────────────────────────────────────────────
+function userCollection(){
+  return db.collection('users').doc(currentUser.uid).collection('logs');
+}
+
+function subscribeToFirestore(){
+  if(firestoreUnsub){ firestoreUnsub(); }
+  firestoreUnsub = userCollection()
+    .orderBy('createdAt','desc')
+    .onSnapshot(snap=>{
+      entries=snap.docs.map(d=>({id:d.id,...d.data()}));
+      updateCount();
+      renderMarkers();
+      renderEntries();
+    }, err=>console.error('Firestore error:',err));
+}
+
+async function saveToFirestore(entry){
+  const {id, ...data} = entry;
+  // Strip undefined values (Firestore doesn't accept them)
+  const clean = Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
+  await userCollection().doc(id).set(clean, {merge:true});
+}
+
+async function deleteFromFirestore(id){
+  await userCollection().doc(id).delete();
+}
+
+// ── Geocodio ──────────────────────────────────────────────────────────────────
 async function geocodeAddress(address){
   const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
   const res=await fetch(url);
-  if(!res.ok) throw new Error('Geocodio request failed: '+res.status);
+  if(!res.ok) throw new Error('Geocodio error '+res.status);
   const data=await res.json();
-  if(data.lat&&data.lng) return {lat:data.lat, lng:data.lng};
+  if(data.lat&&data.lng) return {lat:parseFloat(data.lat), lng:parseFloat(data.lng)};
   return null;
 }
 
@@ -455,29 +546,27 @@ function initMap(){
   renderMarkers();
 }
 
-// Blue dot — current user location
 function updateMyDot(lat, lng){
   if(myDotCircle){ myDotCircle.remove(); myDotCircle=null; }
   if(myDotMarker){ myDotMarker.remove(); myDotMarker=null; }
-  myDotCircle=L.circle([lat,lng],{
-    radius:50, color:'#3b82f6', fillColor:'#bfdbfe', fillOpacity:.25, weight:1.5
-  }).addTo(map);
+  if(!map) return;
+  myDotCircle=L.circle([lat,lng],{radius:50,color:'#3b82f6',fillColor:'#bfdbfe',fillOpacity:.25,weight:1.5}).addTo(map);
   const icon=L.divIcon({html:'<div class="my-dot"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
   myDotMarker=L.marker([lat,lng],{icon,zIndexOffset:2000,interactive:false}).addTo(map);
 }
 
 function locateMe(){
   if(!navigator.geolocation){
-    alert('Geolocation not available.\n\nOn iPhone: Settings → Privacy & Security → Location Services → Safari → Allow While Using App');
+    alert('Geolocation not available.\n\niPhone: Settings → Privacy & Security → Location Services → Safari → Allow While Using App');
     return;
   }
   navigator.geolocation.getCurrentPosition(
     pos=>{
       updateMyDot(pos.coords.latitude, pos.coords.longitude);
-      map.setView([pos.coords.latitude, pos.coords.longitude], 12);
+      if(map) map.setView([pos.coords.latitude, pos.coords.longitude], 12);
     },
     err=>{
-      if(err.code===1) alert('Location access denied.\n\nTo enable on iPhone:\n1. Settings → Privacy & Security → Location Services\n2. Find Safari (or Road Tripping)\n3. Set to "Allow While Using App"\n4. Tap 📍 again.');
+      if(err.code===1) alert('Location access denied.\n\nTo enable on iPhone:\n1. Settings → Privacy & Security → Location Services\n2. Find Safari (or Road Tripping) → Allow While Using App\n3. Tap 📍 again.');
     },
     {enableHighAccuracy:true, timeout:12000}
   );
@@ -492,38 +581,30 @@ function startWatchingLocation(){
   );
 }
 
-// Plain red pins for logged locations
+// Plain red pins
 function renderMarkers(){
+  if(!map) return;
   markers.forEach(m=>m.remove());
   markers=[];
   entries.filter(e=>e.lat!=null&&e.lng!=null).forEach(entry=>{
     const icon=L.divIcon({
-      html:`<div style="width:22px;height:32px;position:relative">
-        <div style="width:22px;height:22px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div>
-      </div>`,
+      html:`<div style="width:22px;height:32px;position:relative"><div style="width:22px;height:22px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div></div>`,
       className:'', iconSize:[22,32], iconAnchor:[11,32], popupAnchor:[0,-34]
     });
     const m=L.marker([entry.lat, entry.lng],{icon}).addTo(map);
     const cost=entry.cost===0?'Free!':entry.cost==null?'Unknown':'$'+entry.cost+'/night';
-    m.bindPopup(`
-      <div style="font-family:system-ui;min-width:190px;padding:4px">
-        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:8px">
-          ${entry.arrivalDate} → ${entry.departureDate}<br/>${cost}
-        </div>
-        <button onclick="window._editEntry('${entry.id}')"
-          style="background:#10b981;color:white;border:none;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
-          Edit / View Details
-        </button>
-      </div>`
-    );
+    m.bindPopup(`<div style="font-family:system-ui;min-width:190px;padding:4px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">${entry.name}</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
+      <div style="font-size:12px;color:#475569;margin-bottom:8px">${entry.arrivalDate} → ${entry.departureDate}<br/>${cost}</div>
+      <button onclick="window._editEntry('${entry.id}')" style="background:#10b981;color:white;border:none;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
+    </div>`);
     markers.push(m);
   });
 }
 window._editEntry = id => { map.closePopup(); openForm(entries.find(e=>e.id===id)); };
 
-// Fly to entry from logged entries list
+// Fly to entry from list — switches to map tab and opens popup
 function flyToEntry(id){
   const entry=entries.find(e=>e.id===id);
   if(!entry||entry.lat==null) return;
@@ -531,13 +612,12 @@ function flyToEntry(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>{
     b.classList.remove('active');
-    if(b.textContent.includes('Map')) b.classList.add('active');
+    if(b.querySelector('.tab-icon')&&b.querySelector('.tab-icon').textContent.includes('🗺')) b.classList.add('active');
   });
   document.getElementById('tab-map').classList.add('active');
   setTimeout(()=>{
     map.invalidateSize();
     map.flyTo([entry.lat, entry.lng], 14, {duration:1.2});
-    // Open popup after fly animation
     setTimeout(()=>{
       const coordEntries=entries.filter(e=>e.lat!=null&&e.lng!=null);
       const idx=coordEntries.findIndex(e=>e.id===id);
@@ -577,7 +657,6 @@ function openForm(entry, lat, lng){
   document.getElementById('geo-error').style.display='none';
   document.getElementById('geo-info').style.display='none';
 
-  // Trash icon in header only when editing
   const trashBtn=document.getElementById('form-trash-btn');
   trashBtn.style.display=entry?'flex':'none';
 
@@ -592,7 +671,6 @@ function closeForm(){
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
 }
 
-// Stars
 function updateStars(v){
   currentRating=v;
   document.querySelectorAll('#stars .star').forEach(s=>s.classList.toggle('on',parseInt(s.dataset.v)<=v));
@@ -603,7 +681,6 @@ document.querySelectorAll('#stars .star').forEach(s=>{
   s.addEventListener('mouseleave', ()=>updateStars(currentRating));
 });
 
-// Photos
 function handlePhotos(input){
   Array.from(input.files).forEach(file=>{
     const reader=new FileReader();
@@ -624,7 +701,6 @@ function renderPhotoRow(){
 }
 function removePhoto(id){ pendingPhotos=pendingPhotos.filter(p=>p.id!==id); renderPhotoRow(); }
 
-// Save
 async function saveEntry(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){ showErr('Please enter a location name.'); return; }
@@ -638,26 +714,30 @@ async function saveEntry(){
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
-  // Priority 1: typed coordinates
+  // Priority 1: explicitly typed coordinates
   if(coordsText){
     const parts=coordsText.split(',').map(p=>parseFloat(p.trim()));
     if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
     else{ showErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
 
-  // Priority 2: geocode address via Geocodio
-  if(lat==null && address){
+  // Priority 2: geocode address (always runs if no valid coords, even if pendingLat existed before)
+  if((lat==null || coordsText==='') && address){
     btn.textContent='Finding location…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
       const result=await geocodeAddress(address);
-      if(result){ lat=result.lat; lng=result.lng; infoEl.textContent='✓ Found: '+address; }
-      else{
-        showErr('Could not find that address. Try being more specific, or paste lat/lng from Google Maps (long-press any spot to copy).');
+      if(result){
+        lat=result.lat; lng=result.lng;
+        // Update the coords field with the geocoded result
+        document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
+        infoEl.textContent='✓ Found coordinates for: '+address;
+      } else {
+        showErr('Could not find that address. Try being more specific, or long-press in Google Maps to copy coordinates.');
         btn.textContent='Save Location'; btn.disabled=false; return;
       }
-    }catch(e){
-      showErr('Geocoding failed — check your connection. You can also enter coordinates manually.');
+    } catch(e){
+      showErr('Geocoding failed — check your connection or enter coordinates manually.');
       btn.textContent='Save Location'; btn.disabled=false; return;
     }
     btn.textContent='Save Location'; btn.disabled=false;
@@ -669,8 +749,11 @@ async function saveEntry(){
 
   const entry={
     id: editId||genId(),
+    uid: currentUser.uid,
     createdAt: editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
-    name, address, lat, lng,
+    name, address,
+    lat: lat!=null?lat:null,
+    lng: lng!=null?lng:null,
     arrivalDate:  document.getElementById('f-arrival').value,
     departureDate:document.getElementById('f-departure').value,
     type:   document.getElementById('f-type-sel').value,
@@ -682,10 +765,13 @@ async function saveEntry(){
     ...amenities
   };
 
-  if(editId){ entries=entries.map(e=>e.id===editId?entry:e); }
-  else{ entries=[entry,...entries]; }
-
-  saveData(); closeForm(); updateCount(); renderMarkers(); renderEntries();
+  try{
+    await saveToFirestore(entry);
+    closeForm();
+  } catch(e){
+    showErr('Failed to save — check your connection and try again.');
+    console.error(e);
+  }
 }
 
 function showErr(msg){ const el=document.getElementById('geo-error'); el.textContent=msg; el.style.display='block'; }
@@ -696,10 +782,15 @@ function confirmDelete(id){
   document.getElementById('confirm-overlay').classList.add('open');
 }
 function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); deleteTargetId=null; }
-function executeDelete(){
+async function executeDelete(){
   if(!deleteTargetId) return;
-  entries=entries.filter(e=>e.id!==deleteTargetId);
-  saveData(); closeConfirm(); closeForm(); updateCount(); renderMarkers(); renderEntries();
+  try{
+    await deleteFromFirestore(deleteTargetId);
+    closeConfirm(); closeForm();
+  } catch(e){
+    closeConfirm();
+    alert('Failed to delete — check your connection.');
+  }
   deleteTargetId=null;
 }
 
@@ -741,8 +832,7 @@ function renderEntries(){
           <div style="min-width:0;flex:1">
             <div style="font-size:15px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
             <div style="font-size:12px;color:#64748b;margin-top:2px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-              <span>${e.type}</span>
-              <span style="color:#e2e8f0">·</span>
+              <span>${e.type}</span><span style="color:#e2e8f0">·</span>
               <span style="color:${sc};font-weight:600">${STATUS_LABEL[e.status]||e.status}</span>
             </div>
           </div>
@@ -761,13 +851,8 @@ function renderEntries(){
   }).join('');
 }
 
-// ── AI Assistant ──────────────────────────────────────────────────────────────
-const QUICK=[
-  'Suggest free BLM camping near me',
-  'What are my highest-rated spots?',
-  'Dispersed camping in Northern CA',
-  'Best stops between Chico and Lake Tahoe'
-];
+// ── AI ────────────────────────────────────────────────────────────────────────
+const QUICK=['Suggest free BLM camping near me','What are my highest-rated spots?','Dispersed camping in Northern CA','Best stops between Chico and Lake Tahoe'];
 
 function renderAI(){
   if(!aiMessages.length){
@@ -792,59 +877,56 @@ async function sendAI(){
   inp.value='';
   aiMessages.push({role:'user',text});
   renderAI();
-
   const wrap=document.getElementById('ai-messages');
   const loader=document.createElement('div');
   loader.className='msg-row';
-  loader.innerHTML=`<div class="avatar" style="background:#e2e8f0">🤖</div>
-    <div class="msg-bubble ai" style="display:flex;gap:6px;padding:14px 18px">
-      ${[0,.2,.4].map(d=>`<span style="width:8px;height:8px;background:#94a3b8;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}
-    </div>`;
+  loader.innerHTML=`<div class="avatar" style="background:#e2e8f0">🤖</div><div class="msg-bubble ai" style="display:flex;gap:6px;padding:14px 18px">${[0,.2,.4].map(d=>`<span style="width:8px;height:8px;background:#94a3b8;border-radius:50%;display:inline-block;animation:bounce 1s ease ${d}s infinite"></span>`).join('')}</div>`;
   wrap.appendChild(loader); wrap.scrollTop=wrap.scrollHeight;
 
   const system=`You are a travel assistant for a full-time van dweller in a Sprinter van with a dog. Suggest real, specific nearby camping spots, BLM dispersed sites, national forest camps, dump stations, and interesting stops. Always mention: distances, cell service quality, road conditions (2WD vs 4WD), cost, and grey water disposal options nearby. The user is vegetarian and never dumps grey water outside designated stations. Their logged travel history: ${JSON.stringify(entries.map(e=>({name:e.name,type:e.type,lat:e.lat,lng:e.lng,rating:e.rating,notes:e.notes,arrivalDate:e.arrivalDate,cost:e.cost})))}`;
-
   const history=aiMessages.slice(0,-1).map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.text}));
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system,
-        messages:[...history,{role:'user',content:text}]
-      })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[...history,{role:'user',content:text}]})
     });
     const data=await res.json();
     const reply=data.content&&data.content.find(c=>c.type==='text');
     aiMessages.push({role:'assistant',text:reply?reply.text:'Sorry, could not get a response.'});
-  }catch(e){
+  } catch(e){
     aiMessages.push({role:'assistant',text:'Something went wrong — check your connection and try again.'});
   }
-  loader.remove();
-  renderAI();
+  loader.remove(); renderAI();
 }
 
 // ── Count ─────────────────────────────────────────────────────────────────────
 function updateCount(){
-  document.getElementById('loc-count').textContent=
-    entries.length+' location'+(entries.length!==1?'s':'')+' logged';
+  const el=document.getElementById('loc-count');
+  if(el) el.textContent=entries.length+' location'+(entries.length!==1?'s':'')+' logged';
 }
+
+// ── Mobile nav: inject log button between entries and AI tabs ─────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  const nav=document.querySelector('.sidebar-nav');
+  const logBtn=document.createElement('button');
+  logBtn.className='mobile-log-tab';
+  logBtn.onclick=()=>openForm(null);
+  logBtn.innerHTML=`<div class="mobile-log-icon">+</div><span class="mobile-log-label">Log</span>`;
+  // Insert between 2nd and 3rd tab buttons
+  const btns=nav.querySelectorAll('.tab-btn');
+  if(btns[1]) nav.insertBefore(logBtn, btns[1].nextSibling);
+  else nav.appendChild(logBtn);
+});
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-loadData();
-updateCount();
+// ── Start location watching ───────────────────────────────────────────────────
 window.addEventListener('load', ()=>{
-  initMap();
   startWatchingLocation();
-  renderEntries();
   renderAI();
 });
 </script>
