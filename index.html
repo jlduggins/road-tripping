@@ -92,25 +92,18 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 /* ── Map overlay buttons ── */
 .map-btn{position:fixed;z-index:500;width:44px;height:44px;border-radius:12px;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;transition:all .15s}
 .map-btn:active{transform:scale(.93)}
-/* Right column — all centered at right:12px, stacked from bottom */
 #btn-locate{bottom:16px;right:12px}
 #btn-satellite{bottom:68px;right:12px}
-/* Leaflet zoom controls — override to sit above satellite button, right-aligned */
-.leaflet-top.leaflet-left{top:auto!important;left:auto!important;bottom:120px;right:12px}
-.leaflet-control-zoom{margin:0!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.2)!important;border-radius:12px!important;overflow:hidden}
-.leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:44px!important;font-size:18px!important;color:#374151!important;background:white!important;border:none!important;border-bottom:1px solid #f1f5f9!important;display:flex!important;align-items:center!important;justify-content:center!important}
-.leaflet-control-zoom-out{border-bottom:none!important}
-/* Left column — log button */
 #btn-log{top:66px;left:12px;background:#10b981;color:white;box-shadow:0 4px 14px rgba(16,185,129,.4);font-size:26px;font-weight:300}
 .map-hint-bar{position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:500;background:white;padding:7px 18px;border-radius:999px;box-shadow:0 2px 12px rgba(0,0,0,.14);font-size:13px;color:#475569;pointer-events:none;white-space:nowrap;font-weight:500;max-width:80%;text-align:center}
 
-/* ── Top bar (always visible) ── */
-#top-bar{position:absolute;top:0;left:0;right:0;z-index:600;height:54px;background:#0f172a;display:flex;align-items:center;padding:0 12px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+/* ── Top bar (always visible, fixed above map) ── */
+#top-bar{position:fixed;top:0;left:0;right:0;z-index:600;height:54px;background:#0f172a;display:flex;align-items:center;padding:0 12px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);padding-top:env(safe-area-inset-top)}
 #menu-btn{width:40px;height:40px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:white;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #top-title{color:white;font-weight:700;font-size:16px;flex:1}
 #top-count{font-size:11px;color:#64748b;white-space:nowrap}
 
-/* ── Drawer (slides in from left, map stays visible) ── */
+/* ── Drawer ── */
 #drawer-overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.4);display:none;animation:fadeIn .2s ease}
 #drawer-overlay.open{display:block}
 #drawer{position:fixed;top:0;bottom:0;left:0;z-index:900;width:min(360px,92vw);background:#0f172a;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.4)}
@@ -135,7 +128,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .dsec-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
 .dsec-list{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch}
 
-/* ── Entry cards in drawer ── */
+/* ── Entry cards ── */
 .entry-card{background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.08);padding:12px 12px 12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;transition:border-color .15s;cursor:pointer}
 .entry-card:hover{border-color:rgba(16,185,129,.4)}
 .entry-body{flex:1;min-width:0}
@@ -161,17 +154,17 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .quick-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:6px 12px;font-size:11px;color:#94a3b8;font-weight:500}
 .ai-input-row{padding:10px;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-shrink:0}
 
-/* ── Form panel (slide-in panel over map, from left, partial) ── */
-#form-panel{position:fixed;top:0;bottom:0;left:0;z-index:1000;width:min(400px,100vw);background:white;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.3)}
+/* ── Form panel ── */
+#form-panel{position:fixed;top:0;bottom:0;left:0;z-index:1000;width:min(420px,100vw);background:white;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.3)}
 #form-panel.open{transform:translateX(0)}
-#form-panel-header{padding:16px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-#form-panel-body{overflow-y:auto;padding:16px 18px;flex:1;-webkit-overflow-scrolling:touch}
-#form-panel-footer{padding:12px 18px;border-top:1px solid #f1f5f9;background:#f8fafc;flex-shrink:0}
+#form-panel-header{padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top))}
+#form-panel-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px;flex:1}
+#form-panel-footer{padding:10px 16px;border-top:1px solid #f1f5f9;background:#f8fafc;flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 
 /* ── Inputs ── */
-.inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:14px;color:#1e293b;transition:border-color .15s}
+.inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-size:16px;color:#1e293b;transition:border-color .15s}
 .inp:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.08)}
-.inp-sm{padding:5px 9px;font-size:12px;width:auto}
+.inp-sm{padding:5px 9px;font-size:14px;width:auto}
 select.inp{background:white}
 textarea.inp{resize:none}
 .lbl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px}
@@ -181,8 +174,8 @@ textarea.inp{resize:none}
 .star{font-size:26px;cursor:pointer;user-select:none;color:#d1d5db;transition:color .1s;padding:1px}
 .star.on{color:#f59e0b}
 .amenity-box{background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;padding:12px}
-.amenity-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#475569;padding:3px 0}
-.amenity-check input{width:15px;height:15px;accent-color:#10b981;flex-shrink:0}
+.amenity-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#475569;padding:4px 0}
+.amenity-check input{width:16px;height:16px;accent-color:#10b981;flex-shrink:0}
 
 /* ── Photo ── */
 .photo-wrap{position:relative;width:72px;height:72px;flex-shrink:0}
@@ -216,18 +209,19 @@ textarea.inp{resize:none}
 /* ── Offline banner ── */
 #offline-banner{display:none;position:fixed;top:54px;left:0;right:0;z-index:700;background:#f59e0b;color:white;text-align:center;padding:6px;font-size:13px;font-weight:600}
 
-/* Leaflet zoom controls — bottom-right, stacked above satellite button */
-.leaflet-bottom.leaflet-right .leaflet-control-zoom{margin-bottom:120px!important;margin-right:12px!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.2)!important;border-radius:12px!important;overflow:hidden}
+/* ── Leaflet zoom: bottom-right, above satellite+locate buttons ── */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom{margin-bottom:176px!important;margin-right:12px!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.2)!important;border-radius:12px!important;overflow:hidden}
 .leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:44px!important;font-size:18px!important;color:#374151!important;background:white!important;border:none!important;border-bottom:1px solid #f1f5f9!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .leaflet-control-zoom-out{border-bottom:none!important}
-/* Remove old topleft override */
-.leaflet-top.leaflet-left{top:0!important;left:0!important}
+.leaflet-top.leaflet-left{display:none}
+.leaflet-bottom.leaflet-right .leaflet-control-attribution{margin-bottom:6px;margin-right:6px;font-size:9px}
 
-/* ── Responsive tweaks ── */
-@media(max-width:480px){
-  #form-panel{width:100vw}
+/* ── Mobile: single column form, safe areas ── */
+@media(max-width:500px){
   .form-grid{grid-template-columns:1fr}
   .full{grid-column:1}
+  #btn-log{top:64px}
+  .map-hint-bar{top:64px;font-size:11px;padding:5px 12px}
 }
 </style>
 </head>
