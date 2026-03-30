@@ -510,7 +510,7 @@ async function deleteFromFirestore(id){ await window._db.remove(window._currentU
 
 // ── Geocodio ──────────────────────────────────────────────────────────────────
 async function geocodeAddress(address){
-  const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
+  const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${9019b6c968e5677bc69e0b796e8b0618c6149bb}&limit=1&format=simple`;
   const res=await fetch(url);
   if(!res.ok) throw new Error('Geocodio '+res.status);
   const data=await res.json();
