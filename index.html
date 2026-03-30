@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Road Tripping"/>
-<meta name="theme-color" content="#1c3829"/>
+<meta name="theme-color" content="#163F2E"/>
 <title>Road Tripping</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
@@ -78,18 +78,18 @@ window._db={
 /* ── Design tokens ── */
 :root{
   --bg:#f2f0eb;
-  --forest:#1c3829;
-  --teal:#1a7a6e;
-  --teal-light:#e6f3f1;
-  --teal-mid:rgba(26,122,110,.15);
+  --forest:#163F2E;
+  --teal:#7FC3A5;
+  --teal-light:#eaf5f0;
+  --teal-mid:rgba(127,195,165,.15);
   --amber:#e76f51;
-  --text:#1c3829;
-  --text-mid:#4a6358;
-  --text-muted:#8fa899;
+  --text:#163F2E;
+  --text-mid:#3a6b54;
+  --text-muted:#7a9e8c;
   --card:#ffffff;
   --border:#e4e0d8;
-  --shadow:0 2px 16px rgba(28,56,41,.1);
-  --shadow-lg:0 8px 40px rgba(28,56,41,.16);
+  --shadow:0 2px 16px rgba(22,63,46,.1);
+  --shadow-lg:0 8px 40px rgba(22,63,46,.16);
   --radius:16px;
   --radius-sm:10px;
 }
@@ -150,7 +150,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   top:calc(66px + env(safe-area-inset-top));left:14px;
   width:48px;height:48px;border-radius:var(--radius);border:none;
   background:var(--teal);color:white;font-size:28px;font-weight:300;
-  box-shadow:0 4px 18px rgba(42,157,143,.45);
+  box-shadow:0 4px 18px rgba(127,195,165,.45);
   display:flex;align-items:center;justify-content:center
 }
 #btn-log:active{transform:scale(.94)}
@@ -174,13 +174,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   color:white;text-align:center;padding:7px;font-size:13px;font-weight:600
 }
 
-/* ── Drawer overlay — transparent click-catcher only to RIGHT of drawer on desktop ── */
-#drawer-overlay{position:fixed;top:0;bottom:0;left:320px;right:0;z-index:800;background:transparent;display:none;cursor:default}
-#drawer-overlay.open{display:block}
-@media(max-width:640px){
-  /* On mobile bottom sheet, overlay covers full screen above sheet */
-  #drawer-overlay{left:0;bottom:75vh}
-}
+/* No drawer overlay — map stays fully interactive, drawer closes on map click */
 
 /* ── DESKTOP: left drawer ── */
 #drawer{
@@ -220,7 +214,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .log-btn-full{
   padding:13px;border-radius:var(--radius);border:none;
   background:var(--teal);color:white;font-weight:700;font-size:14px;
-  width:100%;box-shadow:0 4px 14px rgba(42,157,143,.35);letter-spacing:.2px
+  width:100%;box-shadow:0 4px 14px rgba(127,195,165,.35);letter-spacing:.2px
 }
 .signout-row{display:flex;align-items:center;gap:8px}
 .signout-btn{
@@ -256,7 +250,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .badge{
   background:var(--teal-light);color:var(--teal);
   font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
-  border:1px solid rgba(42,157,143,.2)
+  border:1px solid rgba(127,195,165,.2)
 }
 .card-icon-btn{
   width:32px;height:32px;border-radius:8px;
@@ -288,7 +282,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 }
 .inp-dark::placeholder{color:rgba(255,255,255,.3)}
 .inp-dark:focus{border-color:var(--teal);outline:none}
-select.inp-dark option{background:#1c3829;color:white}
+select.inp-dark option{background:#163F2E;color:white}
 
 /* ── Form panel ── */
 #form-panel{
@@ -326,7 +320,7 @@ select.inp-dark option{background:#1c3829;color:white}
   border:1.5px solid var(--border);background:var(--card);
   font-size:16px;color:var(--text);transition:border-color .15s
 }
-.inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(42,157,143,.1)}
+.inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(127,195,165,.1)}
 .inp-sm{padding:6px 10px;font-size:14px;width:auto}
 select.inp{background:var(--card)}
 textarea.inp{resize:none}
@@ -351,7 +345,7 @@ textarea.inp{resize:none}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;text-align:center;gap:10px}
 
 /* ── Delete confirm ── */
-.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(28,56,41,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(22,63,46,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .confirm-overlay.open{display:flex}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
@@ -363,7 +357,7 @@ textarea.inp{resize:none}
 
 /* ── Loading ── */
 #loading-screen{position:fixed;inset:0;z-index:9999;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-.spinner{width:36px;height:36px;border:3px solid rgba(42,157,143,.2);border-top-color:var(--teal);border-radius:50%;animation:spin 1s linear infinite}
+.spinner{width:36px;height:36px;border:3px solid rgba(127,195,165,.2);border-top-color:var(--teal);border-radius:50%;animation:spin 1s linear infinite}
 
 /* ── My location dot ── */
 .my-dot{width:16px;height:16px;background:#4a9eff;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(74,158,255,.3);position:relative}
@@ -407,6 +401,7 @@ textarea.inp{resize:none}
 
 <!-- Loading -->
 <div id="loading-screen">
+  <img src="icons/logo.png" alt="" style="width:72px;height:72px;object-fit:contain;margin-bottom:8px"/>
   <div class="spinner"></div>
   <div style="color:rgba(255,255,255,.5);font-size:14px;font-weight:500">Loading Road Tripping…</div>
 </div>
@@ -414,7 +409,9 @@ textarea.inp{resize:none}
 <!-- Login -->
 <div id="login-screen" style="display:none">
   <div class="login-card">
-    <div style="width:56px;height:56px;background:var(--teal);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 8px 24px rgba(42,157,143,.35)">🚗</div>
+    <div style="width:90px;height:90px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center">
+      <img src="icons/logo.png" alt="Road Tripping" style="width:90px;height:90px;object-fit:contain"/>
+    </div>
     <h1 style="font-size:26px;font-weight:800;color:var(--forest);margin-bottom:8px;letter-spacing:-.5px">Road Tripping</h1>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
     <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
@@ -445,8 +442,8 @@ textarea.inp{resize:none}
 <button id="btn-log" onclick="openFormPanel(null)" title="Log location"
   style="position:fixed;z-index:500;top:calc(64px + env(safe-area-inset-top));left:12px;
          width:44px;height:44px;border-radius:12px;border:none;
-         background:#10b981;color:white;font-size:28px;font-weight:300;
-         box-shadow:0 4px 14px rgba(16,185,129,.4);
+         background:#7FC3A5;color:white;font-size:28px;font-weight:300;
+         box-shadow:0 4px 14px rgba(127,195,165,.4);
          display:flex;align-items:center;justify-content:center;cursor:pointer">+</button>
 
 <!-- Right column: zoom in, zoom out, satellite, locate — all in one flex column -->
@@ -489,13 +486,15 @@ textarea.inp{resize:none}
 <div class="map-hint-bar" id="map-hint">Tap the map to log a location</div>
 
 <!-- Drawer overlay (click to close) -->
-<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<!-- No overlay — drawer closes on map click -->
 
 <!-- Drawer -->
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:34px;height:34px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px">🚗</div>
+      <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <img src="icons/logo.png" alt="Road Tripping" style="width:34px;height:34px;object-fit:contain"/>
+      </div>
       <div>
         <div style="color:white;font-weight:700;font-size:15px;letter-spacing:-.3px">Road Tripping</div>
         <div id="top-count2" style="font-size:11px;color:rgba(255,255,255,.4)">0 locations</div>
@@ -591,7 +590,7 @@ textarea.inp{resize:none}
       <div class="full">
         <label class="lbl">📍 Coordinates <span class="lbl-hint">— or drag the yellow pin</span></label>
         <input class="inp" id="f-coords" placeholder="e.g. 37.6137, -113.0998"/>
-        <div id="coords-hint" style="font-size:11px;color:#10b981;margin-top:3px;display:none"></div>
+        <div id="coords-hint" style="font-size:11px;color:#7FC3A5;margin-top:3px;display:none"></div>
       </div>
       <div>
         <label class="lbl">📅 Arrival</label>
@@ -681,7 +680,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -710,7 +709,7 @@ function costLabel(c){
 }
 function costColor(c){
   if(c===null||c===undefined) return '#94a3b8';
-  if(c===0) return '#10b981'; if(c<10) return '#059669'; if(c<100) return '#d97706'; return '#dc2626';
+  if(c===0) return '#7FC3A5'; if(c<10) return '#5aab8a'; if(c<100) return '#d97706'; return '#dc2626';
 }
 
 // ── Offline ───────────────────────────────────────────────────────────────────
@@ -896,10 +895,10 @@ function renderMarkers(){
     const m=L.marker([entry.lat,entry.lng],{icon}).addTo(map);
     const cost=entry.cost===0?'Free!':entry.cost==null?'Unknown':'$'+entry.cost+'/night';
     m.bindPopup(`<div style="font-family:system-ui;min-width:190px;padding:4px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1c3829">${entry.name}</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#163F2E">${entry.name}</div>
       <div style="font-size:12px;color:#4a6358;margin-bottom:6px">${entry.type} · ${STATUS_LABEL[entry.status]||entry.status}</div>
       <div style="font-size:12px;color:#4a6358;margin-bottom:8px">${cost}</div>
-      <button onclick="window._editEntry('${entry.id}')" style="background:#2a9d8f;color:white;border:none;padding:8px 0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
+      <button onclick="window._editEntry('${entry.id}')" style="background:#7FC3A5;color:white;border:none;padding:8px 0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Edit / View Details</button>
     </div>`);
     markers.push(m);
   });
@@ -923,12 +922,12 @@ function flyToEntry(id){
 // ── Drawer ────────────────────────────────────────────────────────────────────
 function openDrawer(){
   document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawer-overlay').classList.add('open');
   renderEntries();
+  // Close drawer when map is clicked
+  map&&map.once('click',()=>closeDrawer());
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawer-overlay').classList.remove('open');
 }
 function showDrawerSection(name,btn){
   document.querySelectorAll('.drawer-section').forEach(s=>s.classList.remove('active'));
@@ -1033,10 +1032,10 @@ function showDoneBtn(){
     btn.style.cssText=`
       position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;
       transform:translateX(-50%);z-index:1001;
-      background:#2a9d8f;color:white;border:none;
+      background:#7FC3A5;color:white;border:none;
       padding:14px 28px;border-radius:999px;
       font-size:15px;font-weight:700;
-      box-shadow:0 4px 20px rgba(42,157,143,.5);
+      box-shadow:0 4px 20px rgba(127,195,165,.5);
       white-space:nowrap;cursor:pointer;
     `;
     document.body.appendChild(btn);
@@ -1188,7 +1187,7 @@ function renderEntries(){
     return;
   }
   list.innerHTML=filtered.map(e=>{
-    const sc=e.status==='current'?'#3b82f6':e.status==='planned'?'#f59e0b':'#10b981';
+    const sc=e.status==='current'?'#3b82f6':e.status==='planned'?'#f59e0b':'#7FC3A5';
     const cl=costLabel(e.cost); const cc=costColor(e.cost);
     const active=AMENITY_META.filter(a=>e[a.id]);
     const stars=e.rating>0?'★'.repeat(e.rating)+'☆'.repeat(5-e.rating):'';
