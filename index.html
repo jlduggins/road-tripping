@@ -205,18 +205,19 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   padding:14px 16px;
   padding-top:calc(14px + env(safe-area-inset-top));
   border-bottom:1px solid #f1f5f9;
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;min-height:0
 }
 #form-panel-body{
+  flex:1;min-height:0;
   overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:14px 16px;flex:1;
-  /* Prevent content from going under keyboard on iOS */
-  padding-bottom:20px
+  padding:14px 16px
 }
 #form-panel-footer{
   padding:10px 16px;
   padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  border-top:1px solid #f1f5f9;background:#f8fafc;flex-shrink:0
+  border-top:1px solid #f1f5f9;background:#f8fafc;
+  flex-shrink:0;min-height:0
 }
 
 /* ── Inputs — 16px prevents iOS zoom on focus ── */
@@ -432,8 +433,9 @@ textarea.inp{resize:none}
   </div>
 
   <div id="form-panel-body">
-    <div id="pin-hint" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#166534;margin-bottom:12px;display:none">
-      📍 Drag the yellow pin on the map to fine-tune the location
+    <div id="pin-hint" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#166534;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:8px">
+      <span>📍 Tap the map or drag the yellow pin to set location</span>
+      <button onclick="doneMovingPin()" style="background:#10b981;color:white;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">Done</button>
     </div>
     <div class="form-grid">
       <div class="full">
@@ -510,7 +512,12 @@ textarea.inp{resize:none}
   <div id="form-panel-footer">
     <div id="geo-error" class="err" style="display:none"></div>
     <div id="geo-info" class="inf" style="display:none"></div>
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="startMovingPin()" id="move-pin-btn"
+        style="padding:9px 14px;border-radius:9px;border:1.5px solid #10b981;background:white;color:#10b981;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+        📍 Move Pin
+      </button>
+      <div style="flex:1"></div>
       <button onclick="closeFormPanel()" style="padding:9px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:white;font-weight:600;font-size:14px">Cancel</button>
       <button id="save-btn" onclick="saveEntry()" style="padding:9px 22px;border-radius:9px;border:none;background:#10b981;color:white;font-weight:600;font-size:14px">Save</button>
     </div>
@@ -532,7 +539,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -813,6 +820,23 @@ function closeFormPanel(){
   document.getElementById('form-panel').classList.remove('open');
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
   removeDragPin();
+}
+
+// Slide form off-screen so user can interact with map to move pin
+function startMovingPin(){
+  document.getElementById('form-panel').style.transform='translateX(-110%)';
+  document.getElementById('pin-hint').style.display='flex';
+  // If no drag pin yet, place one at map center
+  if(!dragPin){
+    const center=map.getCenter();
+    showDragPin(center.lat,center.lng);
+  }
+}
+
+// Bring form back after moving pin
+function doneMovingPin(){
+  document.getElementById('form-panel').style.transform='';
+  document.getElementById('form-panel').classList.add('open');
 }
 
 // Stars
