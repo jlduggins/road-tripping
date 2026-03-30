@@ -298,6 +298,8 @@ textarea.inp{resize:none}
       <div id="map"></div>
       <div class="map-hint">Tap anywhere on the map to log a location</div>
       <button class="locate-btn" onclick="locateMe()" title="Find my location">📍</button>
+      <button id="sat-btn" onclick="toggleSatellite()" title="Switch to satellite view"
+        style="position:absolute;bottom:24px;right:70px;z-index:1000;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s">🛰</button>
     </div>
 
     <!-- Entries -->
@@ -364,7 +366,7 @@ textarea.inp{resize:none}
           <input class="inp" id="f-address" placeholder="e.g. Forest Rd 2N10, Big Bear, CA"/>
         </div>
         <div class="full">
-          <label class="lbl">📍 Coordinates <span class="lbl-hint">— auto-filled when you tap the map</span></label>
+          <label class="lbl">📍 Coordinates <span class="lbl-hint">— tap the map to place pin, then drag it to fine-tune</span></label>
           <input class="inp" id="f-coords" placeholder="e.g. 37.6137, -113.0998"/>
           <div id="coords-hint" style="font-size:11px;color:#10b981;margin-top:4px;display:none"></div>
         </div>
@@ -579,15 +581,77 @@ function showTab(name, btn){
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────
+let streetLayer, satelliteLayer, isSatellite=false, dragPin=null;
+
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([39.8283,-98.5795],4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+
+  streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom:19
-  }).addTo(map);
-  map.on('click', e=>openForm(null, e.latlng.lat, e.latlng.lng));
+  });
+  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom:19
+  });
+  streetLayer.addTo(map);
+
+  map.on('click', e=>{
+    // If form is open and drag pin is active, move it instead of opening new form
+    if(dragPin && document.getElementById('form-overlay').classList.contains('open')){
+      dragPin.setLatLng(e.latlng);
+      pendingLat=e.latlng.lat; pendingLng=e.latlng.lng;
+      document.getElementById('f-coords').value=e.latlng.lat.toFixed(6)+', '+e.latlng.lng.toFixed(6);
+      document.getElementById('coords-hint').textContent='✓ Pin moved to: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
+      document.getElementById('coords-hint').style.display='block';
+    } else if(!document.getElementById('form-overlay').classList.contains('open')){
+      openForm(null, e.latlng.lat, e.latlng.lng);
+    }
+  });
+
   locateMe();
   renderMarkers();
+}
+
+function toggleSatellite(){
+  isSatellite=!isSatellite;
+  if(isSatellite){
+    map.removeLayer(streetLayer);
+    satelliteLayer.addTo(map);
+    document.getElementById('sat-btn').textContent='🗺';
+    document.getElementById('sat-btn').title='Switch to map view';
+  } else {
+    map.removeLayer(satelliteLayer);
+    streetLayer.addTo(map);
+    document.getElementById('sat-btn').textContent='🛰';
+    document.getElementById('sat-btn').title='Switch to satellite view';
+  }
+}
+
+// Show a draggable pin when form is open so user can fine-tune location
+function showDragPin(lat, lng){
+  removeDragPin();
+  if(!map||lat==null) return;
+  const icon=L.divIcon({
+    html:`<div style="width:22px;height:32px;position:relative">
+      <div style="width:22px;height:22px;background:#f59e0b;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.5);position:absolute;top:0;left:0"></div>
+    </div>`,
+    className:'', iconSize:[22,32], iconAnchor:[11,32]
+  });
+  dragPin=L.marker([lat,lng],{icon,draggable:true,zIndexOffset:3000}).addTo(map);
+  dragPin.on('dragend', e=>{
+    const ll=e.target.getLatLng();
+    pendingLat=ll.lat; pendingLng=ll.lng;
+    document.getElementById('f-coords').value=ll.lat.toFixed(6)+', '+ll.lng.toFixed(6);
+    document.getElementById('coords-hint').textContent='✓ Pin moved to: '+ll.lat.toFixed(5)+', '+ll.lng.toFixed(5);
+    document.getElementById('coords-hint').style.display='block';
+  });
+  // Pan map to show pin
+  map.panTo([lat,lng]);
+}
+
+function removeDragPin(){
+  if(dragPin){ dragPin.remove(); dragPin=null; }
 }
 
 function updateMyDot(lat, lng){
@@ -708,11 +772,23 @@ function openForm(entry, lat, lng){
   renderPhotoRow();
   document.getElementById('form-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(), 100);
+
+  // Show draggable yellow pin on the map for fine-tuning
+  const pinLat = entry ? entry.lat : lat;
+  const pinLng = entry ? entry.lng : lng;
+  if(pinLat!=null){
+    // Switch to map tab so user can see and drag the pin
+    if(!entry){
+      // New location — switch to map briefly to confirm pin position
+    }
+    showDragPin(pinLat, pinLng);
+  }
 }
 
 function closeForm(){
   document.getElementById('form-overlay').classList.remove('open');
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  removeDragPin();
 }
 
 function updateStars(v){
@@ -765,7 +841,11 @@ async function saveEntry(){
     else{ showErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
 
-  // Priority 2: geocode address
+  // Also pick up drag pin position if no coords typed manually
+  if(!coordsText && dragPin){
+    const ll=dragPin.getLatLng();
+    lat=ll.lat; lng=ll.lng;
+  }
   if(lat==null && address){
     btn.textContent='Finding location…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
@@ -808,6 +888,7 @@ async function saveEntry(){
   // Force-close modal NOW before any async work or snapshot re-renders
   document.getElementById('form-overlay').classList.remove('open');
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  removeDragPin();
 
   try{
     await saveToFirestore(entry);
@@ -845,6 +926,7 @@ async function executeDelete(){
   document.getElementById('form-overlay').classList.remove('open');
   deleteTargetId=null;
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  removeDragPin();
 
   try{
     await deleteFromFirestore(idToDelete);
