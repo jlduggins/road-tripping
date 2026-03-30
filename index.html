@@ -79,9 +79,9 @@ window._db={
 :root{
   --bg:#f2f0eb;
   --forest:#1c3829;
-  --teal:#2a9d8f;
-  --teal-light:#e8f5f3;
-  --teal-mid:rgba(42,157,143,.15);
+  --teal:#1a7a6e;
+  --teal-light:#e6f3f1;
+  --teal-mid:rgba(26,122,110,.15);
   --amber:#e76f51;
   --text:#1c3829;
   --text-mid:#4a6358;
@@ -174,9 +174,13 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   color:white;text-align:center;padding:7px;font-size:13px;font-weight:600
 }
 
-/* ── Drawer overlay — invisible, just catches outside clicks ── */
-#drawer-overlay{position:fixed;inset:0;z-index:800;background:transparent;display:none}
+/* ── Drawer overlay — transparent click-catcher only to RIGHT of drawer on desktop ── */
+#drawer-overlay{position:fixed;top:0;bottom:0;left:320px;right:0;z-index:800;background:transparent;display:none;cursor:default}
 #drawer-overlay.open{display:block}
+@media(max-width:640px){
+  /* On mobile bottom sheet, overlay covers full screen above sheet */
+  #drawer-overlay{left:0;bottom:75vh}
+}
 
 /* ── DESKTOP: left drawer ── */
 #drawer{
@@ -200,12 +204,12 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 }
 .drawer-nav{display:flex;gap:6px;padding:10px 12px}
 .dnav-btn{
-  flex:1;padding:8px 4px;border-radius:var(--radius-sm);border:none;
-  background:transparent;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;
+  flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:none;
+  background:transparent;color:rgba(255,255,255,.45);font-size:13px;font-weight:600;
   transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px
 }
-.dnav-btn.active{background:rgba(255,255,255,.1);color:white}
-.dnav-btn:hover:not(.active){color:rgba(255,255,255,.75)}
+.dnav-btn.active{background:rgba(255,255,255,.15);color:white}
+.dnav-btn:hover:not(.active){color:rgba(255,255,255,.8)}
 .dnav-icon{font-size:18px}
 #drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
 #drawer-footer{
@@ -509,20 +513,32 @@ textarea.inp{resize:none}
     <!-- Entries section -->
     <div id="dsec-entries" class="drawer-section active">
       <div class="dsec-header">
-        <input class="inp-dark" id="search-inp" placeholder="🔍  Search locations…" oninput="renderEntries()" style="margin-bottom:8px;width:100%"/>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select class="inp-dark inp-sm" id="f-type" onchange="renderEntries()">
+        <div style="display:flex;gap:8px;align-items:center">
+          <!-- Filter icon button -->
+          <button id="filter-btn" onclick="toggleFilters()" title="Filter"
+            style="width:40px;height:40px;border-radius:var(--radius-sm);border:none;
+                   background:rgba(255,255,255,.1);color:white;flex-shrink:0;
+                   display:flex;align-items:center;justify-content:center;transition:background .15s">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+            </svg>
+          </button>
+          <input class="inp-dark" id="search-inp" placeholder="Search locations…" oninput="renderEntries()" style="flex:1"/>
+        </div>
+        <!-- Filter dropdown — slides down -->
+        <div id="filter-panel" style="margin-top:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s ease">
+          <select class="inp-dark" id="f-type" onchange="renderEntries()">
             <option value="">All Types</option>
             <option>National Park</option><option>National Forest</option><option>BLM</option>
             <option>Dispersed</option><option>Private</option><option>Other</option>
           </select>
-          <select class="inp-dark inp-sm" id="f-status" onchange="renderEntries()">
+          <select class="inp-dark" id="f-status" onchange="renderEntries()">
             <option value="">All Statuses</option>
             <option value="visited">Visited</option><option value="current">Here Now</option><option value="planned">Planned</option>
           </select>
-          <select class="inp-dark inp-sm" id="f-rating" onchange="renderEntries()">
-            <option value="0">Any ★</option><option value="1">1+★</option><option value="2">2+★</option>
-            <option value="3">3+★</option><option value="4">4+★</option><option value="5">5★</option>
+          <select class="inp-dark" id="f-rating" onchange="renderEntries()">
+            <option value="0">Any Rating</option><option value="1">★ and above</option><option value="2">★★ and above</option>
+            <option value="3">★★★ and above</option><option value="4">★★★★ and above</option><option value="5">★★★★★ only</option>
           </select>
         </div>
       </div>
@@ -665,7 +681,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -729,7 +745,17 @@ function doSignOut(){
   window._firebaseAuth.signOut();
 }
 
-// ── Firestore wrappers ────────────────────────────────────────────────────────
+// ── Filter toggle ─────────────────────────────────────────────────────────────
+let filtersOpen=false;
+function toggleFilters(){
+  filtersOpen=!filtersOpen;
+  const panel=document.getElementById('filter-panel');
+  const btn=document.getElementById('filter-btn');
+  panel.style.maxHeight=filtersOpen?'220px':'0';
+  panel.style.marginTop=filtersOpen?'8px':'0';
+  btn.style.background=filtersOpen?'rgba(255,255,255,.22)':'rgba(255,255,255,.1)';
+  btn.style.color=filtersOpen?'white':'rgba(255,255,255,.7)';
+}
 async function saveToFirestore(entry){ await window._db.save(window._currentUser.uid,entry); }
 async function deleteFromFirestore(id){ await window._db.remove(window._currentUser.uid,id); }
 
@@ -791,20 +817,40 @@ function updateMyDot(lat,lng){
   myDotMarker=L.marker([lat,lng],{icon,zIndexOffset:2000,interactive:false}).addTo(map);
 }
 
+let lastKnownPos=null;
+
 function locateMe(){
   if(!navigator.geolocation){
     alert('Geolocation not available.\n\niPhone: Settings → Privacy & Security → Location Services → Safari → Allow While Using App');
     return;
   }
+  // If we already have a position from watchPosition, use it instantly
+  if(lastKnownPos){
+    if(map) map.setView([lastKnownPos.lat,lastKnownPos.lng],14);
+    return;
+  }
+  // First time — get position
   navigator.geolocation.getCurrentPosition(
-    pos=>{ updateMyDot(pos.coords.latitude,pos.coords.longitude); if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12); },
+    pos=>{
+      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      updateMyDot(pos.coords.latitude,pos.coords.longitude);
+      if(map) map.setView([pos.coords.latitude,pos.coords.longitude],14);
+    },
     err=>{ if(err.code===1) alert('Location access denied.\n\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App'); },
-    {enableHighAccuracy:true,timeout:12000}
+    {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
   );
 }
+
 function startWatchingLocation(){
   if(!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(pos=>updateMyDot(pos.coords.latitude,pos.coords.longitude),()=>{},{enableHighAccuracy:true,maximumAge:15000});
+  navigator.geolocation.watchPosition(
+    pos=>{
+      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      updateMyDot(pos.coords.latitude,pos.coords.longitude);
+    },
+    ()=>{},
+    {enableHighAccuracy:true,maximumAge:10000,timeout:30000}
+  );
 }
 
 // Draggable yellow pin
