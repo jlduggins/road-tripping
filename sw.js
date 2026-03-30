@@ -1,7 +1,5 @@
-const CACHE_NAME = 'road-tripping-v9';
-const CACHE_URLS = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'road-tripping-v10';
+const STATIC_URLS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -12,15 +10,15 @@ const CACHE_URLS = [
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 ];
 
-// Install: cache all core assets
+// Install: pre-cache static assets (NOT index.html — it uses network-first)
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CACHE_URLS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_URLS))
   );
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: nuke ALL old caches immediately
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -30,41 +28,44 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch strategy:
-// - App shell (index.html, manifest, icons): cache-first
-// - Leaflet assets: cache-first
-// - Map tiles (OpenStreetMap): network-first with cache fallback
-// - Everything else: network-first
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // OpenStreetMap tiles — network first, cache as fallback so offline map still works
-  if (url.hostname.endsWith('tile.openstreetmap.org')) {
+  // index.html — ALWAYS network-first so updates are instant
+  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
     event.respondWith(
-      fetch(event.request)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          return res;
-        })
-        .catch(() => caches.match(event.request))
+      fetch(event.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return res;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Nominatim geocoding — network only (needs live data, no point caching)
-  if (url.hostname === 'nominatim.openstreetmap.org') {
+  // Map tiles — network-first, cache for offline
+  if (url.hostname.endsWith('tile.openstreetmap.org') || url.hostname.includes('arcgisonline.com')) {
+    event.respondWith(
+      fetch(event.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return res;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // API calls — network only, never cache
+  if (url.hostname === 'api.anthropic.com' ||
+      url.hostname === 'api.geocod.io' ||
+      url.hostname.includes('firestore.googleapis.com') ||
+      url.hostname.includes('firebase') ||
+      url.hostname.includes('gstatic.com')) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Anthropic API — network only
-  if (url.hostname === 'api.anthropic.com') {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-
-  // Everything else — cache first (app shell, Leaflet)
+  // Static assets (Leaflet, icons, manifest) — cache-first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
