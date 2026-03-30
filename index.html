@@ -12,10 +12,89 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- Firebase modular SDK (supports named databases) -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyAXrhjv1t3520X7QKiVI0qqeMAvpWS5Rdw",
+  authDomain:        "gen-lang-client-0165143367.firebaseapp.com",
+  projectId:         "gen-lang-client-0165143367",
+  storageBucket:     "gen-lang-client-0165143367.firebasestorage.app",
+  messagingSenderId: "659366672596",
+  appId:             "1:659366672596:web:9a8fe8502a0769fdafe341"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app, 'ai-studio-c0969653-1687-41bd-9dbc-30380f72c788');
+
+const googleProvider = new GoogleAuthProvider();
+
+// ── Auth helpers (exposed to global scope for HTML onclick handlers) ───────────
+window._firebaseAuth = {
+  signInWithGoogle(){
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile){
+      signInWithRedirect(auth, googleProvider).catch(err=>{
+        const el=document.getElementById('login-error');
+        el.textContent=err.message; el.style.display='block';
+      });
+    } else {
+      signInWithPopup(auth, googleProvider).catch(err=>{
+        if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'){
+          signInWithRedirect(auth, googleProvider);
+        } else {
+          const el=document.getElementById('login-error');
+          el.textContent=err.message; el.style.display='block';
+        }
+      });
+    }
+  },
+  signOut(){ signOut(auth); }
+};
+
+// Handle redirect result
+getRedirectResult(auth).then(result=>{
+  if(result?.user) console.log('Signed in via redirect:', result.user.email);
+}).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect error:',err); });
+
+// Auth state changes
+onAuthStateChanged(auth, user=>{
+  window._currentUser = user;
+  if(user){
+    const btn=document.getElementById('user-info');
+    if(btn) btn.textContent='Sign out ('+(user.displayName||user.email)+')';
+    window._showApp && window._showApp();
+    window._subscribeToFirestore && window._subscribeToFirestore(user.uid);
+  } else {
+    window._showLogin && window._showLogin();
+  }
+});
+
+// ── Firestore helpers (exposed to global scope) ───────────────────────────────
+window._db = {
+  subscribe(uid, callback, errCallback){
+    const q = query(
+      collection(db, 'users', uid, 'logs'),
+      orderBy('createdAt','desc')
+    );
+    return onSnapshot(q, snap=>{
+      callback(snap.docs.map(d=>({id:d.id,...d.data()})));
+    }, errCallback);
+  },
+  async save(uid, entry){
+    const {id, ...data} = entry;
+    const clean = Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
+    await setDoc(doc(db,'users',uid,'logs',id), clean, {merge:true});
+  },
+  async remove(uid, id){
+    await deleteDoc(doc(db,'users',uid,'logs',id));
+  }
+};
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#0f172a}
@@ -372,20 +451,6 @@ textarea.inp{resize:none}
 
 <!-- Mobile bottom nav (injected into sidebar via CSS) -->
 <script>
-// ── Firebase config ───────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey:            "AIzaSyAXrhjv1t3520X7QKiVI0qqeMAvpWS5Rdw",
-  authDomain:        "gen-lang-client-0165143367.firebaseapp.com",
-  projectId:         "gen-lang-client-0165143367",
-  storageBucket:     "gen-lang-client-0165143367.firebasestorage.app",
-  messagingSenderId: "659366672596",
-  appId:             "1:659366672596:web:9a8fe8502a0769fdafe341"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db   = firebase.firestore();
-db.settings({ merge: true });
-
 // ── Geocodio ──────────────────────────────────────────────────────────────────
 const GEOCODIO_KEY = 'YOUR_GEOCODIO_API_KEY';
 
@@ -443,57 +508,21 @@ window.addEventListener('offline', ()=>document.getElementById('offline-banner')
 if(!navigator.onLine) document.getElementById('offline-banner').style.display='block';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-function signInWithGoogle(){
-  // Use redirect on mobile/Safari (popup gets blocked), popup on desktop
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(isMobile){
-    auth.signInWithRedirect(googleProvider).catch(err=>{
-      const el=document.getElementById('login-error');
-      el.textContent=err.message; el.style.display='block';
-    });
-  } else {
-    auth.signInWithPopup(googleProvider).catch(err=>{
-      // Fallback to redirect if popup blocked
-      if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'){
-        auth.signInWithRedirect(googleProvider);
-      } else {
-        const el=document.getElementById('login-error');
-        el.textContent=err.message; el.style.display='block';
-      }
-    });
-  }
-}
-
-// Handle redirect result on page load
-auth.getRedirectResult().then(result=>{
-  if(result&&result.user) console.log('Signed in via redirect:', result.user.email);
-}).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect error:',err); });
-
+function signInWithGoogle(){ window._firebaseAuth.signInWithGoogle(); }
 function signOutUser(){
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
-  auth.signOut();
+  window._firebaseAuth.signOut();
 }
 
-auth.onAuthStateChanged(user=>{
-  currentUser=user;
-  if(user){
-    // Update sign out button with user name
-    const btn=document.getElementById('user-info');
-    if(btn) btn.textContent='Sign out ('+( user.displayName||user.email)+')';
-    showApp();
-    subscribeToFirestore();
-  } else {
-    showLogin();
-  }
-});
+// These are called by the modular Firebase module above
+window._showApp   = showApp;
+window._showLogin = showLogin;
+window._subscribeToFirestore = subscribeToFirestore;
 
 function showApp(){
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-  // Init map after app is visible
   setTimeout(()=>{ if(!mapReady){ initMap(); mapReady=true; } }, 100);
 }
 
@@ -502,35 +531,30 @@ function showLogin(){
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   entries=[];
+  if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
 }
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
-function userCollection(){
-  return db.collection('users').doc(currentUser.uid).collection('logs');
-}
-
-function subscribeToFirestore(){
+function subscribeToFirestore(uid){
   if(firestoreUnsub){ firestoreUnsub(); }
-  firestoreUnsub = userCollection()
-    .orderBy('createdAt','desc')
-    .onSnapshot(snap=>{
-      entries=snap.docs.map(d=>({id:d.id,...d.data()}));
+  firestoreUnsub = window._db.subscribe(
+    uid,
+    docs=>{
+      entries=docs;
       updateCount();
       renderMarkers();
-      // Only re-render entries list if it's visible — never touch modals
       renderEntries();
-    }, err=>console.error('Firestore error:',err));
+    },
+    err=>console.error('Firestore error:',err)
+  );
 }
 
 async function saveToFirestore(entry){
-  const {id, ...data} = entry;
-  // Strip undefined values (Firestore doesn't accept them)
-  const clean = Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
-  await userCollection().doc(id).set(clean, {merge:true});
+  await window._db.save(window._currentUser.uid, entry);
 }
 
 async function deleteFromFirestore(id){
-  await userCollection().doc(id).delete();
+  await window._db.remove(window._currentUser.uid, id);
 }
 
 // ── Geocodio ──────────────────────────────────────────────────────────────────
@@ -765,7 +789,7 @@ async function saveEntry(){
   const costVal=document.getElementById('f-cost').value;
   const entry={
     id: editId||genId(),
-    uid: currentUser.uid,
+    uid: window._currentUser.uid,
     createdAt: editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
     name, address,
     lat: lat!=null?lat:null,
