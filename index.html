@@ -443,14 +443,33 @@ window.addEventListener('offline', ()=>document.getElementById('offline-banner')
 if(!navigator.onLine) document.getElementById('offline-banner').style.display='block';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
 function signInWithGoogle(){
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err=>{
-    const el=document.getElementById('login-error');
-    el.textContent=err.message;
-    el.style.display='block';
-  });
+  // Use redirect on mobile/Safari (popup gets blocked), popup on desktop
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile){
+    auth.signInWithRedirect(googleProvider).catch(err=>{
+      const el=document.getElementById('login-error');
+      el.textContent=err.message; el.style.display='block';
+    });
+  } else {
+    auth.signInWithPopup(googleProvider).catch(err=>{
+      // Fallback to redirect if popup blocked
+      if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'){
+        auth.signInWithRedirect(googleProvider);
+      } else {
+        const el=document.getElementById('login-error');
+        el.textContent=err.message; el.style.display='block';
+      }
+    });
+  }
 }
+
+// Handle redirect result on page load
+auth.getRedirectResult().then(result=>{
+  if(result&&result.user) console.log('Signed in via redirect:', result.user.email);
+}).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect error:',err); });
 
 function signOutUser(){
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
@@ -498,6 +517,7 @@ function subscribeToFirestore(){
       entries=snap.docs.map(d=>({id:d.id,...d.data()}));
       updateCount();
       renderMarkers();
+      // Only re-render entries list if it's visible — never touch modals
       renderEntries();
     }, err=>console.error('Firestore error:',err));
 }
@@ -714,26 +734,22 @@ async function saveEntry(){
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
 
-  // Priority 1: explicitly typed coordinates
+  // Priority 1: typed coordinates
   if(coordsText){
     const parts=coordsText.split(',').map(p=>parseFloat(p.trim()));
     if(!isNaN(parts[0])&&!isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
     else{ showErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
 
-  // Priority 2: geocode address (always runs if no valid coords, even if pendingLat existed before)
-  if((lat==null || coordsText==='') && address){
+  // Priority 2: geocode address
+  if(lat==null && address){
     btn.textContent='Finding location…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
       const result=await geocodeAddress(address);
-      if(result){
-        lat=result.lat; lng=result.lng;
-        // Update the coords field with the geocoded result
-        document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
-        infoEl.textContent='✓ Found coordinates for: '+address;
-      } else {
-        showErr('Could not find that address. Try being more specific, or long-press in Google Maps to copy coordinates.');
+      if(result){ lat=result.lat; lng=result.lng; }
+      else{
+        showErr('Could not find that address. Try being more specific, or paste lat/lng from Google Maps.');
         btn.textContent='Save Location'; btn.disabled=false; return;
       }
     } catch(e){
@@ -743,10 +759,10 @@ async function saveEntry(){
     btn.textContent='Save Location'; btn.disabled=false;
   }
 
+  // Read ALL form values before closing anything
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
   const costVal=document.getElementById('f-cost').value;
-
   const entry={
     id: editId||genId(),
     uid: currentUser.uid,
@@ -765,8 +781,10 @@ async function saveEntry(){
     ...amenities
   };
 
-  // Close form immediately before async save so UI feels instant
-  closeForm();
+  // Force-close modal NOW before any async work or snapshot re-renders
+  document.getElementById('form-overlay').classList.remove('open');
+  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+
   try{
     await saveToFirestore(entry);
   } catch(e){
@@ -786,18 +804,24 @@ function showErr(msg){
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function confirmDelete(id){
-  // Always use the explicitly passed id first; fall back to editId only if id is truly null/undefined
   deleteTargetId = (id != null && id !== '') ? id : editId;
   if(!deleteTargetId){ console.warn('confirmDelete: no target id'); return; }
   document.getElementById('confirm-overlay').classList.add('open');
 }
-function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); deleteTargetId=null; }
+function closeConfirm(){
+  document.getElementById('confirm-overlay').classList.remove('open');
+  deleteTargetId=null;
+}
 async function executeDelete(){
   if(!deleteTargetId) return;
   const idToDelete = deleteTargetId;
-  // Close both overlays immediately so UI feels instant
-  closeConfirm();
-  closeForm();
+
+  // Force-close BOTH overlays via direct DOM — immune to snapshot re-renders
+  document.getElementById('confirm-overlay').classList.remove('open');
+  document.getElementById('form-overlay').classList.remove('open');
+  deleteTargetId=null;
+  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+
   try{
     await deleteFromFirestore(idToDelete);
   } catch(e){
