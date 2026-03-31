@@ -4,8 +4,8 @@
   "description": "Log and discover camping spots for van life and mobile living",
   "start_url": "/road-tripping/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#586F6B",
+  "theme_color": "#586F6B",
   "orientation": "any",
   "icons": [
     {
