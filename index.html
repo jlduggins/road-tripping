@@ -433,9 +433,9 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <!-- Clip to just the pin (left ~40% of landscape SVG) -->
-  <div style="height:36px;width:36px;overflow:hidden;flex-shrink:0">
-    <img src="icons/logo.svg" alt="Road Tripping" style="height:36px;width:90px;max-width:none;object-fit:none;object-position:left center"/>
+  <!-- Show just pin icon: SVG is 1536x1024, pin is left ~35%, scale to 38px tall = 57px wide, clip to 38px -->
+  <div style="height:38px;width:38px;overflow:hidden;flex-shrink:0">
+    <img src="icons/logo.svg" alt="" style="height:38px;width:57px;max-width:none"/>
   </div>
   <span id="top-title">Road Tripping</span>
   <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
@@ -495,9 +495,9 @@ textarea.inp{resize:none}
 <!-- Drawer -->
 <div id="drawer">
   <div id="drawer-header">
-    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-      <!-- Full logo SVG — landscape, constrain by height -->
-      <img src="icons/logo.svg" alt="Road Tripping" style="height:40px;width:auto;flex-shrink:0"/>
+    <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+      <!-- Full logo at 44px tall — width auto-scales to ~66px -->
+      <img src="icons/logo.svg" alt="Road Tripping" style="height:44px;width:auto;flex-shrink:0;max-width:200px"/>
       <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
@@ -680,7 +680,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
