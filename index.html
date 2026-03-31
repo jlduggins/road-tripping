@@ -433,9 +433,8 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.png" alt="" style="height:34px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:screen"/>
-  <span id="top-title">Road Tripping</span>
-  <span id="top-count">0 locations</span>
+  <img src="icons/logo.png" alt="Road Tripping" style="height:42px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:screen"/>
+  <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
 </div>
 
 <!-- Map overlay buttons -->
@@ -492,14 +491,9 @@ textarea.inp{resize:none}
 <!-- Drawer -->
 <div id="drawer">
   <div id="drawer-header">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <img src="icons/logo.png" alt="Road Tripping" style="width:36px;height:36px;object-fit:contain;mix-blend-mode:screen"/>
-      </div>
-      <div>
-        <div style="color:white;font-weight:700;font-size:15px;letter-spacing:-.3px">Road Tripping</div>
-        <div id="top-count2" style="font-size:11px;color:rgba(255,255,255,.4)">0 locations</div>
-      </div>
+    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+      <img src="icons/logo.png" alt="Road Tripping" style="height:48px;width:auto;object-fit:contain;mix-blend-mode:screen;flex-shrink:0"/>
+      <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
@@ -681,7 +675,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
