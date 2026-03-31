@@ -228,8 +228,8 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   background:transparent;color:rgba(88,111,107,.5);font-size:13px;font-weight:600;
   transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px
 }
-.dnav-btn.active{background:var(--forest);color:white}
-.dnav-btn:hover:not(.active){color:var(--text)}
+.dnav-btn.active{background:var(--teal);color:white}
+.dnav-btn:hover:not(.active){color:var(--text);background:rgba(88,111,107,.08)}
 .dnav-icon{font-size:18px}
 #drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
 #drawer-footer{
@@ -239,8 +239,8 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 }
 .log-btn-full{
   padding:13px;border-radius:var(--radius);border:none;
-  background:var(--forest);color:white;font-weight:700;font-size:14px;
-  width:100%;box-shadow:0 4px 14px rgba(88,111,107,.35);letter-spacing:.2px
+  background:var(--teal);color:white;font-weight:700;font-size:14px;
+  width:100%;box-shadow:0 4px 14px rgba(127,195,165,.35);letter-spacing:.2px
 }
 .signout-row{display:flex;align-items:center;gap:8px}
 .signout-btn{
@@ -542,9 +542,9 @@ textarea.inp{resize:none}
           <!-- Filter icon button -->
           <button id="filter-btn" onclick="toggleFilters()" title="Filter"
             style="width:40px;height:40px;border-radius:var(--radius-sm);border:none;
-                   background:rgba(255,255,255,.1);color:white;flex-shrink:0;
+                   background:rgba(88,111,107,.1);color:var(--forest);flex-shrink:0;
                    display:flex;align-items:center;justify-content:center;transition:background .15s">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
             </svg>
           </button>
@@ -796,8 +796,8 @@ function toggleFilters(){
   const btn=document.getElementById('filter-btn');
   panel.style.maxHeight=filtersOpen?'220px':'0';
   panel.style.marginTop=filtersOpen?'8px':'0';
-  btn.style.background=filtersOpen?'rgba(255,255,255,.22)':'rgba(255,255,255,.1)';
-  btn.style.color=filtersOpen?'white':'rgba(255,255,255,.7)';
+  btn.style.background=filtersOpen?'rgba(88,111,107,.2)':'rgba(88,111,107,.1)';
+  btn.style.color=filtersOpen?'var(--forest)':'var(--forest)';
 }
 async function saveToFirestore(entry){ await window._db.save(window._currentUser.uid,entry); }
 async function deleteFromFirestore(id){ await window._db.remove(window._currentUser.uid,id); }
