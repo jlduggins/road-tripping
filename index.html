@@ -401,7 +401,7 @@ textarea.inp{resize:none}
 
 <!-- Loading -->
 <div id="loading-screen">
-  <img src="icons/logo.png" alt="" style="width:80px;height:54px;object-fit:contain;mix-blend-mode:screen;margin-bottom:8px"/>
+  <img src="icons/logo.svg" alt="" style="height:60px;width:auto;margin-bottom:12px"/>
   <div class="spinner"></div>
   <div style="color:rgba(255,255,255,.5);font-size:14px;font-weight:500">Loading Road Tripping…</div>
 </div>
@@ -409,8 +409,8 @@ textarea.inp{resize:none}
 <!-- Login -->
 <div id="login-screen" style="display:none">
   <div class="login-card">
-    <div style="width:90px;height:90px;margin:0 auto 16px;border-radius:22px;background:var(--forest);display:flex;align-items:center;justify-content:center;overflow:hidden">
-      <img src="icons/logo.png" alt="Road Tripping" style="width:78px;height:52px;object-fit:contain"/>
+    <div style="margin:0 auto 20px;display:flex;align-items:center;justify-content:center">
+      <img src="icons/logo.svg" alt="Road Tripping" style="height:100px;width:auto"/>
     </div>
     <h1 style="font-size:26px;font-weight:800;color:var(--forest);margin-bottom:8px;letter-spacing:-.5px">Road Tripping</h1>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
@@ -433,7 +433,11 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.png" alt="Road Tripping" style="height:42px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:screen"/>
+  <!-- Clip to just the pin (left ~40% of landscape SVG) -->
+  <div style="height:36px;width:36px;overflow:hidden;flex-shrink:0">
+    <img src="icons/logo.svg" alt="Road Tripping" style="height:36px;width:90px;max-width:none;object-fit:none;object-position:left center"/>
+  </div>
+  <span id="top-title">Road Tripping</span>
   <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
 </div>
 
@@ -492,7 +496,8 @@ textarea.inp{resize:none}
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-      <img src="icons/logo.png" alt="Road Tripping" style="height:48px;width:auto;object-fit:contain;mix-blend-mode:screen;flex-shrink:0"/>
+      <!-- Full logo SVG — landscape, constrain by height -->
+      <img src="icons/logo.svg" alt="Road Tripping" style="height:40px;width:auto;flex-shrink:0"/>
       <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
@@ -675,7 +680,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
