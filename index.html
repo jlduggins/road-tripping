@@ -350,9 +350,9 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:16px}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:24px}
 .login-logo{display:flex;flex-direction:column;align-items:center}
-.login-logo img{height:180px;width:auto}
+.login-logo img{width:280px;height:auto}
 .login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6}
 .login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:8px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s}
@@ -412,7 +412,7 @@ textarea.inp{resize:none}
 <!-- Login -->
 <div id="login-screen" style="display:none">
   <div class="login-logo">
-    <img src="icons/logo-icon.svg" alt="Road Tripping"/>
+    <img src="icons/logo.svg" alt="Road Tripping"/>
   </div>
   <p class="login-desc">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
   <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
@@ -433,7 +433,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.svg" alt="Road Tripping" style="height:52px;width:auto;flex-shrink:0"/>
+  <img src="icons/logo.svg" alt="Road Tripping" style="width:160px;height:auto;flex-shrink:0"/>
   <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
 </div>
 
@@ -492,7 +492,7 @@ textarea.inp{resize:none}
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <img src="icons/logo.svg" alt="Road Tripping" style="height:52px;width:auto;flex-shrink:0;max-width:220px"/>
+      <img src="icons/logo.svg" alt="Road Tripping" style="width:160px;height:auto;flex-shrink:0"/>
       <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
