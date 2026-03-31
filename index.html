@@ -149,8 +149,8 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   position:fixed;z-index:500;
   top:calc(66px + env(safe-area-inset-top));left:14px;
   width:48px;height:48px;border-radius:var(--radius);border:none;
-  background:var(--teal);color:white;font-size:28px;font-weight:300;
-  box-shadow:0 4px 18px rgba(127,195,165,.45);
+  background:var(--forest);color:white;font-size:28px;font-weight:300;
+  box-shadow:0 4px 18px rgba(22,63,46,.45);
   display:flex;align-items:center;justify-content:center
 }
 #btn-log:active{transform:scale(.94)}
@@ -434,7 +434,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.svg" alt="Road Tripping" style="height:44px;width:auto;flex-shrink:0"/>
+  <img src="icons/logo.svg" alt="Road Tripping" style="height:clamp(32px,5vw,50px);width:auto;flex-shrink:0"/>
   <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
 </div>
 
