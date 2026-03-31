@@ -89,23 +89,25 @@ window._db={
 <style>
 /* ── Design tokens ── */
 :root{
-  --bg:#f2f0eb;
+  --bg:#B8B8AA;
   --forest:#586F6B;
-  --drawer:#B8B8AA;
-  --teal:#586F6B;
+  --drawer:#DDD5D0;
+  --accent:#7F9183;
+  --teal:#7FC3A5;
   --teal-light:#F2F2EE;
-  --teal-mid:rgba(88,111,107,.15);
+  --teal-mid:rgba(127,195,165,.15);
   --amber:#e76f51;
   --text:#586F6B;
   --text-mid:#6a7d79;
   --text-muted:#8a9a96;
   --card:#F2F2EE;
-  --accent:#DDD5D0;
   --border:#d4cfc9;
   --shadow:0 2px 16px rgba(88,111,107,.1);
   --shadow-lg:0 8px 40px rgba(88,111,107,.16);
   --radius:16px;
   --radius-sm:10px;
+  --road:#F5F5F5;
+  --tripping:#7FC3A5;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
@@ -129,7 +131,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   position:fixed;top:0;left:0;right:0;z-index:600;
   height:calc(70px + env(safe-area-inset-top));
   padding:env(safe-area-inset-top) 12px 0;
-  background:var(--drawer);
+  background:var(--bg);
   display:flex;align-items:center;gap:12px;
   box-shadow:0 1px 4px rgba(0,0,0,.1)
 }
@@ -374,7 +376,7 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--drawer);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .login-logo{display:block;text-align:center;margin-bottom:8px}
 .login-logo img{width:min(400px,80vw);height:auto;display:block;margin:0 auto}
 .login-desc{font-size:15px;color:var(--text-mid);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
@@ -383,7 +385,7 @@ textarea.inp{resize:none}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
 /* ── Loading ── */
-#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--drawer);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
 .spinner{width:36px;height:36px;border:3px solid rgba(88,111,107,.2);border-top-color:var(--forest);border-radius:50%;animation:spin 1s linear infinite}
 
 /* ── My location dot ── */
@@ -461,7 +463,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <span id="top-title"><span style="color:#586F6B">Road</span> <span style="color:#586F6B">Tripping</span></span>
+  <span id="top-title"><span style="color:#F5F5F5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
   <span id="top-count">0 locations</span>
 </div>
 
@@ -521,7 +523,7 @@ textarea.inp{resize:none}
   <div id="drawer-resize"></div>
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px;color:#586F6B">Road Tripping</span>
+      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#F5F5F5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
       <div id="top-count2" style="font-size:12px;color:var(--text-muted)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
@@ -552,7 +554,7 @@ textarea.inp{resize:none}
         <div id="filter-panel" style="margin-top:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s ease">
           <select class="inp-dark" id="f-type" onchange="renderEntries()">
             <option value="">All Types</option>
-            <option>National Park</option><option>National Forest</option><option>BLM</option>
+            <option>National Park</option><option>National Forest</option><option>State Campground</option><option>BLM</option>
             <option>Dispersed</option><option>Private</option><option>Other</option>
           </select>
           <select class="inp-dark" id="f-status" onchange="renderEntries()">
@@ -630,7 +632,7 @@ textarea.inp{resize:none}
       <div>
         <label class="lbl">Type</label>
         <select class="inp" id="f-type-sel">
-          <option>National Park</option><option>National Forest</option><option>BLM</option>
+          <option>National Park</option><option>National Forest</option><option>State Campground</option><option>BLM</option>
           <option selected>Dispersed</option><option>Private</option><option>Other</option>
         </select>
       </div>
@@ -643,8 +645,11 @@ textarea.inp{resize:none}
         </select>
       </div>
       <div>
-        <label class="lbl">💵 Cost/night ($)</label>
-        <input class="inp" type="number" min="0" step="0.01" id="f-cost" placeholder="0 = free"/>
+        <label class="lbl">💵 Cost/night</label>
+        <div style="display:flex;align-items:center;gap:0">
+          <span style="background:var(--border);padding:9px 12px;border-radius:var(--radius-sm) 0 0 var(--radius-sm);font-size:14px;color:var(--text);border:1px solid var(--border);border-right:none">$</span>
+          <input class="inp" type="number" min="0" step="1" id="f-cost" placeholder="0 = free" style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;flex:1"/>
+        </div>
       </div>
       <div>
         <label class="lbl">Rating</label>
@@ -667,6 +672,18 @@ textarea.inp{resize:none}
       <div class="full">
         <label class="lbl">Notes</label>
         <textarea class="inp" id="f-notes" rows="3" placeholder="Cell service? Road conditions? Grey water?"></textarea>
+      </div>
+      <div class="full">
+        <label class="lbl">🔗 Website Link</label>
+        <input class="inp" type="url" id="f-link" placeholder="https://recreation.gov/..." oninput="fetchLinkPreview(this.value)"/>
+        <div id="link-preview" style="display:none;margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+          <div id="link-preview-img" style="width:100%;height:120px;background-size:cover;background-position:center;background-color:var(--border)"></div>
+          <div style="padding:10px">
+            <div id="link-preview-title" style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px"></div>
+            <div id="link-preview-desc" style="font-size:11px;color:var(--text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></div>
+            <div id="link-preview-url" style="font-size:10px;color:var(--accent);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          </div>
+        </div>
       </div>
       <div class="full">
         <label class="lbl">Photos</label>
@@ -988,7 +1005,16 @@ function openFormPanel(entry,lat,lng){
   document.getElementById('f-status-sel').value=entry?entry.status:'visited';
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
   document.getElementById('f-notes').value=entry?(entry.notes||''):'';
+  document.getElementById('f-link').value=entry?(entry.link||''):'';
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ document.getElementById(el).checked=entry?!!entry[key]:false; });
+
+  // Load link preview if exists
+  currentLinkPreview=entry?.linkPreview||null;
+  if(entry?.linkPreview){
+    showLinkPreview(entry.linkPreview);
+  } else {
+    document.getElementById('link-preview').style.display='none';
+  }
 
   const hint=document.getElementById('coords-hint');
   hint.style.display=(lat!=null&&!entry)?'block':'none';
@@ -1017,7 +1043,7 @@ function openFormPanel(entry,lat,lng){
 function closeFormPanel(){
   document.getElementById('form-panel').classList.remove('open');
   document.getElementById('form-panel').style.transform='';
-  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[]; currentLinkPreview=null;
   removeDragPin();
   hideDoneBtn();
 }
@@ -1099,11 +1125,103 @@ function renderPhotoRow(){
   const row=document.getElementById('photo-row'); row.innerHTML='';
   pendingPhotos.forEach(p=>{
     const wrap=document.createElement('div'); wrap.className='photo-wrap';
-    wrap.innerHTML=`<img src="${p.data}" alt=""/><button class="photo-remove" onclick="removePhoto('${p.id}')">✕</button>`;
+    wrap.innerHTML=`<img src="${p.data}" alt="" onclick="openPhotoLightbox('${p.data.replace(/'/g,"\\'")}')"/><button class="photo-remove" onclick="removePhoto('${p.id}')">✕</button>`;
     row.appendChild(wrap);
   });
 }
 function removePhoto(id){ pendingPhotos=pendingPhotos.filter(p=>p.id!==id); renderPhotoRow(); }
+
+// Photo Lightbox
+function openPhotoLightbox(src){
+  let lb=document.getElementById('photo-lightbox');
+  if(!lb){
+    lb=document.createElement('div');
+    lb.id='photo-lightbox';
+    lb.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+    lb.onclick=()=>lb.style.display='none';
+    lb.innerHTML='<img id="lightbox-img" style="max-width:90%;max-height:50vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5)"/><button style="position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.2);color:white;font-size:20px;cursor:pointer">✕</button>';
+    document.body.appendChild(lb);
+  }
+  document.getElementById('lightbox-img').src=src;
+  lb.style.display='flex';
+}
+
+// Link Preview
+let currentLinkPreview=null;
+let linkPreviewTimeout=null;
+
+async function fetchLinkPreview(url){
+  clearTimeout(linkPreviewTimeout);
+  const preview=document.getElementById('link-preview');
+  
+  if(!url||!url.match(/^https?:\/\/.+/)){
+    preview.style.display='none';
+    currentLinkPreview=null;
+    return;
+  }
+  
+  // Debounce
+  linkPreviewTimeout=setTimeout(async()=>{
+    try{
+      // Use a simple approach - extract domain and show basic preview
+      const urlObj=new URL(url);
+      const domain=urlObj.hostname.replace('www.','');
+      
+      // For known camping sites, provide better previews
+      let title=domain;
+      let desc='Click to visit this website';
+      let img=null;
+      
+      if(url.includes('recreation.gov')){
+        title='Recreation.gov';
+        desc='Federal recreation reservation site';
+        img='https://www.recreation.gov/images/social.jpg';
+      } else if(url.includes('hipcamp.com')){
+        title='Hipcamp';
+        desc='Discover and book unique outdoor stays';
+      } else if(url.includes('campendium.com')){
+        title='Campendium';
+        desc='Find campgrounds and campsites';
+      } else if(url.includes('freecampsites.net')){
+        title='Free Campsites';
+        desc='Free camping locations database';
+      } else if(url.includes('ioverlander.com')){
+        title='iOverlander';
+        desc='Overlanding and camping spots worldwide';
+      } else if(url.includes('reservecalifornia.com')){
+        title='Reserve California';
+        desc='California state parks reservations';
+      }
+      
+      currentLinkPreview={title,desc,url,img};
+      showLinkPreview(currentLinkPreview);
+    }catch(e){
+      preview.style.display='none';
+      currentLinkPreview=null;
+    }
+  },500);
+}
+
+function showLinkPreview(data){
+  const preview=document.getElementById('link-preview');
+  const imgEl=document.getElementById('link-preview-img');
+  const titleEl=document.getElementById('link-preview-title');
+  const descEl=document.getElementById('link-preview-desc');
+  const urlEl=document.getElementById('link-preview-url');
+  
+  if(data.img){
+    imgEl.style.backgroundImage=`url(${data.img})`;
+    imgEl.style.display='block';
+  }else{
+    imgEl.style.display='none';
+  }
+  titleEl.textContent=data.title||'Website';
+  descEl.textContent=data.desc||'';
+  urlEl.textContent=data.url||'';
+  preview.style.display='block';
+  preview.onclick=()=>window.open(data.url,'_blank');
+  preview.style.cursor='pointer';
+}
 
 // Save
 async function saveEntry(){
@@ -1143,6 +1261,7 @@ async function saveEntry(){
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
   const costVal=document.getElementById('f-cost').value;
+  const linkVal=document.getElementById('f-link').value.trim();
   const entry={
     id:editId||genId(),
     uid:window._currentUser.uid,
@@ -1152,19 +1271,31 @@ async function saveEntry(){
     departureDate:document.getElementById('f-departure').value,
     type:document.getElementById('f-type-sel').value,
     status:document.getElementById('f-status-sel').value,
-    cost:costVal===''?null:parseFloat(costVal),
+    cost:costVal===''?null:parseInt(costVal),
     rating:currentRating,
     notes:document.getElementById('f-notes').value.trim(),
+    link:linkVal||null,
+    linkPreview:currentLinkPreview||null,
     photos:pendingPhotos.slice(),
     ...amenities
   };
 
+  // Store lat/lng for flying to after save
+  const flyLat=lat, flyLng=lng;
+  const isNewEntry=!editId;
+
   // Close immediately before async
   document.getElementById('form-panel').classList.remove('open');
-  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[];
+  editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[]; currentLinkPreview=null;
   removeDragPin();
 
-  try{ await saveToFirestore(entry); }
+  try{ 
+    await saveToFirestore(entry);
+    // Fly to the new location after save
+    if(isNewEntry && flyLat!=null && flyLng!=null){
+      setTimeout(()=>map.flyTo([flyLat, flyLng], 14, {duration: 1}), 300);
+    }
+  }
   catch(e){ console.error('Save failed:',e); alert('Failed to save — check your connection.'); }
 }
 
@@ -1226,7 +1357,7 @@ function renderEntries(){
       <div class="entry-body" onclick="openFormPanel(JSON.parse(this.getAttribute('data-e')))" data-e="${eJson}">
         <div class="entry-name">${e.name}</div>
         <div class="entry-meta">
-          <span>${e.type}</span><span style="color:#334155">·</span>
+          <span style="color:var(--accent);font-weight:600">${e.type}</span><span style="color:#334155">·</span>
           <span style="color:${sc};font-weight:600">${STATUS_LABEL[e.status]||e.status}</span>
         </div>
         ${active.length?`<div class="entry-badges">${active.map(a=>`<span class="badge">${a.icon} ${a.label}</span>`).join('')}</div>`:''}
