@@ -89,7 +89,7 @@ window._db={
 <style>
 /* ── Design tokens ── */
 :root{
-  --bg:#B8B8AA;
+  --bg:#DDD5D0;
   --forest:#586F6B;
   --drawer:#DDD5D0;
   --accent:#7F9183;
@@ -274,13 +274,13 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .entry-stars{font-size:10px;color:#f4a261}
 .entry-badges{display:flex;flex-wrap:wrap;margin-top:5px;gap:4px}
 .badge{
-  background:var(--accent);color:var(--forest);
+  background:var(--drawer);color:var(--forest);
   font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
   border:1px solid rgba(88,111,107,.15)
 }
 .card-icon-btn{
   width:32px;height:32px;border-radius:8px;
-  border:1px solid var(--border);background:var(--bg);
+  border:1px solid var(--border);background:var(--drawer);
   color:var(--text-muted);font-size:13px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s
 }
@@ -378,7 +378,7 @@ textarea.inp{resize:none}
 /* ── Login ── */
 #login-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .login-logo{display:block;text-align:center;margin-bottom:8px}
-.login-logo img{width:min(400px,80vw);height:auto;display:block;margin:0 auto}
+.login-logo img{width:min(480px,90vw);height:auto;display:block;margin:0 auto}
 .login-desc{font-size:15px;color:var(--text-mid);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
 .login-privacy{font-size:11px;color:var(--text-muted);margin-top:12px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:16px auto 0}
@@ -724,7 +724,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
