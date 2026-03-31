@@ -373,11 +373,11 @@ textarea.inp{resize:none}
 
 /* ── Login ── */
 #login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
-.login-logo{display:block;text-align:center}
-.login-logo img{width:min(420px,85vw);height:auto;display:block;margin:0 auto}
-.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin:12px auto 0}
-.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:16px}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:20px auto 0}
+.login-logo{display:block;text-align:center;margin-bottom:8px}
+.login-logo img{width:min(400px,80vw);height:auto;display:block;margin:0 auto}
+.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
+.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:12px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:16px auto 0}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
 /* ── Loading ── */
@@ -391,35 +391,35 @@ textarea.inp{resize:none}
 /* ── Mobile bottom sheet drawer ── */
 @media(max-width:640px){
   #drawer{
-    top:auto;bottom:0;left:0;right:0;width:100%;
-    height:50vh;min-height:50vh;max-height:90vh;border-radius:24px 24px 0 0;
+    top:auto;bottom:0;left:0;right:0;width:100%!important;
+    height:40vh;min-height:40vh;max-height:85vh;border-radius:20px 20px 0 0;
     transform:translateY(100%);
     box-shadow:0 -8px 40px rgba(0,0,0,.25);
     transition:transform .28s cubic-bezier(.4,0,.2,1),height .2s ease
   }
   #drawer.open{transform:translateY(0)}
-  #drawer.expanded{height:90vh}
+  #drawer.expanded{height:85vh}
   #drawer-header{
-    padding:8px 16px 12px;
-    padding-bottom:10px;
+    padding:12px 16px 8px;
     cursor:grab
   }
   #drawer-header .drawer-title{display:none}
   /* Drag handle */
   #drawer-header::before{
     content:'';display:block;position:absolute;
-    top:10px;left:50%;transform:translateX(-50%);
+    top:8px;left:50%;transform:translateX(-50%);
     width:36px;height:4px;border-radius:2px;
-    background:rgba(255,255,255,.2)
+    background:rgba(255,255,255,.25)
   }
   #drawer-header{position:relative}
-  .drawer-nav{flex-direction:row}
-  .dnav-btn{flex-direction:row;gap:6px;justify-content:center}
+  .drawer-nav{flex-direction:row;padding:6px 12px}
+  .dnav-btn{flex-direction:row;gap:6px;justify-content:center;padding:8px 4px}
   #map-controls{bottom:calc(18px + env(safe-area-inset-bottom))}
   #btn-log{top:calc(78px + env(safe-area-inset-top))}
   .form-grid{grid-template-columns:1fr!important}
   .full{grid-column:1!important}
   #move-pin-btn{display:flex!important}
+  #drawer-resize{display:none!important}
 }
 @media(min-width:641px){
   #move-pin-btn{display:none!important}
