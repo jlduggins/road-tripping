@@ -10,6 +10,9 @@
 <title>Road Tripping</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <!-- Firebase modular SDK -->
@@ -48,7 +51,20 @@ window._firebaseAuth = {
 
 function showLoginError(msg){ const el=document.getElementById('login-error'); if(el){el.textContent=msg;el.style.display='block';} }
 
-getRedirectResult(auth).catch(err=>{ if(err.code!=='auth/no-current-user') console.error('Redirect:',err); });
+// Handle redirect result first, then set up auth listener
+getRedirectResult(auth).then(result=>{
+  if(result&&result.user){
+    window._currentUser=result.user;
+    const btn=document.getElementById('user-name'); if(btn) btn.textContent=result.user.displayName||result.user.email;
+    window._showApp&&window._showApp();
+    window._subscribeFirestore&&window._subscribeFirestore(result.user.uid);
+  }
+}).catch(err=>{ 
+  if(err.code&&err.code!=='auth/no-current-user') {
+    console.error('Redirect error:',err);
+    showLoginError(err.message);
+  }
+});
 
 onAuthStateChanged(auth, user=>{
   window._currentUser=user;
@@ -114,18 +130,18 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 #top-bar{
   position:fixed;top:0;left:0;right:0;z-index:600;
   height:calc(70px + env(safe-area-inset-top));
-  padding:env(safe-area-inset-top) 16px 0;
+  padding:env(safe-area-inset-top) 12px 0;
   background:var(--forest);
   display:flex;align-items:center;gap:12px;
   box-shadow:0 1px 0 rgba(255,255,255,.06)
 }
 #menu-btn{
-  width:38px;height:38px;border-radius:10px;border:none;
-  background:rgba(255,255,255,.1);color:white;font-size:18px;
+  width:48px;height:48px;border-radius:12px;border:none;
+  background:rgba(255,255,255,.1);color:white;font-size:22px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0
 }
 #menu-btn:active{background:rgba(255,255,255,.18)}
-#top-title{color:white;font-weight:700;font-size:17px;letter-spacing:-.3px;flex:1}
+#top-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.5px;flex:1}
 #top-count{font-size:12px;color:rgba(255,255,255,.5);white-space:nowrap}
 
 /* ── Map controls — grouped card on right ── */
@@ -350,9 +366,9 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:24px}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:28px}
 .login-logo{display:flex;flex-direction:column;align-items:center}
-.login-logo img{width:280px;height:auto}
+.login-logo img{width:320px;max-width:85vw;height:auto}
 .login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6}
 .login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:8px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s}
@@ -433,8 +449,8 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.svg" alt="Road Tripping" style="width:160px;height:auto;flex-shrink:0"/>
-  <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
+  <span id="top-title"><span style="color:#f5f5f5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
+  <span id="top-count">0 locations</span>
 </div>
 
 <!-- Map overlay buttons -->
@@ -492,7 +508,7 @@ textarea.inp{resize:none}
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <img src="icons/logo.svg" alt="Road Tripping" style="width:160px;height:auto;flex-shrink:0"/>
+      <span style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#f5f5f5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
       <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
