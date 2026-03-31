@@ -350,10 +350,14 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{background:var(--card);border-radius:28px;padding:40px 32px;max-width:360px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--card);font-size:15px;font-weight:600;color:var(--text);margin-top:8px;transition:background .15s}
-.google-btn:hover{background:var(--bg)}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:24px}
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:16px}
+.login-logo img{height:120px;width:auto}
+.login-title{font-size:28px;font-weight:800;color:white;letter-spacing:-.5px}
+.login-desc{font-size:14px;color:rgba(255,255,255,.7);max-width:320px;text-align:center;line-height:1.6}
+.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:12px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s}
+.google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
 /* ── Loading ── */
 #loading-screen{position:fixed;inset:0;z-index:9999;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -408,20 +412,17 @@ textarea.inp{resize:none}
 
 <!-- Login -->
 <div id="login-screen" style="display:none">
-  <div class="login-card">
-    <div style="margin:0 auto 20px;display:flex;align-items:center;justify-content:center">
-      <img src="icons/logo.svg" alt="Road Tripping" style="height:100px;width:auto"/>
-    </div>
-    </div>
-    <h1 style="font-size:26px;font-weight:800;color:var(--forest);margin-bottom:8px;letter-spacing:-.5px">Road Tripping</h1>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px;line-height:1.6">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
-    <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continue with Google
-    </button>
-    <div id="login-error" style="display:none;margin-top:12px;font-size:12px;color:#c44b2b;background:#fef3ef;padding:8px 12px;border-radius:8px"></div>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:20px">Your data is private and only visible to you.</p>
+  <div class="login-logo">
+    <img src="icons/logo.svg" alt="Road Tripping"/>
+    <div class="login-title">Road Tripping</div>
   </div>
+  <p class="login-desc">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
+  <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
+    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+  <div id="login-error" style="display:none;font-size:12px;color:#ffb4a9;background:rgba(255,100,80,.15);padding:10px 16px;border-radius:10px;max-width:320px"></div>
+  <p class="login-privacy">Your data is private and only visible to you.</p>
 </div>
 
 <div id="offline-banner">⚠ You're offline — your data is safe</div>
