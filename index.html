@@ -350,11 +350,11 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:32px}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:20px}
 .login-logo{display:flex;flex-direction:column;align-items:center}
-.login-logo img{height:clamp(160px,25vw,220px);width:auto}
-.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6}
-.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:12px}
+.login-logo img{height:clamp(140px,22vw,200px);width:auto}
+.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin-top:8px}
+.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:8px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
@@ -433,7 +433,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <img src="icons/logo.svg" alt="Road Tripping" style="height:clamp(36px,8vw,56px);width:auto;flex-shrink:0"/>
+  <img src="icons/logo.svg" alt="Road Tripping" style="height:clamp(44px,10vw,64px);width:auto;flex-shrink:0"/>
   <span id="top-count" style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.45)">0 locations</span>
 </div>
 
@@ -441,10 +441,10 @@ textarea.inp{resize:none}
 <!-- Left: log button -->
 <button id="btn-log" onclick="openFormPanel(null)" title="Log location"
   style="position:fixed;z-index:500;top:calc(64px + env(safe-area-inset-top));left:12px;
-         width:44px;height:44px;border-radius:12px;border:none;
-         background:var(--forest);color:white;font-size:28px;font-weight:300;
+         width:48px;height:48px;border-radius:12px;border:none;
+         background:var(--forest);color:white;font-size:32px;font-weight:300;line-height:1;
          box-shadow:0 4px 14px rgba(22,63,46,.4);
-         display:flex;align-items:center;justify-content:center;cursor:pointer">+</button>
+         display:flex;align-items:center;justify-content:center;cursor:pointer;padding-bottom:2px">+</button>
 
 <!-- Right column: zoom in, zoom out, satellite, locate — all in one flex column -->
 <div id="map-controls"
@@ -492,7 +492,7 @@ textarea.inp{resize:none}
 <div id="drawer">
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <img src="icons/logo.svg" alt="Road Tripping" style="height:clamp(36px,8vw,56px);width:auto;flex-shrink:0;max-width:200px"/>
+      <img src="icons/logo.svg" alt="Road Tripping" style="height:clamp(44px,10vw,64px);width:auto;flex-shrink:0;max-width:220px"/>
       <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
