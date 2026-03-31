@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 64" fill="none">
+  <!-- Pin shape -->
+  <path d="M24 1C11.8 1 2 10.8 2 23c0 15.5 22 40 22 40s22-24.5 22-40C46 10.8 36.2 1 24 1z" fill="url(#pinG)"/>
+  <!-- Inner circle -->
+  <circle cx="24" cy="22" r="15" fill="#163F2E"/>
+  <!-- Sun arc -->
+  <path d="M9 22a15 15 0 0 1 30 0" fill="url(#sunG)"/>
+  <!-- Mountains -->
+  <path d="M9 26l7-9 5 6 4-5 7 8H9z" fill="#163F2E"/>
+  <path d="M16 17l5 6 4-5 5 6H27l-4-5-3 4-2-2z" fill="#1e5038"/>
+  <!-- Road -->
+  <path d="M24 38 Q19 32 21 26 Q23 22 24 24 Q25 26 27 22 Q29 18 26 14" stroke="#7FC3A5" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75"/>
+  <line x1="23" y1="35" x2="23" y2="32" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="22" y1="28" x2="23" y2="25" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+  <defs>
+    <linearGradient id="pinG" x1="2" y1="1" x2="46" y2="63" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7FC3A5"/>
+      <stop offset="100%" stop-color="#2a7a5e"/>
+    </linearGradient>
+    <linearGradient id="sunG" x1="9" y1="7" x2="39" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f4b942"/>
+      <stop offset="100%" stop-color="#f09a1a"/>
+    </linearGradient>
+  </defs>
+</svg>
