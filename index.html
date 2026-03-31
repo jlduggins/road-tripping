@@ -90,18 +90,20 @@ window._db={
 /* ── Design tokens ── */
 :root{
   --bg:#f2f0eb;
-  --forest:#163F2E;
-  --teal:#7FC3A5;
-  --teal-light:#eaf5f0;
-  --teal-mid:rgba(127,195,165,.15);
+  --forest:#586F6B;
+  --drawer:#B8B8AA;
+  --teal:#586F6B;
+  --teal-light:#F2F2EE;
+  --teal-mid:rgba(88,111,107,.15);
   --amber:#e76f51;
-  --text:#163F2E;
-  --text-mid:#3a6b54;
-  --text-muted:#7a9e8c;
-  --card:#ffffff;
-  --border:#e4e0d8;
-  --shadow:0 2px 16px rgba(22,63,46,.1);
-  --shadow-lg:0 8px 40px rgba(22,63,46,.16);
+  --text:#586F6B;
+  --text-mid:#6a7d79;
+  --text-muted:#8a9a96;
+  --card:#F2F2EE;
+  --accent:#DDD5D0;
+  --border:#d4cfc9;
+  --shadow:0 2px 16px rgba(88,111,107,.1);
+  --shadow-lg:0 8px 40px rgba(88,111,107,.16);
   --radius:16px;
   --radius-sm:10px;
 }
@@ -127,18 +129,18 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   position:fixed;top:0;left:0;right:0;z-index:600;
   height:calc(70px + env(safe-area-inset-top));
   padding:env(safe-area-inset-top) 12px 0;
-  background:var(--forest);
+  background:var(--drawer);
   display:flex;align-items:center;gap:12px;
-  box-shadow:0 1px 0 rgba(255,255,255,.06)
+  box-shadow:0 1px 4px rgba(0,0,0,.1)
 }
 #menu-btn{
   width:48px;height:48px;border-radius:12px;border:none;
-  background:rgba(255,255,255,.1);color:white;font-size:22px;
+  background:rgba(88,111,107,.15);color:var(--forest);font-size:22px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0
 }
-#menu-btn:active{background:rgba(255,255,255,.18)}
-#top-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.5px;flex:1}
-#top-count{font-size:12px;color:rgba(255,255,255,.5);white-space:nowrap}
+#menu-btn:active{background:rgba(88,111,107,.25)}
+#top-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.5px;flex:1;color:var(--forest)}
+#top-count{font-size:12px;color:var(--text-muted);white-space:nowrap}
 
 /* ── Map controls — grouped card on right ── */
 #map-controls{
@@ -191,7 +193,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 /* ── DESKTOP: left drawer ── */
 #drawer{
   position:fixed;top:0;bottom:0;left:0;z-index:900;
-  width:320px;min-width:320px;max-width:50vw;background:var(--forest);
+  width:320px;min-width:320px;max-width:50vw;background:var(--drawer);
   display:flex;flex-direction:column;
   transform:translateX(-100%);
   transition:transform .28s cubic-bezier(.4,0,.2,1);
@@ -210,49 +212,49 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 }
 #drawer-header{
   padding:calc(18px + env(safe-area-inset-top)) 16px 14px;
-  border-bottom:1px solid rgba(255,255,255,.08);
+  border-bottom:1px solid rgba(88,111,107,.1);
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0
 }
 #drawer-close{
   width:34px;height:34px;border-radius:8px;border:none;
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);font-size:16px;
+  background:rgba(88,111,107,.1);color:var(--text);font-size:16px;
   display:flex;align-items:center;justify-content:center
 }
 .drawer-nav{display:flex;gap:6px;padding:10px 12px}
 .dnav-btn{
   flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:none;
-  background:transparent;color:rgba(255,255,255,.45);font-size:13px;font-weight:600;
+  background:transparent;color:rgba(88,111,107,.5);font-size:13px;font-weight:600;
   transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px
 }
-.dnav-btn.active{background:rgba(255,255,255,.15);color:white}
-.dnav-btn:hover:not(.active){color:rgba(255,255,255,.8)}
+.dnav-btn.active{background:var(--forest);color:white}
+.dnav-btn:hover:not(.active){color:var(--text)}
 .dnav-icon{font-size:18px}
 #drawer-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
 #drawer-footer{
   padding:12px 12px calc(16px + env(safe-area-inset-bottom));
-  border-top:1px solid rgba(255,255,255,.08);
+  border-top:1px solid rgba(88,111,107,.1);
   display:flex;flex-direction:column;gap:8px;flex-shrink:0
 }
 .log-btn-full{
   padding:13px;border-radius:var(--radius);border:none;
-  background:var(--teal);color:white;font-weight:700;font-size:14px;
-  width:100%;box-shadow:0 4px 14px rgba(127,195,165,.35);letter-spacing:.2px
+  background:var(--forest);color:white;font-weight:700;font-size:14px;
+  width:100%;box-shadow:0 4px 14px rgba(88,111,107,.35);letter-spacing:.2px
 }
 .signout-row{display:flex;align-items:center;gap:8px}
 .signout-btn{
   flex:1;padding:8px 12px;border-radius:8px;
-  border:1px solid rgba(255,255,255,.1);background:transparent;
-  color:rgba(255,255,255,.4);font-size:12px;text-align:left
+  border:1px solid rgba(88,111,107,.15);background:transparent;
+  color:var(--text-mid);font-size:12px;text-align:left
 }
-#user-name{font-size:11px;color:rgba(255,255,255,.35);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#user-name{font-size:11px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Drawer sections ── */
 .drawer-section{display:none;flex-direction:column;flex:1;min-height:0}
 .drawer-section.active{display:flex}
-.dsec-header{padding:12px 12px 10px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.dsec-header{padding:12px 12px 10px;border-bottom:1px solid rgba(88,111,107,.1);flex-shrink:0}
 .dsec-list{flex:1;overflow-y:auto;padding:10px 12px;-webkit-overflow-scrolling:touch}
 
-/* ── Entry cards — white on dark drawer ── */
+/* ── Entry cards ── */
 .entry-card{
   background:var(--card);
   border-radius:var(--radius-sm);
@@ -270,9 +272,9 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .entry-stars{font-size:10px;color:#f4a261}
 .entry-badges{display:flex;flex-wrap:wrap;margin-top:5px;gap:4px}
 .badge{
-  background:var(--teal-light);color:var(--forest);
+  background:var(--accent);color:var(--forest);
   font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
-  border:1px solid rgba(127,195,165,.3)
+  border:1px solid rgba(88,111,107,.15)
 }
 .card-icon-btn{
   width:32px;height:32px;border-radius:8px;
@@ -280,7 +282,7 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   color:var(--text-muted);font-size:13px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s
 }
-.card-map-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-light)}
+.card-map-btn:hover{border-color:var(--forest);color:var(--forest);background:var(--teal-light)}
 .card-del-btn:hover{border-color:#e76f51;color:#e76f51;background:#fef3ef}
 
 /* ── AI panel ── */
@@ -289,22 +291,22 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .msg-row.user{flex-direction:row-reverse}
 .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
 .msg-bubble{max-width:85%;padding:10px 13px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
-.msg-bubble.ai{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);border-radius:4px 14px 14px 14px}
-.msg-bubble.user{background:var(--teal);color:white;border-radius:14px 4px 14px 14px}
+.msg-bubble.ai{background:rgba(255,255,255,.6);color:var(--text);border-radius:4px 14px 14px 14px}
+.msg-bubble.user{background:var(--forest);color:white;border-radius:14px 4px 14px 14px}
 .quick-wrap{padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:6px}
-.quick-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,.6);font-weight:500}
-.ai-input-row{padding:10px 12px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-shrink:0}
+.quick-btn{background:rgba(255,255,255,.5);border:1px solid rgba(88,111,107,.15);border-radius:999px;padding:6px 12px;font-size:11px;color:var(--text-mid);font-weight:500}
+.ai-input-row{padding:10px 12px;background:rgba(88,111,107,.08);border-top:1px solid rgba(88,111,107,.1);display:flex;gap:8px;flex-shrink:0}
 
 /* ── Drawer inputs ── */
 .inp-dark{
   width:100%;padding:9px 12px;border-radius:var(--radius-sm);
-  border:1px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.06);
-  font-size:14px;color:white;
+  border:1px solid rgba(88,111,107,.15);
+  background:rgba(255,255,255,.5);
+  font-size:14px;color:var(--text);
 }
-.inp-dark::placeholder{color:rgba(255,255,255,.3)}
-.inp-dark:focus{border-color:var(--teal);outline:none}
-select.inp-dark option{background:#163F2E;color:white}
+.inp-dark::placeholder{color:var(--text-muted)}
+.inp-dark:focus{border-color:var(--forest);outline:none}
+select.inp-dark option{background:var(--card);color:var(--text)}
 
 /* ── Form panel ── */
 #form-panel{
@@ -367,22 +369,22 @@ textarea.inp{resize:none}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;text-align:center;gap:10px}
 
 /* ── Delete confirm ── */
-.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(22,63,46,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(88,111,107,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .confirm-overlay.open{display:flex}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--drawer);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .login-logo{display:block;text-align:center;margin-bottom:8px}
 .login-logo img{width:min(400px,80vw);height:auto;display:block;margin:0 auto}
-.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
-.login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:12px}
+.login-desc{font-size:15px;color:var(--text-mid);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
+.login-privacy{font-size:11px;color:var(--text-muted);margin-top:12px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:16px auto 0}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
 /* ── Loading ── */
-#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-.spinner{width:36px;height:36px;border:3px solid rgba(127,195,165,.2);border-top-color:var(--teal);border-radius:50%;animation:spin 1s linear infinite}
+#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--drawer);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid rgba(88,111,107,.2);border-top-color:var(--forest);border-radius:50%;animation:spin 1s linear infinite}
 
 /* ── My location dot ── */
 .my-dot{width:16px;height:16px;background:#4a9eff;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(74,158,255,.3);position:relative}
@@ -391,7 +393,7 @@ textarea.inp{resize:none}
 /* ── Mobile bottom sheet drawer ── */
 @media(max-width:640px){
   #drawer{
-    top:auto;bottom:0;left:0;right:0;width:100%!important;
+    top:auto;bottom:0;left:0;right:0;width:100%!important;min-width:100%!important;max-width:100%!important;
     height:40vh;min-height:40vh;max-height:85vh;border-radius:20px 20px 0 0;
     transform:translateY(100%);
     box-shadow:0 -8px 40px rgba(0,0,0,.25);
@@ -409,7 +411,7 @@ textarea.inp{resize:none}
     content:'';display:block;position:absolute;
     top:8px;left:50%;transform:translateX(-50%);
     width:36px;height:4px;border-radius:2px;
-    background:rgba(255,255,255,.25)
+    background:rgba(88,111,107,.25)
   }
   #drawer-header{position:relative}
   .drawer-nav{flex-direction:row;padding:6px 12px}
@@ -432,7 +434,7 @@ textarea.inp{resize:none}
 <div id="loading-screen">
   <img src="icons/logo.svg" alt="" style="height:60px;width:auto;margin-bottom:12px"/>
   <div class="spinner"></div>
-  <div style="color:rgba(255,255,255,.5);font-size:14px;font-weight:500">Loading Road Tripping…</div>
+  <div style="color:var(--text-muted);font-size:14px;font-weight:500">Loading Road Tripping…</div>
 </div>
 
 <!-- Login -->
@@ -459,7 +461,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <span id="top-title"><span style="color:#f5f5f5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
+  <span id="top-title"><span style="color:#586F6B">Road</span> <span style="color:#586F6B">Tripping</span></span>
   <span id="top-count">0 locations</span>
 </div>
 
@@ -469,7 +471,7 @@ textarea.inp{resize:none}
   style="position:fixed;z-index:500;top:calc(78px + env(safe-area-inset-top));left:12px;
          width:48px;height:48px;border-radius:12px;border:none;
          background:var(--forest);color:white;font-size:32px;font-weight:300;line-height:1;
-         box-shadow:0 4px 14px rgba(22,63,46,.4);
+         box-shadow:0 4px 14px rgba(88,111,107,.4);
          display:flex;align-items:center;justify-content:center;cursor:pointer;padding-bottom:2px">+</button>
 
 <!-- Right column: zoom in, zoom out, satellite, locate — all in one flex column -->
@@ -519,8 +521,8 @@ textarea.inp{resize:none}
   <div id="drawer-resize"></div>
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#f5f5f5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
-      <div id="top-count2" style="font-size:12px;color:rgba(255,255,255,.45)">0 locations</div>
+      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px;color:#586F6B">Road Tripping</span>
+      <div id="top-count2" style="font-size:12px;color:var(--text-muted)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
