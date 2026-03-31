@@ -1,8 +1,8 @@
 {
   "name": "Road Tripping",
-  "short_name": "Road Trip",
+  "short_name": "Road Tripping",
   "description": "Log and discover camping spots for van life and mobile living",
-  "start_url": "/",
+  "start_url": "/road-tripping/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
