@@ -372,12 +372,12 @@ textarea.inp{resize:none}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
-#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.login-logo{display:flex;align-items:center;justify-content:center}
-.login-logo img{width:min(420px,85vw);height:auto}
-.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin-top:16px}
+#login-screen{position:fixed;inset:0;z-index:9998;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+.login-logo{display:block;text-align:center}
+.login-logo img{width:min(420px,85vw);height:auto;display:block;margin:0 auto}
+.login-desc{font-size:15px;color:rgba(255,255,255,.7);max-width:340px;text-align:center;line-height:1.6;margin:12px auto 0}
 .login-privacy{font-size:11px;color:rgba(255,255,255,.4);margin-top:16px}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin-top:20px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:20px auto 0}
 .google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 
 /* ── Loading ── */
@@ -392,14 +392,17 @@ textarea.inp{resize:none}
 @media(max-width:640px){
   #drawer{
     top:auto;bottom:0;left:0;right:0;width:100%;
-    height:55vh;border-radius:24px 24px 0 0;
+    height:50vh;min-height:50vh;max-height:90vh;border-radius:24px 24px 0 0;
     transform:translateY(100%);
-    box-shadow:0 -8px 40px rgba(0,0,0,.25)
+    box-shadow:0 -8px 40px rgba(0,0,0,.25);
+    transition:transform .28s cubic-bezier(.4,0,.2,1),height .2s ease
   }
   #drawer.open{transform:translateY(0)}
+  #drawer.expanded{height:90vh}
   #drawer-header{
     padding:8px 16px 12px;
     padding-bottom:10px;
+    cursor:grab
   }
   #drawer-header .drawer-title{display:none}
   /* Drag handle */
@@ -414,7 +417,6 @@ textarea.inp{resize:none}
   .dnav-btn{flex-direction:row;gap:6px;justify-content:center}
   #map-controls{bottom:calc(18px + env(safe-area-inset-bottom))}
   #btn-log{top:calc(78px + env(safe-area-inset-top))}
-  #top-title{display:none}
   .form-grid{grid-template-columns:1fr!important}
   .full{grid-column:1!important}
   #move-pin-btn{display:flex!important}
@@ -703,7 +705,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1358,6 +1360,46 @@ function updateStateFilter(){
     handle.classList.remove('active');
     document.body.style.cursor='';
     document.body.style.userSelect='';
+  });
+})();
+
+// ── Mobile Drawer Drag to Expand ──────────────────────────────────────────────
+(function(){
+  const drawer=document.getElementById('drawer');
+  const header=document.getElementById('drawer-header');
+  if(!drawer||!header) return;
+  const isMobile=()=>window.innerWidth<=640;
+  let startY=0,dragging=false;
+  
+  header.addEventListener('touchstart',e=>{
+    if(!isMobile()||!drawer.classList.contains('open')) return;
+    startY=e.touches[0].clientY;
+    dragging=true;
+  },{passive:true});
+  
+  header.addEventListener('touchmove',e=>{
+    if(!dragging||!isMobile()) return;
+    const diff=startY-e.touches[0].clientY;
+    if(diff>50){
+      drawer.classList.add('expanded');
+    } else if(diff<-50){
+      drawer.classList.remove('expanded');
+    }
+  },{passive:true});
+  
+  header.addEventListener('touchend',()=>{
+    dragging=false;
+  });
+  
+  // Double tap to toggle
+  let lastTap=0;
+  header.addEventListener('touchend',e=>{
+    if(!isMobile()||!drawer.classList.contains('open')) return;
+    const now=Date.now();
+    if(now-lastTap<300){
+      drawer.classList.toggle('expanded');
+    }
+    lastTap=now;
   });
 })();
 
