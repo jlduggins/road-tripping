@@ -313,6 +313,41 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 .inp-dark:focus{border-color:var(--forest);outline:none}
 select.inp-dark option{background:var(--card);color:var(--text)}
 
+/* ── Pill Multi-Select ── */
+.pill-select{position:relative;width:100%}
+.pill-select-trigger{
+  width:100%;padding:8px 12px;border-radius:var(--radius-sm);
+  border:1px solid rgba(88,111,107,.15);background:rgba(255,255,255,.5);
+  font-size:13px;color:var(--text-muted);cursor:pointer;
+  display:flex;flex-wrap:wrap;gap:4px;min-height:38px;align-items:center
+}
+.pill-select-trigger:hover{border-color:rgba(88,111,107,.3)}
+.pill-select-trigger.has-selection{color:var(--text)}
+.pill-select-trigger .pill{
+  background:var(--teal);color:white;padding:3px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px
+}
+.pill-select-trigger .pill-remove{cursor:pointer;opacity:.8;font-size:10px}
+.pill-select-trigger .pill-remove:hover{opacity:1}
+.pill-select-placeholder{color:var(--text-muted)}
+.pill-select-dropdown{
+  position:absolute;top:100%;left:0;right:0;z-index:100;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  box-shadow:0 4px 20px rgba(0,0,0,.15);margin-top:4px;
+  max-height:200px;overflow-y:auto;display:none
+}
+.pill-select.open .pill-select-dropdown{display:block}
+.pill-option{
+  padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;
+  font-size:13px;color:var(--text);transition:background .1s
+}
+.pill-option:hover{background:rgba(127,195,165,.1)}
+.pill-option.selected{background:rgba(127,195,165,.15)}
+.pill-option.selected::before{content:'✓';color:var(--teal);font-weight:700}
+.pill-option-pill{
+  padding:4px 10px;border-radius:999px;font-size:12px;font-weight:500
+}
+
 /* ── Form panel ── */
 #form-panel{
   position:fixed;z-index:1000;
@@ -593,28 +628,68 @@ textarea.inp{resize:none}
           <input class="inp-dark" id="search-inp" placeholder="Search locations…" oninput="renderEntries()" style="flex:1"/>
         </div>
         <!-- Filter dropdown — slides down -->
-        <div id="filter-panel" style="margin-top:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s ease">
-          <select class="inp-dark" id="f-type" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
-            <option value="National Park">National Park</option><option value="National Forest">National Forest</option><option value="State Campground">State Campground</option><option value="BLM">BLM</option>
-            <option value="Dispersed">Dispersed</option><option value="Private">Private</option><option value="Other">Other</option>
-          </select>
-          <select class="inp-dark" id="f-status" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
-            <option value="planned">Planned</option><option value="visited">Visited</option><option value="saved">Saved for Later</option>
-          </select>
-          <select class="inp-dark" id="f-state" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
-          </select>
-          <select class="inp-dark" id="f-cost" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
-            <option value="0">$0 (Free)</option>
-            <option value="1-15">$1 - 15</option>
-            <option value="16-30">$16 - 30</option>
-            <option value="31-50">$31 - 50</option>
-            <option value="51-75">$51 - 75</option>
-            <option value="76+">$76 and up</option>
-          </select>
-          <select class="inp-dark" id="f-rating" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
-            <option value="1">★ and above</option><option value="2">★★ and above</option>
-            <option value="3">★★★ and above</option><option value="4">★★★★ and above</option><option value="5">★★★★★ only</option>
-          </select>
+        <div id="filter-panel" style="margin-top:0;display:flex;flex-direction:column;gap:6px;overflow:visible;max-height:0;opacity:0;transition:max-height .25s ease,margin-top .25s ease,opacity .2s ease">
+          
+          <div class="pill-select" id="ps-type">
+            <div class="pill-select-trigger" onclick="togglePillSelect('ps-type')">
+              <span class="pill-select-placeholder">All Types</span>
+            </div>
+            <div class="pill-select-dropdown">
+              <div class="pill-option" data-value="National Park" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#dcfce7;color:#166534">National Park</span></div>
+              <div class="pill-option" data-value="National Forest" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#d1fae5;color:#065f46">National Forest</span></div>
+              <div class="pill-option" data-value="State Campground" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#fef3c7;color:#92400e">State Campground</span></div>
+              <div class="pill-option" data-value="BLM" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#fce7f3;color:#9d174d">BLM</span></div>
+              <div class="pill-option" data-value="Dispersed" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#ffedd5;color:#c2410c">Dispersed</span></div>
+              <div class="pill-option" data-value="Private" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#e0e7ff;color:#4338ca">Private</span></div>
+              <div class="pill-option" data-value="Other" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#f3f4f6;color:#374151">Other</span></div>
+            </div>
+          </div>
+          
+          <div class="pill-select" id="ps-status">
+            <div class="pill-select-trigger" onclick="togglePillSelect('ps-status')">
+              <span class="pill-select-placeholder">All Statuses</span>
+            </div>
+            <div class="pill-select-dropdown">
+              <div class="pill-option" data-value="planned" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#fef3c7;color:#92400e">Planned</span></div>
+              <div class="pill-option" data-value="visited" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#d1fae5;color:#065f46">Visited</span></div>
+              <div class="pill-option" data-value="saved" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#ede9fe;color:#6d28d9">Saved for Later</span></div>
+            </div>
+          </div>
+          
+          <div class="pill-select" id="ps-state">
+            <div class="pill-select-trigger" onclick="togglePillSelect('ps-state')">
+              <span class="pill-select-placeholder">All States</span>
+            </div>
+            <div class="pill-select-dropdown" id="ps-state-options"></div>
+          </div>
+          
+          <div class="pill-select" id="ps-cost">
+            <div class="pill-select-trigger" onclick="togglePillSelect('ps-cost')">
+              <span class="pill-select-placeholder">Any Cost</span>
+            </div>
+            <div class="pill-select-dropdown">
+              <div class="pill-option" data-value="0" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#d1fae5;color:#065f46">$0 (Free)</span></div>
+              <div class="pill-option" data-value="1-15" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#dbeafe;color:#1e40af">$1 - 15</span></div>
+              <div class="pill-option" data-value="16-30" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#e0e7ff;color:#4338ca">$16 - 30</span></div>
+              <div class="pill-option" data-value="31-50" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#fef3c7;color:#92400e">$31 - 50</span></div>
+              <div class="pill-option" data-value="51-75" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#ffedd5;color:#c2410c">$51 - 75</span></div>
+              <div class="pill-option" data-value="76+" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#fce7f3;color:#9d174d">$76 and up</span></div>
+            </div>
+          </div>
+          
+          <div class="pill-select" id="ps-rating">
+            <div class="pill-select-trigger" onclick="togglePillSelect('ps-rating')">
+              <span class="pill-select-placeholder">Any Rating</span>
+            </div>
+            <div class="pill-select-dropdown">
+              <div class="pill-option" data-value="1" onclick="togglePillOption(this)">★ and above</div>
+              <div class="pill-option" data-value="2" onclick="togglePillOption(this)">★★ and above</div>
+              <div class="pill-option" data-value="3" onclick="togglePillOption(this)">★★★ and above</div>
+              <div class="pill-option" data-value="4" onclick="togglePillOption(this)">★★★★ and above</div>
+              <div class="pill-option" data-value="5" onclick="togglePillOption(this)">★★★★★ only</div>
+            </div>
+          </div>
+          
         </div>
       </div>
       <div id="entries-list" class="dsec-list"></div>
@@ -894,19 +969,81 @@ function toggleFilters(){
   filtersOpen=!filtersOpen;
   const panel=document.getElementById('filter-panel');
   const btn=document.getElementById('filter-btn');
-  panel.style.maxHeight=filtersOpen?'350px':'0';
+  panel.style.maxHeight=filtersOpen?'400px':'0';
+  panel.style.opacity=filtersOpen?'1':'0';
   panel.style.marginTop=filtersOpen?'8px':'0';
   btn.style.background=filtersOpen?'rgba(88,111,107,.2)':'rgba(88,111,107,.1)';
   btn.style.color=filtersOpen?'var(--forest)':'var(--forest)';
+  // Close any open pill selects when closing filters
+  if(!filtersOpen) document.querySelectorAll('.pill-select.open').forEach(ps=>ps.classList.remove('open'));
 }
+
+// ── Pill Multi-Select ─────────────────────────────────────────────────────────
+function togglePillSelect(id){
+  const ps=document.getElementById(id);
+  const wasOpen=ps.classList.contains('open');
+  // Close all other pill selects
+  document.querySelectorAll('.pill-select.open').forEach(p=>p.classList.remove('open'));
+  if(!wasOpen) ps.classList.add('open');
+}
+
+function togglePillOption(optionEl){
+  optionEl.classList.toggle('selected');
+  updatePillSelectTrigger(optionEl.closest('.pill-select'));
+  renderEntries();
+}
+
+function updatePillSelectTrigger(ps){
+  const trigger=ps.querySelector('.pill-select-trigger');
+  const selected=ps.querySelectorAll('.pill-option.selected');
+  const placeholder=ps.querySelector('.pill-select-placeholder')?.textContent||'Select...';
+  
+  if(selected.length===0){
+    trigger.innerHTML=`<span class="pill-select-placeholder">${placeholder}</span>`;
+    trigger.classList.remove('has-selection');
+  }else{
+    const pills=Array.from(selected).map(opt=>{
+      const pillEl=opt.querySelector('.pill-option-pill');
+      const style=pillEl?`style="${pillEl.getAttribute('style')}"`:'';
+      const label=pillEl?pillEl.textContent:opt.textContent.trim();
+      const value=opt.dataset.value;
+      return `<span class="pill" ${style} data-value="${value}">${label}<span class="pill-remove" onclick="event.stopPropagation();removePill(this)">✕</span></span>`;
+    }).join('');
+    trigger.innerHTML=pills;
+    trigger.classList.add('has-selection');
+  }
+}
+
+function removePill(removeBtn){
+  const pill=removeBtn.closest('.pill');
+  const ps=pill.closest('.pill-select');
+  const value=pill.dataset.value;
+  const option=ps.querySelector(`.pill-option[data-value="${value}"]`);
+  if(option) option.classList.remove('selected');
+  updatePillSelectTrigger(ps);
+  renderEntries();
+}
+
+function getPillSelectValues(psId){
+  const ps=document.getElementById(psId);
+  if(!ps) return [];
+  return Array.from(ps.querySelectorAll('.pill-option.selected')).map(o=>o.dataset.value);
+}
+
+// Close pill selects when clicking outside
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.pill-select')){
+    document.querySelectorAll('.pill-select.open').forEach(ps=>ps.classList.remove('open'));
+  }
+});
 
 function hasActiveFilters(){
   const search=document.getElementById('search-inp').value.trim();
-  const typeArr=Array.from(document.getElementById('f-type').selectedOptions);
-  const statusArr=Array.from(document.getElementById('f-status').selectedOptions);
-  const stateArr=Array.from(document.getElementById('f-state').selectedOptions);
-  const costArr=Array.from(document.getElementById('f-cost').selectedOptions);
-  const ratingArr=Array.from(document.getElementById('f-rating').selectedOptions);
+  const typeArr=getPillSelectValues('ps-type');
+  const statusArr=getPillSelectValues('ps-status');
+  const stateArr=getPillSelectValues('ps-state');
+  const costArr=getPillSelectValues('ps-cost');
+  const ratingArr=getPillSelectValues('ps-rating');
   return search!==''||typeArr.length>0||statusArr.length>0||stateArr.length>0||costArr.length>0||ratingArr.length>0;
 }
 
@@ -921,11 +1058,8 @@ function updateClearFiltersVisibility(){
 
 function clearAllFilters(){
   document.getElementById('search-inp').value='';
-  document.getElementById('f-type').selectedIndex=-1;
-  document.getElementById('f-status').selectedIndex=-1;
-  document.getElementById('f-state').selectedIndex=-1;
-  document.getElementById('f-cost').selectedIndex=-1;
-  document.getElementById('f-rating').selectedIndex=-1;
+  document.querySelectorAll('.pill-select .pill-option.selected').forEach(o=>o.classList.remove('selected'));
+  document.querySelectorAll('.pill-select').forEach(ps=>updatePillSelectTrigger(ps));
   updateClearFiltersVisibility();
   renderEntries();
 }
@@ -1503,11 +1637,6 @@ async function executeDelete(){
 }
 
 // ── Entries ───────────────────────────────────────────────────────────────────
-function getSelectedValues(selectId){
-  const sel=document.getElementById(selectId);
-  return Array.from(sel.selectedOptions).map(o=>o.value);
-}
-
 function costMatchesFilter(cost, filterValues){
   if(!filterValues.length) return true;
   const c = cost || 0;
@@ -1525,11 +1654,11 @@ function costMatchesFilter(cost, filterValues){
 function renderEntries(){
   updateClearFiltersVisibility();
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
-  const ftArr=getSelectedValues('f-type');
-  const fsArr=getSelectedValues('f-status');
-  const fstArr=getSelectedValues('f-state');
-  const fcArr=getSelectedValues('f-cost');
-  const frArr=getSelectedValues('f-rating');
+  const ftArr=getPillSelectValues('ps-type');
+  const fsArr=getPillSelectValues('ps-status');
+  const fstArr=getPillSelectValues('ps-state');
+  const fcArr=getPillSelectValues('ps-cost');
+  const frArr=getPillSelectValues('ps-rating');
   const minRating=frArr.length?Math.min(...frArr.map(v=>parseInt(v))):0;
   
   const filtered=entries.filter(e=>{
@@ -1662,17 +1791,22 @@ function getStateFromCoords(lat,lng){
 }
 
 function updateStateFilter(){
-  const sel=document.getElementById('f-state');
-  if(!sel) return;
+  const dropdown=document.getElementById('ps-state-options');
+  if(!dropdown) return;
   const states=new Set();
   entries.forEach(e=>{
     const st=getStateFromCoords(e.lat,e.lng);
     if(st) states.add(st);
   });
   const sorted=[...states].sort();
-  const current=sel.value;
-  sel.innerHTML='<option value="">All States</option>'+sorted.map(s=>`<option value="${s}">${s}</option>`).join('');
-  if(sorted.includes(current)) sel.value=current;
+  // Preserve current selections
+  const currentSelected=getPillSelectValues('ps-state');
+  dropdown.innerHTML=sorted.map(s=>{
+    const isSelected=currentSelected.includes(s)?'selected':'';
+    return `<div class="pill-option ${isSelected}" data-value="${s}" onclick="togglePillOption(this)"><span class="pill-option-pill" style="background:#dbeafe;color:#1e40af">${s}</span></div>`;
+  }).join('');
+  // Update trigger display
+  updatePillSelectTrigger(document.getElementById('ps-state'));
 }
 
 // ── Drawer Resize (Desktop) ───────────────────────────────────────────────────
