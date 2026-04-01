@@ -369,9 +369,13 @@ select.inp-dark option{background:var(--card);color:var(--text)}
 
 /* ── Form inputs ── */
 .inp{
-  width:100%;padding:11px 14px;border-radius:var(--radius-sm);
+  width:100%;max-width:100%;padding:11px 14px;border-radius:var(--radius-sm);
   border:1.5px solid var(--border);background:var(--card);
-  font-size:16px;color:var(--text);transition:border-color .15s
+  font-size:16px;color:var(--text);transition:border-color .15s;
+  box-sizing:border-box
+}
+input[type="date"].inp{
+  min-width:0;max-width:100%
 }
 .inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(127,195,165,.1)}
 .inp-sm{padding:6px 10px;font-size:14px;width:auto}
@@ -379,7 +383,8 @@ select.inp{background:var(--card)}
 textarea.inp{resize:none}
 .lbl{display:block;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase}
 .lbl-hint{font-weight:400;color:var(--text-muted);font-size:11px;text-transform:none;letter-spacing:0}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;overflow:hidden}
+.form-grid>div{min-width:0;overflow:hidden}
 .full{grid-column:1/-1}
 .star{font-size:28px;cursor:pointer;user-select:none;color:#d8d4cc;transition:color .1s;padding:1px}
 .star.on{color:#f4a261}
@@ -596,7 +601,7 @@ textarea.inp{resize:none}
           </select>
           <select class="inp-dark" id="f-status" onchange="renderEntries()">
             <option value="">All Statuses</option>
-            <option value="visited">Visited</option><option value="current">Here Now</option><option value="planned">Planned</option>
+            <option value="planned">Planned</option><option value="visited">Visited</option><option value="saved">Saved for Later</option>
           </select>
           <select class="inp-dark" id="f-state" onchange="renderEntries()">
             <option value="">All States</option>
@@ -676,9 +681,9 @@ textarea.inp{resize:none}
       <div>
         <label class="lbl">Status</label>
         <select class="inp" id="f-status-sel">
-          <option value="visited">Visited</option>
-          <option value="current">Currently Here</option>
           <option value="planned">Planned</option>
+          <option value="visited">Visited</option>
+          <option value="saved">Saved for Later</option>
         </select>
       </div>
       <div>
@@ -765,7 +770,7 @@ const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const STATUS_LABEL={visited:'Visited',current:'Currently Here',planned:'Planned'};
+const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
 const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal','a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'};
 const AMENITY_META=[
   {id:'hasPotableWater',label:'Potable Water',icon:'💧'},{id:'hasDumpStation',label:'Dump Station',icon:'🗑'},
@@ -812,13 +817,55 @@ window._showLogin=function(){
 };
 window._subscribeFirestore=function(uid){
   if(firestoreUnsub){ firestoreUnsub(); }
+  let isFirstLoad = true;
   firestoreUnsub=window._db.subscribe(uid,docs=>{
+    // Check if this is a first-time user with no entries
+    if(isFirstLoad && docs.length === 0){
+      isFirstLoad = false;
+      addSampleLocation(uid);
+      return; // The sample save will trigger another snapshot
+    }
+    isFirstLoad = false;
     entries=docs;
     updateCount();
     renderMarkers();
     renderEntries();
   }, err=>console.error('Firestore:',err));
 };
+
+// Sample location for first-time users
+async function addSampleLocation(uid){
+  const sampleEntry = {
+    id: 'sample_desert_view_' + Date.now(),
+    name: '📍 Sample: Desert View Campground',
+    address: 'Desert View Drive, Grand Canyon National Park, AZ',
+    lat: 36.0407,
+    lng: -111.8265,
+    type: 'National Park',
+    status: 'saved',
+    rating: 4,
+    cost: 30,
+    notes: 'This is a sample location to show you how Road Tripping works! Beautiful views of the Grand Canyon. First-come, first-served. No hookups. Delete this anytime by tapping the trash icon.',
+    fire: true,
+    pets: true,
+    link: 'https://www.nps.gov/grca/planyourvisit/desert-view-campground.htm',
+    linkPreview: {
+      title: 'Desert View Campground - Grand Canyon National Park',
+      description: 'First-come, first-served campground on the South Rim with stunning canyon views.',
+      image: null
+    },
+    photos: [
+      'icons/sample_gc1.jpg',
+      'icons/sample_gc2.jpg'
+    ],
+    createdAt: new Date().toISOString()
+  };
+  try {
+    await window._db.save(uid, sampleEntry);
+  } catch(e) {
+    console.error('Failed to add sample location:', e);
+  }
+}
 
 function doSignOut(){
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
@@ -1062,7 +1109,11 @@ function openFormPanel(entry,lat,lng){
   editId=entry?entry.id:null;
   pendingLat=entry?entry.lat:(lat!=null?lat:null);
   pendingLng=entry?entry.lng:(lng!=null?lng:null);
-  pendingPhotos=entry?(entry.photos||[]).map(p=>({...p})):[];
+  // Handle photos as either objects {id,data} or URL strings
+  pendingPhotos=entry?(entry.photos||[]).map(p=>{
+    if(typeof p==='string') return {id:genId(),data:p,name:'photo'};
+    return {...p};
+  }):[];
   currentRating=entry?(entry.rating||0):0;
 
   document.getElementById('form-title').textContent=entry?'✏️ Edit Location':'⛺ Log New Location';
@@ -1078,7 +1129,7 @@ function openFormPanel(entry,lat,lng){
   document.getElementById('f-arrival').value=entry?(entry.arrivalDate||''):'';
   document.getElementById('f-departure').value=entry?(entry.departureDate||''):'';
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
-  document.getElementById('f-status-sel').value=entry?entry.status:'visited';
+  document.getElementById('f-status-sel').value=entry?entry.status:'planned';
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
   document.getElementById('f-notes').value=entry?(entry.notes||''):'';
   document.getElementById('f-link').value=entry?(entry.link||''):'';
@@ -1122,6 +1173,8 @@ function closeFormPanel(){
   editId=null; pendingLat=null; pendingLng=null; pendingPhotos=[]; currentLinkPreview=null;
   removeDragPin();
   hideDoneBtn();
+  // Re-open the entries drawer so user returns to their list
+  setTimeout(()=>openDrawer(), 150);
 }
 
 // Move Pin — on mobile: slide form away and show floating Done button over map
@@ -1189,14 +1242,43 @@ document.querySelectorAll('#stars .star').forEach(s=>{
   s.addEventListener('mouseleave',()=>updateStars(currentRating));
 });
 
-// Photos
+// Photos - with compression to avoid Firestore size limits
 function handlePhotos(input){
   Array.from(input.files).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=ev=>{ pendingPhotos.push({id:genId(),data:ev.target.result,name:file.name}); renderPhotoRow(); };
-    reader.readAsDataURL(file);
+    compressImage(file, 800, 0.7).then(compressedData=>{
+      pendingPhotos.push({id:genId(),data:compressedData,name:file.name});
+      renderPhotoRow();
+    }).catch(err=>{
+      console.error('Photo compression failed:', err);
+      // Fallback to original if compression fails
+      const reader=new FileReader();
+      reader.onload=ev=>{ pendingPhotos.push({id:genId(),data:ev.target.result,name:file.name}); renderPhotoRow(); };
+      reader.readAsDataURL(file);
+    });
   });
   input.value='';
+}
+
+function compressImage(file, maxWidth, quality){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        let w=img.width, h=img.height;
+        if(w>maxWidth){ h=h*(maxWidth/w); w=maxWidth; }
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
 }
 function renderPhotoRow(){
   const row=document.getElementById('photo-row'); row.innerHTML='';
@@ -1368,8 +1450,10 @@ async function saveEntry(){
 
   try{ 
     await saveToFirestore(entry);
-    // Fly to the new location after save
-    if(isNewEntry && flyLat!=null && flyLng!=null){
+    // Open the drawer to show updated entries list
+    setTimeout(()=>openDrawer(), 150);
+    // Fly to the location after save (both new and edited)
+    if(flyLat!=null && flyLng!=null){
       setTimeout(()=>map.flyTo([flyLat, flyLng], 14, {duration: 1}), 300);
     }
   }
@@ -1425,7 +1509,7 @@ function renderEntries(){
     return;
   }
   list.innerHTML=filtered.map(e=>{
-    const sc=e.status==='current'?'#3b82f6':e.status==='planned'?'#f59e0b':'#7FC3A5';
+    const sc=e.status==='saved'?'#8b5cf6':e.status==='planned'?'#f59e0b':'#7FC3A5';
     const cl=costLabel(e.cost); const cc=costColor(e.cost);
     const active=AMENITY_META.filter(a=>e[a.id]);
     const stars=e.rating>0?'★'.repeat(e.rating)+'☆'.repeat(5-e.rating):'';
