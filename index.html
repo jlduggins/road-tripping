@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Road Tripping"/>
-<meta name="theme-color" content="#163F2E"/>
+<meta name="theme-color" content="#586F6B"/>
 <title>Road Tripping</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="apple-touch-icon" href="icons/logo_og.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
 <!-- Firebase modular SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -33,6 +33,9 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app, 'ai-studio-c0969653-1687-41bd-9dbc-30380f72c788');
 const googleProvider = new GoogleAuthProvider();
+
+// Set persistence to LOCAL for PWA support (persists even after browser close)
+setPersistence(auth, browserLocalPersistence).catch(err => console.warn('Auth persistence error:', err));
 
 window._firebaseAuth = {
   signInWithGoogle(){
@@ -548,7 +551,7 @@ textarea.inp{resize:none}
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
       <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#F5F5F5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
-      <div id="top-count2" style="font-size:12px;color:var(--text-muted)">0 locations</div>
+      <div id="top-count2" style="font-size:12px;color:var(--forest)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
@@ -927,7 +930,7 @@ let lastKnownPos=null;
 
 function locateMe(){
   if(!navigator.geolocation){
-    alert('Geolocation not available.\n\niPhone: Settings → Privacy & Security → Location Services → Safari → Allow While Using App');
+    alert('Geolocation not available.\n\nIf using Home Screen app:\niPhone Settings → Road Tripping → Location → While Using the App');
     return;
   }
   // If we already have a position from watchPosition, use it instantly
@@ -942,7 +945,17 @@ function locateMe(){
       updateMyDot(pos.coords.latitude,pos.coords.longitude);
       if(map) map.setView([pos.coords.latitude,pos.coords.longitude],14);
     },
-    err=>{ if(err.code===1) alert('Location access denied.\n\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App'); },
+    err=>{ 
+      if(err.code===1) {
+        // Check if running as standalone PWA
+        const isPWA = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+        if(isPWA){
+          alert('Location access denied.\n\nFor Home Screen apps:\niPhone Settings → Road Tripping → Location → While Using the App');
+        } else {
+          alert('Location access denied.\n\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App');
+        }
+      }
+    },
     {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
   );
 }
