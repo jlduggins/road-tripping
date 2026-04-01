@@ -448,7 +448,7 @@ textarea.inp{resize:none}
 /* ── Login ── */
 #login-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .login-logo{display:block;text-align:center;margin-bottom:8px}
-.login-logo img{width:min(480px,90vw);height:auto;display:block;margin:0 auto}
+.login-logo img{width:min(550px,95vw);height:auto;display:block;margin:0 auto}
 .login-desc{font-size:15px;color:var(--text-mid);max-width:340px;text-align:center;line-height:1.6;margin:0 auto}
 .login-privacy{font-size:11px;color:var(--text-muted);margin-top:12px}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:320px;padding:14px 24px;border-radius:var(--radius);border:none;background:white;font-size:15px;font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;margin:16px auto 0}
@@ -906,19 +906,24 @@ window._showLogin=function(){
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   entries=[];
+  sampleAddedForUser=null; // Reset when logging out
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
 };
+
+let sampleAddedForUser=null; // Track which user we've added sample for
+
 window._subscribeFirestore=function(uid){
   if(firestoreUnsub){ firestoreUnsub(); }
-  let isFirstLoad = true;
+  let isFirstSnapshot = true;
   firestoreUnsub=window._db.subscribe(uid,docs=>{
-    // Check if this is a first-time user with no entries
-    if(isFirstLoad && docs.length === 0){
-      isFirstLoad = false;
+    // Check if this is a first-time user with no entries (only on first snapshot)
+    if(isFirstSnapshot && docs.length === 0 && sampleAddedForUser !== uid){
+      isFirstSnapshot = false;
+      sampleAddedForUser = uid;
       addSampleLocation(uid);
       return; // The sample save will trigger another snapshot
     }
-    isFirstLoad = false;
+    isFirstSnapshot = false;
     entries=docs;
     updateCount();
     updateStateFilter();
