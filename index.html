@@ -6,10 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Road Tripping"/>
-<meta name="theme-color" content="#586F6B"/>
+<meta name="theme-color" content="#3d5a4c"/>
 <title>Road Tripping</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icons/logo_og.png"/>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -848,7 +851,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -915,6 +918,7 @@ window._subscribeFirestore=function(uid){
     isFirstLoad = false;
     entries=docs;
     updateCount();
+    updateStateFilter();
     renderMarkers();
     renderEntries();
   }, err=>console.error('Firestore:',err));
@@ -1252,6 +1256,11 @@ function showDrawerSection(name,btn){
 }
 
 // ── Form panel ────────────────────────────────────────────────────────────────
+function openFormPanelById(id){
+  const entry=entries.find(e=>e.id===id);
+  if(entry) openFormPanel(entry);
+}
+
 function openFormPanel(entry,lat,lng){
   editId=entry?entry.id:null;
   pendingLat=entry?entry.lat:(lat!=null?lat:null);
@@ -1686,9 +1695,8 @@ function renderEntries(){
     const active=AMENITY_META.filter(a=>e[a.id]);
     const stars=e.rating>0?'★'.repeat(e.rating)+'☆'.repeat(5-e.rating):'';
     const hasPin=e.lat!=null&&e.lng!=null;
-    const eJson=JSON.stringify(e).replace(/"/g,'&quot;');
     return `<div class="entry-card">
-      <div class="entry-body" onclick="openFormPanel(JSON.parse(this.getAttribute('data-e')))" data-e="${eJson}">
+      <div class="entry-body" onclick="openFormPanelById('${e.id}')">
         <div class="entry-name">${e.name}</div>
         <div class="entry-meta">
           <span style="color:var(--accent);font-weight:600">${e.type}</span><span style="color:#334155">·</span>
@@ -1700,8 +1708,8 @@ function renderEntries(){
         <span class="entry-cost" style="color:${cc}">${cl}</span>
         ${stars?`<span class="entry-stars">${stars}</span>`:''}
         <div style="display:flex;gap:4px">
-          ${hasPin?`<button class="card-icon-btn card-map-btn" onclick="flyToEntry('${e.id}')" title="Show on map">🗺</button>`:''}
-          <button class="card-icon-btn card-del-btn" onclick="confirmDelete('${e.id}')" title="Delete">🗑</button>
+          ${hasPin?`<button class="card-icon-btn card-map-btn" onclick="event.stopPropagation();flyToEntry('${e.id}')" title="Show on map">🗺</button>`:''}
+          <button class="card-icon-btn card-del-btn" onclick="event.stopPropagation();confirmDelete('${e.id}')" title="Delete">🗑</button>
         </div>
       </div>
     </div>`;
