@@ -701,14 +701,19 @@ textarea.inp{resize:none}
         </div>
       </div>
       <div class="full amenity-box">
-        <div style="font-weight:700;font-size:12px;margin-bottom:10px;color:#374151">Amenities & Tags</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Amenities</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px">
           <label class="amenity-check"><input type="checkbox" id="a-water"/> 💧 Potable Water</label>
-          <label class="amenity-check"><input type="checkbox" id="a-dump"/> 🗑 Dump Station</label>
-          <label class="amenity-check"><input type="checkbox" id="a-seasonal"/> ⚠ Seasonal</label>
-          <label class="amenity-check"><input type="checkbox" id="a-fire"/> 🔥 Fire Allowed</label>
-          <label class="amenity-check"><input type="checkbox" id="a-pets"/> 🐾 Pet Friendly</label>
+          <label class="amenity-check"><input type="checkbox" id="a-dump"/> 🚛 Dump Station</label>
           <label class="amenity-check"><input type="checkbox" id="a-hookups"/> ⚡ Hookups</label>
+          <label class="amenity-check"><input type="checkbox" id="a-trash"/> 🗑 Trash</label>
+          <label class="amenity-check"><input type="checkbox" id="a-fill"/> 🚰 Water Fill</label>
+        </div>
+        <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Tags</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <label class="amenity-check"><input type="checkbox" id="a-seasonal"/> 📅 Seasonal</label>
+          <label class="amenity-check"><input type="checkbox" id="a-pets"/> 🐾 Pets Allowed</label>
+          <label class="amenity-check"><input type="checkbox" id="a-4x4"/> 🚙 4x4 Required</label>
         </div>
       </div>
       <div class="full">
@@ -766,16 +771,21 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
-const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-seasonal':'isSeasonal','a-fire':'hasFireAllowed','a-pets':'hasPets','a-hookups':'hasHookups'};
+const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4'};
 const AMENITY_META=[
-  {id:'hasPotableWater',label:'Potable Water',icon:'💧'},{id:'hasDumpStation',label:'Dump Station',icon:'🗑'},
-  {id:'isSeasonal',label:'Seasonal',icon:'⚠'},{id:'hasFireAllowed',label:'Fire Allowed',icon:'🔥'},
-  {id:'hasPets',label:'Pet Friendly',icon:'🐾'},{id:'hasHookups',label:'Hookups',icon:'⚡'},
+  {id:'hasPotableWater',label:'Potable Water',icon:'💧',group:'amenity'},
+  {id:'hasDumpStation',label:'Dump Station',icon:'🚛',group:'amenity'},
+  {id:'hasHookups',label:'Hookups',icon:'⚡',group:'amenity'},
+  {id:'hasTrash',label:'Trash',icon:'🗑',group:'amenity'},
+  {id:'hasWaterFill',label:'Water Fill',icon:'🚰',group:'amenity'},
+  {id:'isSeasonal',label:'Seasonal',icon:'📅',group:'tag'},
+  {id:'hasPets',label:'Pets Allowed',icon:'🐾',group:'tag'},
+  {id:'needs4x4',label:'4x4 Required',icon:'🚙',group:'tag'},
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -846,8 +856,9 @@ async function addSampleLocation(uid){
     rating: 4,
     cost: 30,
     notes: 'This is a sample location to show you how Road Tripping works! Beautiful views of the Grand Canyon. First-come, first-served. No hookups. Delete this anytime by tapping the trash icon.',
-    fire: true,
-    pets: true,
+    hasPotableWater: true,
+    hasTrash: true,
+    hasPets: true,
     link: 'https://www.nps.gov/grca/planyourvisit/desert-view-campground.htm',
     linkPreview: {
       title: 'Desert View Campground - Grand Canyon National Park',
@@ -1450,11 +1461,15 @@ async function saveEntry(){
 
   try{ 
     await saveToFirestore(entry);
-    // Open the drawer to show updated entries list
-    setTimeout(()=>openDrawer(), 150);
-    // Fly to the location after save (both new and edited)
-    if(flyLat!=null && flyLng!=null){
-      setTimeout(()=>map.flyTo([flyLat, flyLng], 14, {duration: 1}), 300);
+    
+    if(isNewEntry){
+      // New entry: fly to the location on the map (don't open drawer)
+      if(flyLat!=null && flyLng!=null){
+        setTimeout(()=>map.flyTo([flyLat, flyLng], 14, {duration: 1}), 300);
+      }
+    } else {
+      // Edited entry: return to the entries drawer
+      setTimeout(()=>openDrawer(), 150);
     }
   }
   catch(e){ console.error('Save failed:',e); alert('Failed to save — check your connection.'); }
