@@ -69,12 +69,14 @@ getRedirectResult(auth).then(result=>{
 });
 
 onAuthStateChanged(auth, user=>{
+  console.log('[Auth] onAuthStateChanged fired, user:', user ? user.uid : 'null');
   window._currentUser=user;
   if(user){
     const btn=document.getElementById('user-name'); if(btn) btn.textContent=user.displayName||user.email;
     window._showApp&&window._showApp();
     window._subscribeFirestore&&window._subscribeFirestore(user.uid);
   } else {
+    console.log('[Auth] No user, showing login');
     window._showLogin&&window._showLogin();
   }
 });
@@ -907,14 +909,29 @@ window._showLogin=function(){
   document.getElementById('login-screen').style.display='flex';
   entries=[];
   sampleAddedForUser=null; // Reset when logging out
+  subscribedForUser=null; // Reset subscription tracking
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
 };
 
 let sampleAddedForUser=null; // Track which user we've added sample for
+let subscribedForUser=null; // Track which user we're subscribed for
 
 window._subscribeFirestore=function(uid){
-  if(firestoreUnsub){ firestoreUnsub(); }
+  // Don't re-subscribe if already subscribed for this user
+  if(subscribedForUser === uid && firestoreUnsub){
+    console.log('[Firestore] Already subscribed for user', uid, '- skipping');
+    return;
+  }
+  
+  if(firestoreUnsub){ 
+    console.log('[Firestore] Unsubscribing previous listener');
+    firestoreUnsub(); 
+  }
+  
+  subscribedForUser = uid;
   let isFirstSnapshot = true;
+  console.log('[Firestore] Subscribing for user', uid);
+  
   firestoreUnsub=window._db.subscribe(uid,docs=>{
     console.log('[Firestore] Snapshot received:', docs.length, 'docs, isFirstSnapshot:', isFirstSnapshot);
     // Check if this is a first-time user with no entries (only on first snapshot)
@@ -939,7 +956,7 @@ window._subscribeFirestore=function(uid){
 async function addSampleLocation(uid){
   const sampleEntry = {
     id: 'sample_desert_view_' + Date.now(),
-    name: '📍 Sample: Desert View Campground',
+    name: 'Sample: Desert View Campground',
     address: 'Desert View Drive, Grand Canyon National Park, AZ',
     lat: 36.0407,
     lng: -111.8265,
@@ -951,16 +968,6 @@ async function addSampleLocation(uid){
     hasPotableWater: true,
     hasTrash: true,
     hasPets: true,
-    link: 'https://www.nps.gov/grca/planyourvisit/desert-view-campground.htm',
-    linkPreview: {
-      title: 'Desert View Campground - Grand Canyon National Park',
-      description: 'First-come, first-served campground on the South Rim with stunning canyon views.',
-      image: null
-    },
-    photos: [
-      'icons/sample_gc1.jpg',
-      'icons/sample_gc2.jpg'
-    ],
     createdAt: new Date().toISOString()
   };
   try {
