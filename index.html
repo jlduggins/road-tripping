@@ -704,10 +704,10 @@ textarea.inp{resize:none}
         <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Amenities</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px">
           <label class="amenity-check"><input type="checkbox" id="a-water"/> 💧 Potable Water</label>
-          <label class="amenity-check"><input type="checkbox" id="a-dump"/> 🚛 Dump Station</label>
+          <label class="amenity-check"><input type="checkbox" id="a-dump"/> <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:2px"><rect x="2" y="2" width="16" height="10" rx="3"/><circle cx="16" cy="9" r="3"/><rect x="15" y="12" width="2" height="2"/><rect x="2" y="14" width="20" height="8" rx="1"/><path d="M5 16 L5 20 L8 20 L8 18 L6 18 L6 16 Z" fill="white"/></svg> Dump Station</label>
           <label class="amenity-check"><input type="checkbox" id="a-hookups"/> ⚡ Hookups</label>
-          <label class="amenity-check"><input type="checkbox" id="a-trash"/> 🗑 Trash</label>
-          <label class="amenity-check"><input type="checkbox" id="a-fill"/> 🚰 Water Fill</label>
+          <label class="amenity-check"><input type="checkbox" id="a-trash"/> 🗑️ Trash</label>
+          <label class="amenity-check"><input type="checkbox" id="a-fill"/> <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:2px"><rect x="6" y="2" width="12" height="4" rx="1"/><rect x="7" y="6" width="10" height="14" rx="2"/><path d="M12 10 Q9 14 12 18 Q15 14 12 10 Z" fill="white"/></svg> Water Fill</label>
         </div>
         <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Tags</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
@@ -779,10 +779,10 @@ const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'}
 const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4'};
 const AMENITY_META=[
   {id:'hasPotableWater',label:'Potable Water',icon:'💧',group:'amenity'},
-  {id:'hasDumpStation',label:'Dump Station',icon:'🚛',group:'amenity'},
+  {id:'hasDumpStation',label:'Dump Station',icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><rect x="2" y="2" width="16" height="10" rx="3"/><circle cx="16" cy="9" r="3"/><rect x="15" y="12" width="2" height="2"/><rect x="2" y="14" width="20" height="8" rx="1"/><path d="M5 16 L5 20 L8 20 L8 18 L6 18 L6 16 Z" fill="white"/></svg>',group:'amenity'},
   {id:'hasHookups',label:'Hookups',icon:'⚡',group:'amenity'},
-  {id:'hasTrash',label:'Trash',icon:'🗑',group:'amenity'},
-  {id:'hasWaterFill',label:'Water Fill',icon:'🚰',group:'amenity'},
+  {id:'hasTrash',label:'Trash',icon:'🗑️',group:'amenity'},
+  {id:'hasWaterFill',label:'Water Fill',icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><rect x="6" y="2" width="12" height="4" rx="1"/><rect x="7" y="6" width="10" height="14" rx="2"/><path d="M12 10 Q9 14 12 18 Q15 14 12 10 Z" fill="white"/></svg>',group:'amenity'},
   {id:'isSeasonal',label:'Seasonal',icon:'📅',group:'tag'},
   {id:'hasPets',label:'Pets Allowed',icon:'🐾',group:'tag'},
   {id:'needs4x4',label:'4x4 Required',icon:'🚙',group:'tag'},
