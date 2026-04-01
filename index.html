@@ -594,20 +594,25 @@ textarea.inp{resize:none}
         </div>
         <!-- Filter dropdown — slides down -->
         <div id="filter-panel" style="margin-top:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;max-height:0;transition:max-height .25s ease,margin-top .25s ease">
-          <select class="inp-dark" id="f-type" onchange="renderEntries()">
-            <option value="">All Types</option>
-            <option>National Park</option><option>National Forest</option><option>State Campground</option><option>BLM</option>
-            <option>Dispersed</option><option>Private</option><option>Other</option>
+          <select class="inp-dark" id="f-type" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
+            <option value="National Park">National Park</option><option value="National Forest">National Forest</option><option value="State Campground">State Campground</option><option value="BLM">BLM</option>
+            <option value="Dispersed">Dispersed</option><option value="Private">Private</option><option value="Other">Other</option>
           </select>
-          <select class="inp-dark" id="f-status" onchange="renderEntries()">
-            <option value="">All Statuses</option>
+          <select class="inp-dark" id="f-status" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
             <option value="planned">Planned</option><option value="visited">Visited</option><option value="saved">Saved for Later</option>
           </select>
-          <select class="inp-dark" id="f-state" onchange="renderEntries()">
-            <option value="">All States</option>
+          <select class="inp-dark" id="f-state" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
           </select>
-          <select class="inp-dark" id="f-rating" onchange="renderEntries()">
-            <option value="0">Any Rating</option><option value="1">★ and above</option><option value="2">★★ and above</option>
+          <select class="inp-dark" id="f-cost" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
+            <option value="0">$0 (Free)</option>
+            <option value="1-15">$1 - 15</option>
+            <option value="16-30">$16 - 30</option>
+            <option value="31-50">$31 - 50</option>
+            <option value="51-75">$51 - 75</option>
+            <option value="76+">$76 and up</option>
+          </select>
+          <select class="inp-dark" id="f-rating" multiple onchange="renderEntries()" style="height:auto;min-height:38px">
+            <option value="1">★ and above</option><option value="2">★★ and above</option>
             <option value="3">★★★ and above</option><option value="4">★★★★ and above</option><option value="5">★★★★★ only</option>
           </select>
         </div>
@@ -704,10 +709,10 @@ textarea.inp{resize:none}
         <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Amenities</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px">
           <label class="amenity-check"><input type="checkbox" id="a-water"/> 💧 Potable Water</label>
-          <label class="amenity-check"><input type="checkbox" id="a-dump"/> <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:2px"><rect x="2" y="2" width="16" height="10" rx="3"/><circle cx="16" cy="9" r="3"/><rect x="15" y="12" width="2" height="2"/><rect x="2" y="14" width="20" height="8" rx="1"/><path d="M5 16 L5 20 L8 20 L8 18 L6 18 L6 16 Z" fill="white"/></svg> Dump Station</label>
+          <label class="amenity-check"><input type="checkbox" id="a-dump"/> <svg width="16" height="16" viewBox="-12 -12 24 24" style="vertical-align:middle"><rect x="-10" y="-10" width="14" height="9" rx="3" fill="#1f2937"/><rect x="-8" y="-8" width="3" height="3" rx="0.5" fill="white"/><rect x="-3" y="-8" width="3" height="3" rx="0.5" fill="white"/><circle cx="3" cy="-3" r="3" fill="#1f2937"/><circle cx="3" cy="-3" r="1.5" fill="white"/><rect x="5" y="-4" width="3" height="2" fill="#1f2937"/><rect x="-10" y="2" width="18" height="8" rx="1" fill="#1f2937"/><path d="M-5 4 L-5 6 L-7 6 L-3 9 L1 6 L-1 6 L-1 4 Z" fill="white"/></svg> Dump Station</label>
           <label class="amenity-check"><input type="checkbox" id="a-hookups"/> ⚡ Hookups</label>
           <label class="amenity-check"><input type="checkbox" id="a-trash"/> 🗑️ Trash</label>
-          <label class="amenity-check"><input type="checkbox" id="a-fill"/> <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:2px"><rect x="6" y="2" width="12" height="4" rx="1"/><rect x="7" y="6" width="10" height="14" rx="2"/><path d="M12 10 Q9 14 12 18 Q15 14 12 10 Z" fill="white"/></svg> Water Fill</label>
+          <label class="amenity-check"><input type="checkbox" id="a-fill"/> <svg width="16" height="16" viewBox="-8 -14 16 28" style="vertical-align:middle"><rect x="-4" y="-12" width="8" height="3" rx="1" fill="#0ea5e9"/><rect x="-6" y="-9" width="12" height="17" rx="2" fill="#0ea5e9"/><path d="M0 -4 Q-3 1 0 5 Q3 1 0 -4 Z" fill="white"/></svg> Water Fill</label>
         </div>
         <div style="font-weight:700;font-size:12px;margin-bottom:8px;color:var(--forest)">Tags</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
@@ -779,10 +784,10 @@ const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'}
 const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4'};
 const AMENITY_META=[
   {id:'hasPotableWater',label:'Potable Water',icon:'💧',group:'amenity'},
-  {id:'hasDumpStation',label:'Dump Station',icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><rect x="2" y="2" width="16" height="10" rx="3"/><circle cx="16" cy="9" r="3"/><rect x="15" y="12" width="2" height="2"/><rect x="2" y="14" width="20" height="8" rx="1"/><path d="M5 16 L5 20 L8 20 L8 18 L6 18 L6 16 Z" fill="white"/></svg>',group:'amenity'},
+  {id:'hasDumpStation',label:'Dump Station',icon:'<svg width="16" height="16" viewBox="-12 -12 24 24" style="vertical-align:middle"><rect x="-10" y="-10" width="14" height="9" rx="3" fill="#1f2937"/><rect x="-8" y="-8" width="3" height="3" rx="0.5" fill="white"/><rect x="-3" y="-8" width="3" height="3" rx="0.5" fill="white"/><circle cx="3" cy="-3" r="3" fill="#1f2937"/><circle cx="3" cy="-3" r="1.5" fill="white"/><rect x="5" y="-4" width="3" height="2" fill="#1f2937"/><rect x="-10" y="2" width="18" height="8" rx="1" fill="#1f2937"/><path d="M-5 4 L-5 6 L-7 6 L-3 9 L1 6 L-1 6 L-1 4 Z" fill="white"/></svg>',group:'amenity'},
   {id:'hasHookups',label:'Hookups',icon:'⚡',group:'amenity'},
   {id:'hasTrash',label:'Trash',icon:'🗑️',group:'amenity'},
-  {id:'hasWaterFill',label:'Water Fill',icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><rect x="6" y="2" width="12" height="4" rx="1"/><rect x="7" y="6" width="10" height="14" rx="2"/><path d="M12 10 Q9 14 12 18 Q15 14 12 10 Z" fill="white"/></svg>',group:'amenity'},
+  {id:'hasWaterFill',label:'Water Fill',icon:'<svg width="16" height="16" viewBox="-8 -14 16 28" style="vertical-align:middle"><rect x="-4" y="-12" width="8" height="3" rx="1" fill="#0ea5e9"/><rect x="-6" y="-9" width="12" height="17" rx="2" fill="#0ea5e9"/><path d="M0 -4 Q-3 1 0 5 Q3 1 0 -4 Z" fill="white"/></svg>',group:'amenity'},
   {id:'isSeasonal',label:'Seasonal',icon:'📅',group:'tag'},
   {id:'hasPets',label:'Pets Allowed',icon:'🐾',group:'tag'},
   {id:'needs4x4',label:'4x4 Required',icon:'🚙',group:'tag'},
@@ -889,7 +894,7 @@ function toggleFilters(){
   filtersOpen=!filtersOpen;
   const panel=document.getElementById('filter-panel');
   const btn=document.getElementById('filter-btn');
-  panel.style.maxHeight=filtersOpen?'220px':'0';
+  panel.style.maxHeight=filtersOpen?'350px':'0';
   panel.style.marginTop=filtersOpen?'8px':'0';
   btn.style.background=filtersOpen?'rgba(88,111,107,.2)':'rgba(88,111,107,.1)';
   btn.style.color=filtersOpen?'var(--forest)':'var(--forest)';
@@ -897,11 +902,12 @@ function toggleFilters(){
 
 function hasActiveFilters(){
   const search=document.getElementById('search-inp').value.trim();
-  const type=document.getElementById('f-type').value;
-  const status=document.getElementById('f-status').value;
-  const state=document.getElementById('f-state').value;
-  const rating=parseInt(document.getElementById('f-rating').value)||0;
-  return search!==''||type!==''||status!==''||state!==''||rating>0;
+  const typeArr=Array.from(document.getElementById('f-type').selectedOptions);
+  const statusArr=Array.from(document.getElementById('f-status').selectedOptions);
+  const stateArr=Array.from(document.getElementById('f-state').selectedOptions);
+  const costArr=Array.from(document.getElementById('f-cost').selectedOptions);
+  const ratingArr=Array.from(document.getElementById('f-rating').selectedOptions);
+  return search!==''||typeArr.length>0||statusArr.length>0||stateArr.length>0||costArr.length>0||ratingArr.length>0;
 }
 
 function updateClearFiltersVisibility(){
@@ -915,10 +921,11 @@ function updateClearFiltersVisibility(){
 
 function clearAllFilters(){
   document.getElementById('search-inp').value='';
-  document.getElementById('f-type').value='';
-  document.getElementById('f-status').value='';
-  document.getElementById('f-state').value='';
-  document.getElementById('f-rating').value='0';
+  document.getElementById('f-type').selectedIndex=-1;
+  document.getElementById('f-status').selectedIndex=-1;
+  document.getElementById('f-state').selectedIndex=-1;
+  document.getElementById('f-cost').selectedIndex=-1;
+  document.getElementById('f-rating').selectedIndex=-1;
   updateClearFiltersVisibility();
   renderEntries();
 }
@@ -1496,17 +1503,43 @@ async function executeDelete(){
 }
 
 // ── Entries ───────────────────────────────────────────────────────────────────
+function getSelectedValues(selectId){
+  const sel=document.getElementById(selectId);
+  return Array.from(sel.selectedOptions).map(o=>o.value);
+}
+
+function costMatchesFilter(cost, filterValues){
+  if(!filterValues.length) return true;
+  const c = cost || 0;
+  return filterValues.some(fv=>{
+    if(fv==='0') return c===0;
+    if(fv==='1-15') return c>=1 && c<=15;
+    if(fv==='16-30') return c>=16 && c<=30;
+    if(fv==='31-50') return c>=31 && c<=50;
+    if(fv==='51-75') return c>=51 && c<=75;
+    if(fv==='76+') return c>=76;
+    return false;
+  });
+}
+
 function renderEntries(){
   updateClearFiltersVisibility();
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
-  const ft=document.getElementById('f-type').value;
-  const fs=document.getElementById('f-status').value;
-  const fst=document.getElementById('f-state').value;
-  const fr=parseInt(document.getElementById('f-rating').value||'0');
+  const ftArr=getSelectedValues('f-type');
+  const fsArr=getSelectedValues('f-status');
+  const fstArr=getSelectedValues('f-state');
+  const fcArr=getSelectedValues('f-cost');
+  const frArr=getSelectedValues('f-rating');
+  const minRating=frArr.length?Math.min(...frArr.map(v=>parseInt(v))):0;
+  
   const filtered=entries.filter(e=>{
     const match=!q||[e.name,e.notes||'',e.address||'',e.type].some(s=>s.toLowerCase().includes(q));
-    const stateMatch=!fst||getStateFromCoords(e.lat,e.lng)===fst;
-    return match&&(!ft||e.type===ft)&&(!fs||e.status===fs)&&stateMatch&&(e.rating||0)>=fr;
+    const typeMatch=!ftArr.length||ftArr.includes(e.type);
+    const statusMatch=!fsArr.length||fsArr.includes(e.status);
+    const stateMatch=!fstArr.length||fstArr.includes(getStateFromCoords(e.lat,e.lng));
+    const costMatch=costMatchesFilter(e.cost, fcArr);
+    const ratingMatch=(e.rating||0)>=minRating;
+    return match&&typeMatch&&statusMatch&&stateMatch&&costMatch&&ratingMatch;
   }).sort((a,b)=>{
     if(!a.arrivalDate&&!b.arrivalDate) return 0;
     if(!a.arrivalDate) return 1;
