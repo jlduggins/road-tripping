@@ -270,7 +270,10 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   padding:12px;margin-bottom:8px;
   display:flex;align-items:center;gap:10px;
   transition:box-shadow .12s;cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.06)
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+  position:relative;z-index:1;
+  -webkit-tap-highlight-color:rgba(127,195,165,.2);
+  touch-action:manipulation
 }
 .entry-card:hover,.entry-card:active{box-shadow:0 2px 12px rgba(0,0,0,.12)}
 .entry-body{flex:1;min-width:0}
@@ -334,7 +337,7 @@ select.inp-dark option{background:var(--card);color:var(--text)}
 .pill-select-trigger .pill-remove:hover{opacity:1}
 .pill-select-placeholder{color:var(--text-muted)}
 .pill-select-dropdown{
-  position:absolute;top:100%;left:0;right:0;z-index:100;
+  position:absolute;top:100%;left:0;right:0;z-index:50;
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
   box-shadow:0 4px 20px rgba(0,0,0,.15);margin-top:4px;
   max-height:200px;overflow-y:auto;display:none
@@ -851,7 +854,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1033,6 +1036,16 @@ function getPillSelectValues(psId){
 document.addEventListener('click',e=>{
   if(!e.target.closest('.pill-select')){
     document.querySelectorAll('.pill-select.open').forEach(ps=>ps.classList.remove('open'));
+  }
+});
+
+// Close pill selects when scrolling entries list
+document.addEventListener('DOMContentLoaded',()=>{
+  const entriesList=document.getElementById('entries-list');
+  if(entriesList){
+    entriesList.addEventListener('scroll',()=>{
+      document.querySelectorAll('.pill-select.open').forEach(ps=>ps.classList.remove('open'));
+    },{passive:true});
   }
 });
 
@@ -1695,8 +1708,8 @@ function renderEntries(){
     const active=AMENITY_META.filter(a=>e[a.id]);
     const stars=e.rating>0?'★'.repeat(e.rating)+'☆'.repeat(5-e.rating):'';
     const hasPin=e.lat!=null&&e.lng!=null;
-    return `<div class="entry-card">
-      <div class="entry-body" onclick="openFormPanelById('${e.id}')">
+    return `<div class="entry-card" onclick="event.stopPropagation();openFormPanelById('${e.id}')">
+      <div class="entry-body">
         <div class="entry-name">${e.name}</div>
         <div class="entry-meta">
           <span style="color:var(--accent);font-weight:600">${e.type}</span><span style="color:#334155">·</span>
