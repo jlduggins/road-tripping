@@ -916,15 +916,18 @@ window._subscribeFirestore=function(uid){
   if(firestoreUnsub){ firestoreUnsub(); }
   let isFirstSnapshot = true;
   firestoreUnsub=window._db.subscribe(uid,docs=>{
+    console.log('[Firestore] Snapshot received:', docs.length, 'docs, isFirstSnapshot:', isFirstSnapshot);
     // Check if this is a first-time user with no entries (only on first snapshot)
     if(isFirstSnapshot && docs.length === 0 && sampleAddedForUser !== uid){
       isFirstSnapshot = false;
       sampleAddedForUser = uid;
+      console.log('[Firestore] Adding sample location for new user');
       addSampleLocation(uid);
       return; // The sample save will trigger another snapshot
     }
     isFirstSnapshot = false;
     entries=docs;
+    console.log('[Firestore] entries set to:', entries.length, 'items');
     updateCount();
     updateStateFilter();
     renderMarkers();
@@ -961,9 +964,11 @@ async function addSampleLocation(uid){
     createdAt: new Date().toISOString()
   };
   try {
+    console.log('[Sample] Saving sample entry...');
     await window._db.save(uid, sampleEntry);
+    console.log('[Sample] Sample entry saved successfully');
   } catch(e) {
-    console.error('Failed to add sample location:', e);
+    console.error('[Sample] Failed to add sample location:', e);
   }
 }
 
@@ -1683,6 +1688,8 @@ function renderEntries(){
   const frArr=getPillSelectValues('ps-rating');
   const minRating=frArr.length?Math.min(...frArr.map(v=>parseInt(v))):0;
   
+  console.log('[renderEntries] entries:', entries.length, 'filters:', {q, ftArr, fsArr, fstArr, fcArr, frArr, minRating});
+  
   const filtered=entries.filter(e=>{
     const match=!q||[e.name,e.notes||'',e.address||'',e.type].some(s=>s.toLowerCase().includes(q));
     const typeMatch=!ftArr.length||ftArr.includes(e.type);
@@ -1697,6 +1704,8 @@ function renderEntries(){
     if(!b.arrivalDate) return -1;
     return new Date(b.arrivalDate)-new Date(a.arrivalDate);
   });
+  
+  console.log('[renderEntries] filtered:', filtered.length);
 
   const list=document.getElementById('entries-list');
   if(!entries.length){
