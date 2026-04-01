@@ -799,6 +799,7 @@ textarea.inp{resize:none}
           <label class="amenity-check"><input type="checkbox" id="a-seasonal"/> 📅 Seasonal</label>
           <label class="amenity-check"><input type="checkbox" id="a-pets"/> 🐾 Pets Allowed</label>
           <label class="amenity-check"><input type="checkbox" id="a-4x4"/> 🚙 4x4 Required</label>
+          <label class="amenity-check"><input type="checkbox" id="a-reservations"/> 🎫 Reservations</label>
         </div>
       </div>
       <div class="full">
@@ -861,7 +862,7 @@ const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
-const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4'};
+const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4','a-reservations':'needsReservations'};
 const AMENITY_META=[
   {id:'hasPotableWater',label:'Potable Water',icon:'💧',group:'amenity'},
   {id:'hasDumpStation',label:'Dump Station',icon:'<svg width="16" height="16" viewBox="-12 -12 24 24" style="vertical-align:middle"><rect x="-10" y="-10" width="14" height="9" rx="3" fill="#1f2937"/><rect x="-8" y="-8" width="3" height="3" rx="0.5" fill="white"/><rect x="-3" y="-8" width="3" height="3" rx="0.5" fill="white"/><circle cx="3" cy="-3" r="3" fill="#1f2937"/><circle cx="3" cy="-3" r="1.5" fill="white"/><rect x="5" y="-4" width="3" height="2" fill="#1f2937"/><rect x="-10" y="2" width="18" height="8" rx="1" fill="#1f2937"/><path d="M-5 4 L-5 6 L-7 6 L-3 9 L1 6 L-1 6 L-1 4 Z" fill="white"/></svg>',group:'amenity'},
@@ -871,6 +872,7 @@ const AMENITY_META=[
   {id:'isSeasonal',label:'Seasonal',icon:'📅',group:'tag'},
   {id:'hasPets',label:'Pets Allowed',icon:'🐾',group:'tag'},
   {id:'needs4x4',label:'4x4 Required',icon:'🚙',group:'tag'},
+  {id:'needsReservations',label:'Reservations',icon:'🎫',group:'tag'},
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -965,10 +967,15 @@ async function addSampleLocation(uid){
     status: 'saved',
     rating: 4,
     cost: 30,
-    notes: 'This is a sample location to show you how Road Tripping works! Beautiful views of the Grand Canyon. First-come, first-served. No hookups. Delete this anytime by tapping the trash icon.',
+    notes: 'This is a sample location to show you how Road Tripping works! Beautiful views of the Grand Canyon. Reservations required. No hookups. Delete this anytime by tapping the trash icon.',
     hasPotableWater: true,
     hasTrash: true,
     hasPets: true,
+    needsReservations: true,
+    photos: [
+      'icons/sample_gc1.jpg',
+      'icons/sample_gc2.jpg'
+    ],
     createdAt: new Date().toISOString()
   };
   try {
