@@ -468,6 +468,11 @@ textarea.inp{resize:none}
 .confirm-overlay.open,.confirm-overlay.show{display:flex}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
+/* ── Journey leg drag/drop ── */
+.leg-item{transition:transform 0.15s,opacity 0.15s}
+.leg-item.drag-over{background:rgba(127,195,165,0.15);border-radius:8px}
+.journey-marker{z-index:1000!important}
+
 /* ── Login ── */
 #login-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 .login-logo{display:block;text-align:center;margin-bottom:8px}
@@ -1058,7 +1063,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 const ORS_API_KEY     = ''; // OpenRouteService API key - get free at openrouteservice.org
 
@@ -2587,18 +2592,26 @@ async function saveLeg(){
   const departDate=document.getElementById('leg-depart').value;
   const notes=document.getElementById('leg-notes').value.trim();
   
-  // Calculate route info
-  let distance=0,duration=0,fuelCost=0;
-  let fromLat,fromLng;
-  if(pendingLegFromId){
-    const fromEntry=entries.find(e=>e.id===pendingLegFromId);
-    if(fromEntry){ fromLat=fromEntry.lat; fromLng=fromEntry.lng; }
+  // Get origin info
+  const fromId=document.getElementById('leg-from-id').value;
+  let fromLat,fromLng,fromName;
+  if(fromId){
+    const fromEntry=entries.find(e=>e.id===fromId);
+    if(fromEntry){ 
+      fromLat=fromEntry.lat; 
+      fromLng=fromEntry.lng; 
+      fromName=fromEntry.name;
+    }
   }
   if(!fromLat&&myDotMarker){
     const ll=myDotMarker.getLatLng();
-    fromLat=ll.lat; fromLng=ll.lng;
+    fromLat=ll.lat; 
+    fromLng=ll.lng;
+    fromName='Current Location';
   }
   
+  // Calculate route info
+  let distance=0,duration=0,fuelCost=0;
   if(fromLat&&destEntry.lat){
     try{
       const route=await getRoute(fromLat,fromLng,destEntry.lat,destEntry.lng);
@@ -2619,6 +2632,10 @@ async function saveLeg(){
     destName:destEntry.name,
     destLat:destEntry.lat,
     destLng:destEntry.lng,
+    fromId:fromId||null,
+    fromName:fromName||null,
+    fromLat:fromLat||null,
+    fromLng:fromLng||null,
     arriveDate,
     departDate,
     notes,
@@ -2832,17 +2849,18 @@ function openJourneyDetail(journeyId){
         if(entry?.discountPercent&&entry?.discountType) lodgingCost=lodgingCost*(1-entry.discountPercent/100);
         
         return `
-          <div style="position:relative;padding-left:20px;padding-bottom:${i<legs.length-1?'16px':'0'};${isPast?'opacity:0.5;':''}">
+          <div class="leg-item" draggable="true" data-leg-index="${i}" style="position:relative;padding-left:20px;padding-bottom:${i<legs.length-1?'16px':'0'};${isPast?'opacity:0.5;':''}">
             <!-- Timeline line -->
             ${i<legs.length-1?`<div style="position:absolute;left:4px;top:12px;bottom:0;width:2px;background:${isPast?'var(--border)':'var(--teal)'};opacity:0.5"></div>`:''}
             
-            <!-- Stop marker -->
+            <!-- Stop marker with drag handle -->
+            <div style="position:absolute;left:-4px;top:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:grab;color:var(--text-muted);font-size:10px" title="Drag to reorder">⋮⋮</div>
             <div style="position:absolute;left:0;top:2px;width:10px;height:10px;border-radius:50%;${isCurrent?'background:var(--teal);box-shadow:0 0 0 4px rgba(127,195,165,0.3);':'background:'+(isPast?'var(--border)':'var(--teal)')};"></div>
             
             <!-- Stop details -->
             <div style="background:${isCurrent?'rgba(127,195,165,0.1)':'transparent'};border-radius:8px;padding:${isCurrent?'10px':'0'};margin-left:4px">
               <div style="display:flex;justify-content:space-between;align-items:start">
-                <div>
+                <div style="flex:1">
                   <div style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--forest)">${l.destName}</div>
                   ${isCurrent?'<div style="font-size:11px;color:var(--teal);font-weight:600">📍 Currently here</div>':''}
                   <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
@@ -2851,8 +2869,14 @@ function openJourneyDetail(journeyId){
                     ${nights>0?' · '+nights+' night'+(nights>1?'s':''):''}
                   </div>
                 </div>
-                <div style="text-align:right">
-                  ${lodgingCost>0?`<div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(lodgingCost)}</div>`:'<div style="font-size:12px;color:var(--teal);font-weight:600">Free</div>'}
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="text-align:right">
+                    ${lodgingCost>0?`<div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(lodgingCost)}</div>`:'<div style="font-size:12px;color:var(--teal);font-weight:600">Free</div>'}
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <button onclick="editLeg('${journey.id}',${i})" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:2px" title="Edit">✏️</button>
+                    <button onclick="deleteLeg('${journey.id}',${i})" style="background:none;border:none;color:#e76f51;font-size:12px;cursor:pointer;padding:2px" title="Delete">🗑</button>
+                  </div>
                 </div>
               </div>
               ${l.notes?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">${l.notes}</div>`:''}
@@ -2874,6 +2898,162 @@ function openJourneyDetail(journeyId){
       </button>
     </div>
   `;
+  
+  // Setup drag and drop for reordering
+  setupLegDragDrop(journey.id);
+}
+
+// Drag and drop reordering
+function setupLegDragDrop(journeyId){
+  const items=document.querySelectorAll('.leg-item');
+  let draggedItem=null;
+  
+  items.forEach(item=>{
+    item.addEventListener('dragstart',e=>{
+      draggedItem=item;
+      item.style.opacity='0.5';
+      e.dataTransfer.effectAllowed='move';
+    });
+    
+    item.addEventListener('dragend',e=>{
+      item.style.opacity='1';
+      draggedItem=null;
+      items.forEach(i=>i.classList.remove('drag-over'));
+    });
+    
+    item.addEventListener('dragover',e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      item.classList.add('drag-over');
+    });
+    
+    item.addEventListener('dragleave',e=>{
+      item.classList.remove('drag-over');
+    });
+    
+    item.addEventListener('drop',async e=>{
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if(!draggedItem||draggedItem===item) return;
+      
+      const fromIdx=parseInt(draggedItem.dataset.legIndex);
+      const toIdx=parseInt(item.dataset.legIndex);
+      
+      await reorderLegs(journeyId,fromIdx,toIdx);
+    });
+  });
+}
+
+async function reorderLegs(journeyId,fromIdx,toIdx){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs) return;
+  
+  const legs=[...journey.legs];
+  const [moved]=legs.splice(fromIdx,1);
+  legs.splice(toIdx,0,moved);
+  
+  // Recalculate distances for affected legs
+  for(let i=Math.min(fromIdx,toIdx);i<=Math.max(fromIdx,toIdx)&&i<legs.length;i++){
+    if(i>0){
+      const prevLeg=legs[i-1];
+      const currLeg=legs[i];
+      const prevEntry=entries.find(e=>e.id===prevLeg.destId);
+      const currEntry=entries.find(e=>e.id===currLeg.destId);
+      if(prevEntry?.lat&&currEntry?.lat){
+        try{
+          const route=await getRoute(prevEntry.lat,prevEntry.lng,currEntry.lat,currEntry.lng);
+          if(route){
+            legs[i-1].distance=Math.round(route.distance);
+            legs[i-1].duration=Math.round(route.duration);
+            legs[i-1].fuelCost=Math.round((route.distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+          }
+        }catch(e){
+          const dist=haversineDistance(prevEntry.lat,prevEntry.lng,currEntry.lat,currEntry.lng)*1.3;
+          legs[i-1].distance=Math.round(dist);
+          legs[i-1].duration=Math.round(dist/45*60);
+          legs[i-1].fuelCost=Math.round((dist/fuelSettings.mpg)*fuelSettings.pricePerGal);
+        }
+      }
+    }
+  }
+  
+  journey.legs=legs;
+  await window._db.saveJourney(window._currentUser.uid,journey);
+  openJourneyDetail(journeyId);
+}
+
+async function editLeg(journeyId,legIndex){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs||!journey.legs[legIndex]) return;
+  
+  const leg=journey.legs[legIndex];
+  editingJourneyId=journeyId;
+  editingLegIndex=legIndex;
+  
+  // Set from (previous leg or start)
+  if(legIndex>0){
+    const prevLeg=journey.legs[legIndex-1];
+    const prevEntry=entries.find(e=>e.id===prevLeg.destId);
+    document.getElementById('leg-from-name').textContent=prevEntry?.name||'Previous stop';
+    document.getElementById('leg-from-id').value=prevLeg.destId;
+    pendingLegFromId=prevLeg.destId;
+  }else{
+    document.getElementById('leg-from-name').textContent='📍 Starting point';
+    document.getElementById('leg-from-id').value='';
+    pendingLegFromId=null;
+  }
+  document.getElementById('leg-from-selected').style.display='block';
+  document.getElementById('leg-from-search').style.display='none';
+  
+  // Set destination
+  document.getElementById('leg-dest-id').value=leg.destId;
+  document.getElementById('leg-dest-name').textContent=leg.destName;
+  document.getElementById('leg-dest-selected').style.display='block';
+  document.getElementById('leg-search').value='';
+  document.getElementById('leg-search-results').style.display='none';
+  
+  // Set dates
+  document.getElementById('leg-arrive').value=leg.arriveDate||'';
+  document.getElementById('leg-depart').value=leg.departDate||'';
+  document.getElementById('leg-notes').value=leg.notes||'';
+  
+  // Show preview
+  const destEntry=entries.find(e=>e.id===leg.destId);
+  if(destEntry) calculateLegPreview(destEntry);
+  
+  document.getElementById('leg-modal').classList.add('show');
+}
+
+async function deleteLeg(journeyId,legIndex){
+  if(!confirm('Delete this stop from your journey?')) return;
+  
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs) return;
+  
+  const legs=[...journey.legs];
+  legs.splice(legIndex,1);
+  
+  // Recalculate distance for the leg that now connects
+  if(legIndex>0&&legIndex<legs.length){
+    const prevLeg=legs[legIndex-1];
+    const nextLeg=legs[legIndex];
+    const prevEntry=entries.find(e=>e.id===prevLeg.destId);
+    const nextEntry=entries.find(e=>e.id===nextLeg.destId);
+    if(prevEntry?.lat&&nextEntry?.lat){
+      try{
+        const route=await getRoute(prevEntry.lat,prevEntry.lng,nextEntry.lat,nextEntry.lng);
+        if(route){
+          prevLeg.distance=Math.round(route.distance);
+          prevLeg.duration=Math.round(route.duration);
+          prevLeg.fuelCost=Math.round((route.distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+        }
+      }catch(e){}
+    }
+  }
+  
+  journey.legs=legs;
+  await window._db.saveJourney(window._currentUser.uid,journey);
+  openJourneyDetail(journeyId);
 }
 
 function editJourney(journeyId){
@@ -2894,16 +3074,12 @@ function viewJourneyOnMap(journeyId){
   if(!journey||!journey.legs?.length) return;
   
   // Clear previous route and markers
-  if(journeyRouteLayer){
-    map.removeLayer(journeyRouteLayer);
-    journeyRouteLayer=null;
-  }
   journeyMarkers.forEach(m=>map.removeLayer(m));
   journeyMarkers=[];
   
   const legs=journey.legs;
   const today=new Date().toISOString().split('T')[0];
-  const coords=[];
+  const allCoords=[];
   
   // Find current leg index
   let currentLegIdx=-1;
@@ -2913,50 +3089,80 @@ function viewJourneyOnMap(journeyId){
     }
   }
   
-  // Create markers and collect coords
+  // Get starting point (first leg's origin or user's current location)
+  let startLat=null,startLng=null,startName='Start';
+  if(legs[0].fromLat&&legs[0].fromLng){
+    startLat=legs[0].fromLat;
+    startLng=legs[0].fromLng;
+    startName=legs[0].fromName||'Start';
+  }else if(myDotMarker){
+    const ll=myDotMarker.getLatLng();
+    startLat=ll.lat;
+    startLng=ll.lng;
+    startName='Current Location';
+  }
+  
+  // Add starting point marker if we have coordinates
+  if(startLat&&startLng){
+    allCoords.push([startLat,startLng]);
+    const startIcon=L.divIcon({
+      html:`<div style="width:20px;height:20px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:600">S</div>`,
+      className:'journey-marker',
+      iconSize:[20,20],
+      iconAnchor:[10,10]
+    });
+    const startMarker=L.marker([startLat,startLng],{icon:startIcon,zIndexOffset:1000}).addTo(map);
+    startMarker.bindPopup(`<b>${startName}</b><br>Starting point`);
+    journeyMarkers.push(startMarker);
+  }
+  
+  // Create markers for each stop and collect coords
   legs.forEach((leg,i)=>{
     if(!leg.destLat||!leg.destLng) return;
-    coords.push([leg.destLat,leg.destLng]);
+    allCoords.push([leg.destLat,leg.destLng]);
     
     const isPast=leg.departDate&&leg.departDate<today;
     const isCurrent=i===currentLegIdx;
     
-    // Create custom marker
+    // Create custom marker with high z-index
     const markerHtml=isCurrent
-      ? `<div style="width:24px;height:24px;background:var(--teal);border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 6px rgba(127,195,165,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700">${i+1}</div>`
-      : `<div style="width:20px;height:20px;background:${isPast?'#94a3b8':'var(--teal)'};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:600;${isPast?'opacity:0.6;':''}">${i+1}</div>`;
+      ? `<div style="width:28px;height:28px;background:#7FC3A5;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 8px rgba(127,195,165,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">${i+1}</div>`
+      : `<div style="width:22px;height:22px;background:${isPast?'#94a3b8':'#7FC3A5'};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:600;${isPast?'opacity:0.6;':''}">${i+1}</div>`;
     
     const icon=L.divIcon({
       html:markerHtml,
       className:'journey-marker',
-      iconSize:[24,24],
-      iconAnchor:[12,12]
+      iconSize:[28,28],
+      iconAnchor:[14,14]
     });
     
-    const marker=L.marker([leg.destLat,leg.destLng],{icon}).addTo(map);
+    // Use zIndexOffset to put journey markers above location pins
+    const marker=L.marker([leg.destLat,leg.destLng],{icon,zIndexOffset:1000+i}).addTo(map);
     marker.bindPopup(`<b>${leg.destName}</b><br>${leg.arriveDate||''} - ${leg.departDate||''}`);
     journeyMarkers.push(marker);
   });
   
-  // Draw route line
-  if(coords.length>1){
-    // Draw past segments dimmed
-    for(let i=0;i<coords.length-1;i++){
-      const isPastSegment=legs[i].departDate&&legs[i].departDate<today;
-      const line=L.polyline([coords[i],coords[i+1]],{
+  // Draw route lines between each point
+  if(allCoords.length>1){
+    for(let i=0;i<allCoords.length-1;i++){
+      // Determine if this segment is past (only for destination legs, not start)
+      const legIdx=i>0?i-1:0;
+      const isPastSegment=i>0&&legs[legIdx]?.departDate&&legs[legIdx].departDate<today;
+      
+      const line=L.polyline([allCoords[i],allCoords[i+1]],{
         color:isPastSegment?'#94a3b8':'#7FC3A5',
         weight:isPastSegment?3:4,
-        opacity:isPastSegment?0.4:0.8,
-        dashArray:isPastSegment?'6,6':'10,6'
+        opacity:isPastSegment?0.4:0.85,
+        dashArray:'12,8'
       }).addTo(map);
-      journeyMarkers.push(line); // Store for cleanup
+      journeyMarkers.push(line);
     }
     
-    // Fit bounds to show all stops
-    const bounds=L.latLngBounds(coords);
-    map.fitBounds(bounds,{padding:[60,60],maxZoom:12});
-  }else if(coords.length===1){
-    map.setView(coords[0],12);
+    // Fit bounds to show all stops with padding
+    const bounds=L.latLngBounds(allCoords);
+    map.fitBounds(bounds,{padding:[80,80],maxZoom:11});
+  }else if(allCoords.length===1){
+    map.setView(allCoords[0],12);
   }
   
   closeDrawer();
