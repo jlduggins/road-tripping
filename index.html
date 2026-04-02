@@ -1016,8 +1016,17 @@ textarea.inp{resize:none}
       <input class="inp" type="number" id="fuel-mpg" min="1" max="100" step="0.5" placeholder="18" style="width:100%"/>
     </div>
     <div style="margin-bottom:12px">
-      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Price per gallon ($)</label>
-      <input class="inp" type="number" id="fuel-price" min="0" step="0.01" placeholder="3.89" style="width:100%"/>
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Default fuel price</label>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;display:flex;align-items:center">
+          <span style="font-size:14px;color:var(--text-mid);margin-right:4px">$</span>
+          <input class="inp" type="number" id="fuel-price" min="0" step="0.01" placeholder="3.89" style="width:100%"/>
+        </div>
+        <select class="inp" id="fuel-price-unit" style="width:90px">
+          <option value="gal">/ gal</option>
+          <option value="L">/ liter</option>
+        </select>
+      </div>
     </div>
     <div style="margin-bottom:20px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Backup search radius (miles)</label>
@@ -1088,6 +1097,35 @@ textarea.inp{resize:none}
       </div>
     </div>
     
+    <!-- Per-leg fuel settings -->
+    <div id="leg-fuel-settings" style="background:rgba(88,111,107,0.05);border-radius:8px;padding:12px;margin-bottom:16px;display:none">
+      <div onclick="toggleLegFuelExpand()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+        <div style="font-size:12px;font-weight:600;color:var(--text-mid)">⛽ Fuel price for this leg</div>
+        <span id="leg-fuel-toggle" style="font-size:12px;color:var(--text-muted)">▼</span>
+      </div>
+      <div id="leg-fuel-expanded" style="display:none;margin-top:12px">
+        <div style="display:flex;gap:10px;align-items:end">
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">Price</label>
+            <div style="display:flex;align-items:center">
+              <span style="font-size:14px;color:var(--text-mid);margin-right:4px">$</span>
+              <input class="inp" type="number" step="0.01" id="leg-fuel-price" style="width:100%" oninput="updateLegFuelPreview()"/>
+            </div>
+          </div>
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">Per</label>
+            <select class="inp" id="leg-fuel-unit" style="width:100%" onchange="updateLegFuelPreview()">
+              <option value="gal">Gallon</option>
+              <option value="L">Liter</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+          Your default: <span id="leg-fuel-default"></span>
+        </div>
+      </div>
+    </div>
+    
     <!-- Backup suggestions -->
     <div id="leg-backups" style="display:none;background:rgba(245,158,11,0.1);border-radius:8px;padding:10px 12px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px">
@@ -1147,8 +1185,13 @@ let activeJourneyId=null;
 let fuelSettings={
   fuelType:'Diesel',
   mpg:18,
-  pricePerGal:3.89
+  pricePerGal:3.89,
+  priceUnit:'gal',
+  backupRadius:30
 };
+
+// Liters per gallon constant
+const LITERS_PER_GALLON=3.78541;
 
 function genId(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
 function today(){return new Date().toISOString().split('T')[0];}
@@ -1593,6 +1636,7 @@ function openFormPanelById(id){
 
 // ── Location Detail Panel ─────────────────────────────────────────────────────
 let currentDetailEntryId=null;
+let returnToLocationDetailAfterSave=null;
 
 function openLocationDetail(entryId){
   const entry=entries.find(e=>e.id===entryId);
@@ -1680,8 +1724,8 @@ function closeLocationDetail(){
 
 function editLocationFromDetail(){
   if(!currentDetailEntryId) return;
-  const entry=entries.find(e=>e.id===currentDetailEntryId);
   const entryId=currentDetailEntryId;
+  returnToLocationDetailAfterSave=entryId; // Flag to return to detail panel
   closeLocationDetail();
   closeDrawer();
   setTimeout(()=>{
@@ -2052,6 +2096,19 @@ async function saveEntry(){
         showDrawerSection('trips',document.querySelector('.dnav-btn:nth-child(2)'));
         setTimeout(()=>openAddLegModal(editingJourneyId, entry.id), 100);
       }, 300);
+    } else if(returnToLocationDetailAfterSave){
+      // Edited from location detail panel: return to detail panel
+      const returnId=returnToLocationDetailAfterSave;
+      returnToLocationDetailAfterSave=null;
+      setTimeout(()=>{
+        openDrawer();
+        showDrawerSection('trips',document.querySelector('.dnav-btn:nth-child(2)'));
+        setTimeout(()=>{
+          // Re-open the journey detail if we have an active journey
+          if(activeJourneyId) openJourneyDetail(activeJourneyId);
+          setTimeout(()=>openLocationDetail(returnId), 150);
+        }, 100);
+      }, 200);
     } else if(isNewEntry){
       // New entry: fly to the location on the map (don't open drawer)
       if(flyLat!=null && flyLng!=null){
@@ -2383,7 +2440,8 @@ async function loadUserSettings(uid){
 
 function updateFuelSummary(){
   const el=document.getElementById('fuel-summary');
-  if(el) el.textContent=`${fuelSettings.fuelType} · ${fuelSettings.mpg} mpg · $${fuelSettings.pricePerGal.toFixed(2)}/gal`;
+  const unitLabel=fuelSettings.priceUnit==='L'?'/L':'/gal';
+  if(el) el.textContent=`${fuelSettings.fuelType} · ${fuelSettings.mpg} mpg · $${fuelSettings.pricePerGal.toFixed(2)}${unitLabel}`;
 }
 
 // Journey modal functions
@@ -2418,6 +2476,7 @@ function openFuelSettingsModal(){
   document.getElementById('fuel-type').value=fuelSettings.fuelType;
   document.getElementById('fuel-mpg').value=fuelSettings.mpg;
   document.getElementById('fuel-price').value=fuelSettings.pricePerGal;
+  document.getElementById('fuel-price-unit').value=fuelSettings.priceUnit||'gal';
   document.getElementById('backup-radius').value=fuelSettings.backupRadius||30;
   document.getElementById('fuel-modal').classList.add('show');
 }
@@ -2430,6 +2489,7 @@ async function saveFuelSettings(){
   fuelSettings.fuelType=document.getElementById('fuel-type').value;
   fuelSettings.mpg=parseFloat(document.getElementById('fuel-mpg').value)||18;
   fuelSettings.pricePerGal=parseFloat(document.getElementById('fuel-price').value)||3.89;
+  fuelSettings.priceUnit=document.getElementById('fuel-price-unit').value||'gal';
   fuelSettings.backupRadius=parseInt(document.getElementById('backup-radius').value)||30;
   await window._db.saveSettings(window._currentUser.uid,fuelSettings);
   updateFuelSummary();
@@ -2477,6 +2537,15 @@ function openAddLegModal(journeyId, preselectedDestId=null){
   document.getElementById('leg-preview').style.display='none';
   document.getElementById('leg-backups').style.display='none';
   document.getElementById('leg-backup-radius').textContent=fuelSettings.backupRadius||30;
+  
+  // Initialize per-leg fuel settings
+  document.getElementById('leg-fuel-settings').style.display='none';
+  document.getElementById('leg-fuel-expanded').style.display='none';
+  document.getElementById('leg-fuel-toggle').textContent='▼';
+  document.getElementById('leg-fuel-price').value=fuelSettings.pricePerGal;
+  document.getElementById('leg-fuel-unit').value=fuelSettings.priceUnit||'gal';
+  const unitLabel=fuelSettings.priceUnit==='L'?'/L':'/gal';
+  document.getElementById('leg-fuel-default').textContent=`${fuelSettings.mpg} mpg, $${fuelSettings.pricePerGal.toFixed(2)}${unitLabel}`;
   
   // If we have a preselected destination (returning from add new location)
   if(preselectedDestId){
@@ -2627,6 +2696,9 @@ function selectLegDestination(entryId){
   document.getElementById('leg-search').value='';
   document.getElementById('leg-search-results').style.display='none';
   
+  // Show fuel settings section when destination is selected
+  document.getElementById('leg-fuel-settings').style.display='block';
+  
   // Calculate route preview
   calculateLegPreview(entry);
   
@@ -2639,6 +2711,58 @@ function clearLegDestination(){
   document.getElementById('leg-dest-selected').style.display='none';
   document.getElementById('leg-preview').style.display='none';
   document.getElementById('leg-backups').style.display='none';
+  document.getElementById('leg-fuel-settings').style.display='none';
+}
+
+// Per-leg fuel settings functions
+function toggleLegFuelExpand(){
+  const expanded=document.getElementById('leg-fuel-expanded');
+  const toggle=document.getElementById('leg-fuel-toggle');
+  if(expanded.style.display==='none'){
+    expanded.style.display='block';
+    toggle.textContent='▲';
+  }else{
+    expanded.style.display='none';
+    toggle.textContent='▼';
+  }
+}
+
+function updateLegFuelPreview(){
+  // Recalculate fuel cost with current per-leg values
+  const distEl=document.getElementById('leg-distance');
+  if(!distEl||distEl.textContent==='--'||distEl.textContent==='...') return;
+  
+  const milesText=distEl.textContent.replace(/[^0-9.]/g,'');
+  const miles=parseFloat(milesText)||0;
+  if(miles===0) return;
+  
+  const fuelCost=calculateFuelCost(miles);
+  document.getElementById('leg-fuel').textContent=`~$${Math.round(fuelCost)}`;
+}
+
+// Calculate fuel cost using per-leg overrides or defaults
+function calculateFuelCost(miles, legFuelPrice=null, legFuelUnit=null){
+  const mpg=fuelSettings.mpg;
+  const gallonsNeeded=miles/mpg;
+  
+  // Use per-leg values if provided, otherwise use defaults
+  let price=legFuelPrice;
+  let unit=legFuelUnit;
+  
+  if(price===null||price===undefined){
+    price=parseFloat(document.getElementById('leg-fuel-price')?.value)||fuelSettings.pricePerGal;
+  }
+  if(unit===null||unit===undefined){
+    unit=document.getElementById('leg-fuel-unit')?.value||fuelSettings.priceUnit||'gal';
+  }
+  
+  // Convert price to per-gallon if it's per-liter
+  let pricePerGallon=price;
+  if(unit==='L'){
+    pricePerGallon=price*LITERS_PER_GALLON;
+  }
+  
+  return gallonsNeeded*pricePerGallon;
 }
 
 async function calculateLegPreview(destEntry){
@@ -2671,7 +2795,7 @@ async function calculateLegPreview(destEntry){
       const miles=route.distance;
       const hours=Math.floor(route.duration/60);
       const mins=Math.round(route.duration%60);
-      const fuelCost=(miles/fuelSettings.mpg)*fuelSettings.pricePerGal;
+      const fuelCost=calculateFuelCost(miles);
       
       document.getElementById('leg-distance').textContent=`${Math.round(miles)} mi`;
       document.getElementById('leg-duration').textContent=hours>0?`${hours}h ${mins}m`:`${mins}m`;
@@ -2683,7 +2807,7 @@ async function calculateLegPreview(destEntry){
     const miles=haversineDistance(fromLat,fromLng,destEntry.lat,destEntry.lng);
     document.getElementById('leg-distance').textContent=`~${Math.round(miles)} mi`;
     document.getElementById('leg-duration').textContent='--';
-    document.getElementById('leg-fuel').textContent=`~$${Math.round((miles/fuelSettings.mpg)*fuelSettings.pricePerGal)}`;
+    document.getElementById('leg-fuel').textContent=`~$${Math.round(calculateFuelCost(miles))}`;
   }
 }
 
@@ -2794,6 +2918,10 @@ async function saveLeg(){
   const departDate=document.getElementById('leg-depart').value;
   const notes=document.getElementById('leg-notes').value.trim();
   
+  // Get per-leg fuel settings
+  const legFuelPrice=parseFloat(document.getElementById('leg-fuel-price').value)||fuelSettings.pricePerGal;
+  const legFuelUnit=document.getElementById('leg-fuel-unit').value||fuelSettings.priceUnit||'gal';
+  
   // Get origin info
   const fromId=document.getElementById('leg-from-id').value;
   let fromLat,fromLng,fromName;
@@ -2820,13 +2948,13 @@ async function saveLeg(){
       if(route){
         distance=Math.round(route.distance);
         duration=Math.round(route.duration);
-        fuelCost=Math.round((route.distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+        fuelCost=Math.round(calculateFuelCost(route.distance,legFuelPrice,legFuelUnit));
         routeGeometry=route.geometry; // Store the actual route path
       }
     }catch(e){
       distance=Math.round(haversineDistance(fromLat,fromLng,destEntry.lat,destEntry.lng)*1.3);
       duration=Math.round(distance/45*60);
-      fuelCost=Math.round((distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+      fuelCost=Math.round(calculateFuelCost(distance,legFuelPrice,legFuelUnit));
     }
   }
   
@@ -2845,6 +2973,8 @@ async function saveLeg(){
     distance,
     duration,
     fuelCost,
+    fuelPrice:legFuelPrice,
+    fuelPriceUnit:legFuelUnit,
     routeGeometry:routeGeometry?JSON.stringify(routeGeometry):null // Store as JSON string for Firestore
   };
   
@@ -2915,13 +3045,16 @@ function renderJourneys(){
     return `
       <div class="journey-card" style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
-          <div>
+          <div style="flex:1">
             <div style="font-size:15px;font-weight:700;color:var(--forest)">${j.name}</div>
             <div style="font-size:11px;color:var(--text-muted)">${legs.length} stop${legs.length!==1?'s':''} · ${totalMiles} mi · ${totalNights} nights</div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:16px;font-weight:700;color:var(--teal)">$${Math.round(totalCost)}</div>
-            <div style="font-size:10px;color:var(--text-muted)">total cost</div>
+          <div style="display:flex;align-items:start;gap:12px">
+            <div style="text-align:right">
+              <div style="font-size:16px;font-weight:700;color:var(--teal)">$${Math.round(totalCost)}</div>
+              <div style="font-size:10px;color:var(--text-muted)">total cost</div>
+            </div>
+            <button onclick="event.stopPropagation();confirmDeleteJourney('${j.id}')" style="background:none;border:none;color:#e76f51;font-size:16px;cursor:pointer;padding:4px;opacity:0.7" title="Delete journey">🗑</button>
           </div>
         </div>
         
@@ -2976,6 +3109,8 @@ function renderJourneys(){
 function openJourneyDetail(journeyId){
   const journey=journeys.find(j=>j.id===journeyId);
   if(!journey) return;
+  
+  activeJourneyId=journeyId; // Track active journey for returning after edits
   
   const legs=journey.legs||[];
   const today=new Date().toISOString().split('T')[0];
@@ -3246,6 +3381,15 @@ async function editLeg(journeyId,legIndex){
   document.getElementById('leg-arrive').value=leg.arriveDate||'';
   document.getElementById('leg-depart').value=leg.departDate||'';
   document.getElementById('leg-notes').value=leg.notes||'';
+  
+  // Set per-leg fuel settings
+  document.getElementById('leg-fuel-settings').style.display='block';
+  document.getElementById('leg-fuel-price').value=leg.fuelPrice||fuelSettings.pricePerGal;
+  document.getElementById('leg-fuel-unit').value=leg.fuelPriceUnit||fuelSettings.priceUnit||'gal';
+  document.getElementById('leg-fuel-expanded').style.display='none';
+  document.getElementById('leg-fuel-toggle').textContent='▼';
+  const unitLabel=(leg.fuelPriceUnit||fuelSettings.priceUnit)==='L'?'/L':'/gal';
+  document.getElementById('leg-fuel-default').textContent=`${fuelSettings.mpg} mpg, $${fuelSettings.pricePerGal.toFixed(2)}${fuelSettings.priceUnit==='L'?'/L':'/gal'}`;
   
   // Show preview
   const destEntry=entries.find(e=>e.id===leg.destId);
