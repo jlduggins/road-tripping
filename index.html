@@ -22,7 +22,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, browserLocalPersistence, setPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, getDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyAXrhjv1t3520X7QKiVI0qqeMAvpWS5Rdw",
@@ -91,7 +91,28 @@ window._db={
     const clean=Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
     await setDoc(doc(db,'users',uid,'logs',id),clean,{merge:true});
   },
-  async remove(uid,id){ await deleteDoc(doc(db,'users',uid,'logs',id)); }
+  async remove(uid,id){ await deleteDoc(doc(db,'users',uid,'logs',id)); },
+  
+  // Journey methods
+  subscribeJourneys(uid,cb,errCb){
+    return onSnapshot(query(collection(db,'users',uid,'journeys'),orderBy('createdAt','desc')),
+      snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()}))), errCb);
+  },
+  async saveJourney(uid,journey){
+    const{id,...data}=journey;
+    const clean=Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
+    await setDoc(doc(db,'users',uid,'journeys',id),clean,{merge:true});
+  },
+  async removeJourney(uid,id){ await deleteDoc(doc(db,'users',uid,'journeys',id)); },
+  
+  // User settings (fuel, backup radius, etc.)
+  async saveSettings(uid,settings){
+    await setDoc(doc(db,'users',uid),{settings},{merge:true});
+  },
+  async getSettings(uid){
+    const snap=await getDoc(doc(db,'users',uid));
+    return snap.exists()?snap.data().settings||{}:{};
+  }
 };
 </script>
 <style>
@@ -444,7 +465,7 @@ textarea.inp{resize:none}
 
 /* ── Delete confirm ── */
 .confirm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(88,111,107,.6);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
-.confirm-overlay.open{display:flex}
+.confirm-overlay.open,.confirm-overlay.show{display:flex}
 .confirm-box{background:var(--card);border-radius:24px;padding:32px;max-width:320px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
 
 /* ── Login ── */
@@ -603,6 +624,7 @@ textarea.inp{resize:none}
 
   <div class="drawer-nav">
     <button class="dnav-btn active" onclick="showDrawerSection('entries',this)"><span class="dnav-icon">☰</span> Entries</button>
+    <button class="dnav-btn" onclick="showDrawerSection('trips',this)"><span class="dnav-icon">🗺</span> Trips</button>
     <button class="dnav-btn" onclick="showDrawerSection('ai',this)"><span class="dnav-icon">✨</span> AI</button>
   </div>
 
@@ -709,6 +731,32 @@ textarea.inp{resize:none}
         <button onclick="sendAI()" style="background:var(--teal);color:white;border:none;border-radius:9px;padding:0 14px;font-weight:700;font-size:18px;flex-shrink:0">→</button>
       </div>
     </div>
+    
+    <!-- Trips section -->
+    <div id="dsec-trips" class="drawer-section">
+      <div class="trips-header" style="padding:12px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:14px;font-weight:700;color:var(--forest)">Your journeys</span>
+          <button onclick="openNewJourneyModal()" style="background:var(--teal);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px">
+            <span style="font-size:14px">+</span> New journey
+          </button>
+        </div>
+        <!-- Fuel settings -->
+        <div id="fuel-settings" style="background:rgba(88,111,107,0.08);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted)">
+          <span>⛽</span>
+          <span id="fuel-summary">Diesel · 18 mpg · $3.89/gal</span>
+          <button onclick="openFuelSettingsModal()" style="margin-left:auto;background:none;border:none;color:var(--teal);font-size:11px;font-weight:600;cursor:pointer">Change</button>
+        </div>
+      </div>
+      <div id="journeys-list" style="flex:1;overflow-y:auto;padding:12px">
+        <!-- Journeys will be rendered here -->
+        <div id="no-journeys" style="text-align:center;padding:40px 20px;color:var(--text-muted)">
+          <div style="font-size:36px;margin-bottom:12px">🗺</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px">No journeys yet</div>
+          <div style="font-size:12px">Create a journey to start planning your route</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="drawer-footer">
@@ -776,6 +824,26 @@ textarea.inp{resize:none}
         <div style="display:flex;align-items:center;gap:0">
           <span style="background:var(--border);padding:9px 12px;border-radius:var(--radius-sm) 0 0 var(--radius-sm);font-size:14px;color:var(--text);border:1px solid var(--border);border-right:none">$</span>
           <input class="inp" type="number" min="0" step="1" id="f-cost" placeholder="0 = free" style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;flex:1"/>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">🏷️ Discount</label>
+        <select class="inp" id="f-discount-type" onchange="toggleDiscountPercent()">
+          <option value="">None</option>
+          <option value="AAA">AAA</option>
+          <option value="Veteran">Veteran</option>
+          <option value="Disabled Veteran">Disabled Veteran</option>
+          <option value="Good Sam">Good Sam</option>
+          <option value="Senior">Senior</option>
+          <option value="Disability">Disability</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div id="discount-percent-wrap" style="display:none">
+        <label class="lbl">Discount %</label>
+        <div style="display:flex;align-items:center;gap:0">
+          <input class="inp" type="number" min="0" max="100" step="1" id="f-discount-percent" placeholder="10" style="border-radius:var(--radius-sm) 0 0 var(--radius-sm);flex:1"/>
+          <span style="background:var(--border);padding:9px 12px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:14px;color:var(--text);border:1px solid var(--border);border-left:none">%</span>
         </div>
       </div>
       <div>
@@ -855,10 +923,138 @@ textarea.inp{resize:none}
   </div>
 </div>
 
+<!-- New Journey Modal -->
+<div class="confirm-overlay" id="journey-modal">
+  <div class="confirm-box" style="max-width:340px;text-align:left">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--forest)">🗺 New journey</h3>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Journey name</label>
+      <input class="inp" type="text" id="j-name" placeholder="e.g., Southwest winter 2026" style="width:100%"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Start date (optional)</label>
+      <input class="inp" type="date" id="j-start" style="width:100%"/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeJourneyModal()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Cancel</button>
+      <button onclick="saveNewJourney()" style="padding:10px 20px;border-radius:var(--radius-sm);border:none;background:var(--teal);color:white;font-weight:700;font-size:14px">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fuel Settings Modal -->
+<div class="confirm-overlay" id="fuel-modal">
+  <div class="confirm-box" style="max-width:340px;text-align:left">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--forest)">⛽ Fuel settings</h3>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Fuel type</label>
+      <select class="inp" id="fuel-type" style="width:100%">
+        <option value="Diesel">Diesel</option>
+        <option value="Regular">Regular (87)</option>
+        <option value="Midgrade">Midgrade (89)</option>
+        <option value="Premium">Premium (91-93)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Average MPG</label>
+      <input class="inp" type="number" id="fuel-mpg" min="1" max="100" step="0.5" placeholder="18" style="width:100%"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Price per gallon ($)</label>
+      <input class="inp" type="number" id="fuel-price" min="0" step="0.01" placeholder="3.89" style="width:100%"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Backup search radius (miles)</label>
+      <input class="inp" type="number" id="backup-radius" min="5" max="200" step="5" placeholder="30" style="width:100%"/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeFuelModal()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Cancel</button>
+      <button onclick="saveFuelSettings()" style="padding:10px 20px;border-radius:var(--radius-sm);border:none;background:var(--teal);color:white;font-weight:700;font-size:14px">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Leg Modal -->
+<div class="confirm-overlay" id="leg-modal">
+  <div class="confirm-box" style="max-width:380px;max-height:90vh;overflow-y:auto;text-align:left">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--forest)">📍 Add destination</h3>
+    
+    <!-- From (auto-filled) -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">From</label>
+      <div id="leg-from" style="background:rgba(127,195,165,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--forest)">
+        <span id="leg-from-name">Starting point</span>
+      </div>
+    </div>
+    
+    <!-- To (search/select) -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">To</label>
+      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" style="width:100%;margin-bottom:8px"/>
+      <div id="leg-search-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none"></div>
+      <input type="hidden" id="leg-dest-id"/>
+      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span id="leg-dest-name" style="font-size:13px;font-weight:600;color:var(--forest)"></span>
+          <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
+        </div>
+      </div>
+      <button onclick="addNewLocationFromLeg()" style="margin-top:8px;background:none;border:none;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
+        <span>+</span> Add new location
+      </button>
+    </div>
+    
+    <!-- Dates -->
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="flex:1">
+        <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Arrive</label>
+        <input class="inp" type="date" id="leg-arrive" style="width:100%"/>
+      </div>
+      <div style="flex:1">
+        <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Depart</label>
+        <input class="inp" type="date" id="leg-depart" style="width:100%"/>
+      </div>
+    </div>
+    
+    <!-- Trip preview -->
+    <div id="leg-preview" style="background:rgba(127,195,165,0.1);border-radius:8px;padding:12px;margin-bottom:16px;display:none">
+      <div style="font-size:10px;font-weight:700;color:var(--teal);margin-bottom:8px;text-transform:uppercase">Trip preview</div>
+      <div style="display:flex;justify-content:space-between">
+        <div><div id="leg-distance" style="font-size:18px;font-weight:700;color:var(--forest)">--</div><div style="font-size:10px;color:var(--text-muted)">Distance</div></div>
+        <div style="text-align:center"><div id="leg-duration" style="font-size:18px;font-weight:700;color:var(--forest)">--</div><div style="font-size:10px;color:var(--text-muted)">Drive time</div></div>
+        <div style="text-align:right"><div id="leg-fuel" style="font-size:18px;font-weight:700;color:var(--forest)">--</div><div style="font-size:10px;color:var(--text-muted)">Est. fuel</div></div>
+      </div>
+    </div>
+    
+    <!-- Backup suggestions -->
+    <div id="leg-backups" style="display:none;background:rgba(245,158,11,0.1);border-radius:8px;padding:10px 12px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">💡</span>
+        <div style="flex:1;font-size:12px;color:#92400e">
+          <span id="leg-backup-count" style="font-weight:600">0 backup options</span> within <span id="leg-backup-radius">30</span>mi
+        </div>
+        <button onclick="showBackupOptions()" style="background:none;border:none;color:#92400e;font-size:12px;font-weight:600;cursor:pointer">View</button>
+      </div>
+    </div>
+    
+    <!-- Notes -->
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Notes (optional)</label>
+      <textarea class="inp" id="leg-notes" rows="2" placeholder="Reservation #, backup plans..." style="width:100%;resize:none"></textarea>
+    </div>
+    
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeLegModal()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Cancel</button>
+      <button onclick="saveLeg()" style="padding:10px 20px;border-radius:var(--radius-sm);border:none;background:var(--teal);color:white;font-weight:700;font-size:14px">Add</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
+const ORS_API_KEY     = ''; // OpenRouteService API key - get free at openrouteservice.org
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
@@ -880,7 +1076,16 @@ let entries=[],editId=null,pendingLat=null,pendingLng=null,currentRating=0,pendi
 let map,markers=[],myDotMarker=null,myDotCircle=null,dragPin=null;
 let streetLayer,satelliteLayer,isSatellite=false;
 let aiMessages=[],deleteTargetId=null;
-let firestoreUnsub=null,mapReady=false;
+let firestoreUnsub=null,journeyUnsub=null,mapReady=false;
+
+// Journey/trip state
+let journeys=[];
+let activeJourneyId=null;
+let fuelSettings={
+  fuelType:'Diesel',
+  mpg:18,
+  pricePerGal:3.89
+};
 
 function genId(){return Math.random().toString(36).slice(2)+Date.now().toString(36);}
 function today(){return new Date().toISOString().split('T')[0];}
@@ -910,9 +1115,11 @@ window._showLogin=function(){
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   entries=[];
+  journeys=[];
   sampleAddedForUser=null; // Reset when logging out
   subscribedForUser=null; // Reset subscription tracking
   if(firestoreUnsub){ firestoreUnsub(); firestoreUnsub=null; }
+  if(journeyUnsub){ journeyUnsub(); journeyUnsub=null; }
 };
 
 let sampleAddedForUser=null; // Track which user we've added sample for
@@ -929,11 +1136,13 @@ window._subscribeFirestore=function(uid){
     console.log('[Firestore] Unsubscribing previous listener');
     firestoreUnsub(); 
   }
+  if(journeyUnsub){ journeyUnsub(); }
   
   subscribedForUser = uid;
   let isFirstSnapshot = true;
   console.log('[Firestore] Subscribing for user', uid);
   
+  // Subscribe to locations
   firestoreUnsub=window._db.subscribe(uid,docs=>{
     console.log('[Firestore] Snapshot received:', docs.length, 'docs, isFirstSnapshot:', isFirstSnapshot);
     // Check if this is a first-time user with no entries (only on first snapshot)
@@ -952,6 +1161,16 @@ window._subscribeFirestore=function(uid){
     renderMarkers();
     renderEntries();
   }, err=>console.error('Firestore:',err));
+  
+  // Subscribe to journeys
+  journeyUnsub=window._db.subscribeJourneys(uid,docs=>{
+    console.log('[Firestore] Journeys received:', docs.length);
+    journeys=docs;
+    renderJourneys();
+  }, err=>console.error('Firestore journeys:',err));
+  
+  // Load user settings (fuel, etc.)
+  loadUserSettings(uid);
 };
 
 // Sample location for first-time users
@@ -1294,6 +1513,12 @@ function showDrawerSection(name,btn){
 }
 
 // ── Form panel ────────────────────────────────────────────────────────────────
+function toggleDiscountPercent(){
+  const type=document.getElementById('f-discount-type').value;
+  const wrap=document.getElementById('discount-percent-wrap');
+  wrap.style.display=type?'block':'none';
+}
+
 function openFormPanelById(id){
   const entry=entries.find(e=>e.id===id);
   if(entry) openFormPanel(entry);
@@ -1325,6 +1550,9 @@ function openFormPanel(entry,lat,lng){
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
   document.getElementById('f-status-sel').value=entry?entry.status:'planned';
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
+  document.getElementById('f-discount-type').value=entry?(entry.discountType||''):'';
+  document.getElementById('f-discount-percent').value=(entry&&entry.discountPercent!=null)?entry.discountPercent:'';
+  toggleDiscountPercent();
   document.getElementById('f-notes').value=entry?(entry.notes||''):'';
   document.getElementById('f-link').value=entry?(entry.link||''):'';
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ document.getElementById(el).checked=entry?!!entry[key]:false; });
@@ -1614,6 +1842,8 @@ async function saveEntry(){
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
   const costVal=document.getElementById('f-cost').value;
+  const discountType=document.getElementById('f-discount-type').value;
+  const discountPercentVal=document.getElementById('f-discount-percent').value;
   const linkVal=document.getElementById('f-link').value.trim();
   const entry={
     id:editId||genId(),
@@ -1625,6 +1855,8 @@ async function saveEntry(){
     type:document.getElementById('f-type-sel').value,
     status:document.getElementById('f-status-sel').value,
     cost:costVal===''?null:parseInt(costVal),
+    discountType:discountType||null,
+    discountPercent:discountPercentVal===''?null:parseInt(discountPercentVal),
     rating:currentRating,
     notes:document.getElementById('f-notes').value.trim(),
     link:linkVal||null,
@@ -1924,6 +2156,497 @@ function updateStateFilter(){
     lastTap=now;
   });
 })();
+
+// ── Journey/Trip Functions ───────────────────────────────────────────────────
+let editingJourneyId=null;
+let editingLegIndex=null;
+let pendingLegFromId=null;
+
+// Load/save user settings
+async function loadUserSettings(uid){
+  try{
+    const settings=await window._db.getSettings(uid);
+    if(settings.fuelType) fuelSettings.fuelType=settings.fuelType;
+    if(settings.mpg) fuelSettings.mpg=settings.mpg;
+    if(settings.pricePerGal) fuelSettings.pricePerGal=settings.pricePerGal;
+    if(settings.backupRadius) fuelSettings.backupRadius=settings.backupRadius;
+    else fuelSettings.backupRadius=30;
+    updateFuelSummary();
+  }catch(e){ console.log('No saved settings yet'); }
+}
+
+function updateFuelSummary(){
+  const el=document.getElementById('fuel-summary');
+  if(el) el.textContent=`${fuelSettings.fuelType} · ${fuelSettings.mpg} mpg · $${fuelSettings.pricePerGal.toFixed(2)}/gal`;
+}
+
+// Journey modal functions
+function openNewJourneyModal(){
+  editingJourneyId=null;
+  document.getElementById('j-name').value='';
+  document.getElementById('j-start').value='';
+  document.getElementById('journey-modal').classList.add('show');
+}
+
+function closeJourneyModal(){
+  document.getElementById('journey-modal').classList.remove('show');
+}
+
+async function saveNewJourney(){
+  const name=document.getElementById('j-name').value.trim();
+  if(!name){ alert('Please enter a journey name'); return; }
+  const journey={
+    id:editingJourneyId||genId(),
+    uid:window._currentUser.uid,
+    name,
+    startDate:document.getElementById('j-start').value||null,
+    createdAt:editingJourneyId?(journeys.find(j=>j.id===editingJourneyId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
+    legs:editingJourneyId?(journeys.find(j=>j.id===editingJourneyId)||{}).legs||[]:[]
+  };
+  await window._db.saveJourney(window._currentUser.uid,journey);
+  closeJourneyModal();
+}
+
+// Fuel settings modal
+function openFuelSettingsModal(){
+  document.getElementById('fuel-type').value=fuelSettings.fuelType;
+  document.getElementById('fuel-mpg').value=fuelSettings.mpg;
+  document.getElementById('fuel-price').value=fuelSettings.pricePerGal;
+  document.getElementById('backup-radius').value=fuelSettings.backupRadius||30;
+  document.getElementById('fuel-modal').classList.add('show');
+}
+
+function closeFuelModal(){
+  document.getElementById('fuel-modal').classList.remove('show');
+}
+
+async function saveFuelSettings(){
+  fuelSettings.fuelType=document.getElementById('fuel-type').value;
+  fuelSettings.mpg=parseFloat(document.getElementById('fuel-mpg').value)||18;
+  fuelSettings.pricePerGal=parseFloat(document.getElementById('fuel-price').value)||3.89;
+  fuelSettings.backupRadius=parseInt(document.getElementById('backup-radius').value)||30;
+  await window._db.saveSettings(window._currentUser.uid,fuelSettings);
+  updateFuelSummary();
+  closeFuelModal();
+  renderJourneys(); // Re-render with new fuel costs
+}
+
+// Add leg modal
+function openAddLegModal(journeyId){
+  editingJourneyId=journeyId;
+  editingLegIndex=null;
+  const journey=journeys.find(j=>j.id===journeyId);
+  const legs=journey?.legs||[];
+  
+  // Set "From" based on last leg or journey start
+  if(legs.length>0){
+    const lastLeg=legs[legs.length-1];
+    const destEntry=entries.find(e=>e.id===lastLeg.destId);
+    document.getElementById('leg-from-name').textContent=destEntry?.name||'Previous destination';
+    pendingLegFromId=lastLeg.destId;
+    // Suggest arrival date as departure from previous
+    document.getElementById('leg-arrive').value=lastLeg.departDate||'';
+  }else{
+    document.getElementById('leg-from-name').textContent='Starting point (your current location)';
+    pendingLegFromId=null;
+    document.getElementById('leg-arrive').value=journey?.startDate||'';
+  }
+  
+  // Reset other fields
+  document.getElementById('leg-search').value='';
+  document.getElementById('leg-dest-id').value='';
+  document.getElementById('leg-dest-selected').style.display='none';
+  document.getElementById('leg-search-results').style.display='none';
+  document.getElementById('leg-depart').value='';
+  document.getElementById('leg-notes').value='';
+  document.getElementById('leg-preview').style.display='none';
+  document.getElementById('leg-backups').style.display='none';
+  document.getElementById('leg-backup-radius').textContent=fuelSettings.backupRadius||30;
+  
+  document.getElementById('leg-modal').classList.add('show');
+}
+
+function closeLegModal(){
+  document.getElementById('leg-modal').classList.remove('show');
+}
+
+function searchLocationsForLeg(query){
+  const results=document.getElementById('leg-search-results');
+  if(!query.trim()){
+    results.style.display='none';
+    return;
+  }
+  const q=query.toLowerCase();
+  const matches=entries.filter(e=>
+    e.name.toLowerCase().includes(q)||
+    (e.address||'').toLowerCase().includes(q)||
+    e.type.toLowerCase().includes(q)
+  ).slice(0,8);
+  
+  if(!matches.length){
+    results.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">No matches found</div>';
+    results.style.display='block';
+    return;
+  }
+  
+  results.innerHTML=matches.map(e=>`
+    <div onclick="selectLegDestination('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${e.type}${e.address?' · '+e.address.split(',').slice(-2).join(',').trim():''}</div>
+    </div>
+  `).join('');
+  results.style.display='block';
+}
+
+function selectLegDestination(entryId){
+  const entry=entries.find(e=>e.id===entryId);
+  if(!entry) return;
+  
+  document.getElementById('leg-dest-id').value=entryId;
+  document.getElementById('leg-dest-name').textContent=entry.name;
+  document.getElementById('leg-dest-selected').style.display='block';
+  document.getElementById('leg-search').value='';
+  document.getElementById('leg-search-results').style.display='none';
+  
+  // Calculate route preview
+  calculateLegPreview(entry);
+  
+  // Find backup options
+  findBackupOptions(entry);
+}
+
+function clearLegDestination(){
+  document.getElementById('leg-dest-id').value='';
+  document.getElementById('leg-dest-selected').style.display='none';
+  document.getElementById('leg-preview').style.display='none';
+  document.getElementById('leg-backups').style.display='none';
+}
+
+async function calculateLegPreview(destEntry){
+  const preview=document.getElementById('leg-preview');
+  
+  // Get origin coordinates
+  let fromLat,fromLng;
+  if(pendingLegFromId){
+    const fromEntry=entries.find(e=>e.id===pendingLegFromId);
+    if(fromEntry){ fromLat=fromEntry.lat; fromLng=fromEntry.lng; }
+  }
+  if(!fromLat&&myDotMarker){
+    const ll=myDotMarker.getLatLng();
+    fromLat=ll.lat; fromLng=ll.lng;
+  }
+  
+  if(!fromLat||!destEntry.lat){
+    preview.style.display='none';
+    return;
+  }
+  
+  preview.style.display='block';
+  document.getElementById('leg-distance').textContent='...';
+  document.getElementById('leg-duration').textContent='...';
+  document.getElementById('leg-fuel').textContent='...';
+  
+  try{
+    const route=await getRoute(fromLat,fromLng,destEntry.lat,destEntry.lng);
+    if(route){
+      const miles=route.distance;
+      const hours=Math.floor(route.duration/60);
+      const mins=Math.round(route.duration%60);
+      const fuelCost=(miles/fuelSettings.mpg)*fuelSettings.pricePerGal;
+      
+      document.getElementById('leg-distance').textContent=`${Math.round(miles)} mi`;
+      document.getElementById('leg-duration').textContent=hours>0?`${hours}h ${mins}m`:`${mins}m`;
+      document.getElementById('leg-fuel').textContent=`~$${Math.round(fuelCost)}`;
+    }
+  }catch(e){
+    console.error('Route calculation failed:',e);
+    // Fallback to straight-line distance
+    const miles=haversineDistance(fromLat,fromLng,destEntry.lat,destEntry.lng);
+    document.getElementById('leg-distance').textContent=`~${Math.round(miles)} mi`;
+    document.getElementById('leg-duration').textContent='--';
+    document.getElementById('leg-fuel').textContent=`~$${Math.round((miles/fuelSettings.mpg)*fuelSettings.pricePerGal)}`;
+  }
+}
+
+// Haversine distance in miles
+function haversineDistance(lat1,lon1,lat2,lon2){
+  const R=3959; // Earth radius in miles
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// OpenRouteService routing
+async function getRoute(fromLat,fromLng,toLat,toLng){
+  if(!ORS_API_KEY){
+    // No API key, use straight-line estimate
+    const miles=haversineDistance(fromLat,fromLng,toLat,toLng);
+    return {distance:miles*1.3, duration:miles*1.3/45*60}; // Rough estimate: 1.3x straight line, 45mph avg
+  }
+  const url=`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
+  const res=await fetch(url);
+  const data=await res.json();
+  if(data.features&&data.features[0]){
+    const props=data.features[0].properties.summary;
+    return {
+      distance:props.distance*0.000621371, // meters to miles
+      duration:props.duration/60 // seconds to minutes
+    };
+  }
+  return null;
+}
+
+function findBackupOptions(destEntry){
+  if(!destEntry.lat) return;
+  const radius=fuelSettings.backupRadius||30;
+  const backups=entries.filter(e=>{
+    if(e.id===destEntry.id) return false;
+    if(!e.lat) return false;
+    const dist=haversineDistance(destEntry.lat,destEntry.lng,e.lat,e.lng);
+    return dist<=radius;
+  });
+  
+  const el=document.getElementById('leg-backups');
+  const countEl=document.getElementById('leg-backup-count');
+  const radiusEl=document.getElementById('leg-backup-radius');
+  
+  if(backups.length>0){
+    countEl.textContent=`${backups.length} backup option${backups.length>1?'s':''}`;
+    radiusEl.textContent=radius;
+    el.style.display='block';
+    el._backups=backups;
+  }else{
+    el.style.display='none';
+  }
+}
+
+function showBackupOptions(){
+  const el=document.getElementById('leg-backups');
+  const backups=el._backups||[];
+  if(!backups.length) return;
+  
+  // Show backup list in search results area
+  const results=document.getElementById('leg-search-results');
+  results.innerHTML='<div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--teal);background:rgba(127,195,165,0.1);border-bottom:1px solid var(--border)">BACKUP OPTIONS</div>'+
+    backups.map(e=>{
+      const dest=entries.find(d=>d.id===document.getElementById('leg-dest-id').value);
+      const dist=dest?Math.round(haversineDistance(dest.lat,dest.lng,e.lat,e.lng)):0;
+      return `<div onclick="selectLegDestination('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${dist}mi away</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted)">${e.type}</div>
+      </div>`;
+    }).join('');
+  results.style.display='block';
+}
+
+function addNewLocationFromLeg(){
+  closeLegModal();
+  closeDrawer();
+  openFormPanel(null);
+}
+
+async function saveLeg(){
+  const destId=document.getElementById('leg-dest-id').value;
+  if(!destId){ alert('Please select a destination'); return; }
+  
+  const destEntry=entries.find(e=>e.id===destId);
+  const arriveDate=document.getElementById('leg-arrive').value;
+  const departDate=document.getElementById('leg-depart').value;
+  const notes=document.getElementById('leg-notes').value.trim();
+  
+  // Calculate route info
+  let distance=0,duration=0,fuelCost=0;
+  let fromLat,fromLng;
+  if(pendingLegFromId){
+    const fromEntry=entries.find(e=>e.id===pendingLegFromId);
+    if(fromEntry){ fromLat=fromEntry.lat; fromLng=fromEntry.lng; }
+  }
+  if(!fromLat&&myDotMarker){
+    const ll=myDotMarker.getLatLng();
+    fromLat=ll.lat; fromLng=ll.lng;
+  }
+  
+  if(fromLat&&destEntry.lat){
+    try{
+      const route=await getRoute(fromLat,fromLng,destEntry.lat,destEntry.lng);
+      if(route){
+        distance=Math.round(route.distance);
+        duration=Math.round(route.duration);
+        fuelCost=Math.round((route.distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+      }
+    }catch(e){
+      distance=Math.round(haversineDistance(fromLat,fromLng,destEntry.lat,destEntry.lng)*1.3);
+      duration=Math.round(distance/45*60);
+      fuelCost=Math.round((distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+    }
+  }
+  
+  const leg={
+    destId,
+    destName:destEntry.name,
+    destLat:destEntry.lat,
+    destLng:destEntry.lng,
+    arriveDate,
+    departDate,
+    notes,
+    distance,
+    duration,
+    fuelCost
+  };
+  
+  // Add leg to journey
+  const journey=journeys.find(j=>j.id===editingJourneyId);
+  if(!journey) return;
+  
+  const updatedLegs=[...(journey.legs||[])];
+  if(editingLegIndex!==null){
+    updatedLegs[editingLegIndex]=leg;
+  }else{
+    updatedLegs.push(leg);
+  }
+  
+  journey.legs=updatedLegs;
+  await window._db.saveJourney(window._currentUser.uid,journey);
+  closeLegModal();
+}
+
+// Render journeys list
+function renderJourneys(){
+  const list=document.getElementById('journeys-list');
+  const noJourneys=document.getElementById('no-journeys');
+  
+  if(!journeys.length){
+    noJourneys.style.display='block';
+    list.querySelectorAll('.journey-card').forEach(c=>c.remove());
+    return;
+  }
+  
+  noJourneys.style.display='none';
+  
+  list.innerHTML=journeys.map(j=>{
+    const legs=j.legs||[];
+    const totalMiles=legs.reduce((s,l)=>s+(l.distance||0),0);
+    const totalFuel=legs.reduce((s,l)=>s+(l.fuelCost||0),0);
+    const totalNights=legs.reduce((s,l)=>{
+      if(!l.arriveDate||!l.departDate) return s;
+      const nights=Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24));
+      return s+Math.max(0,nights);
+    },0);
+    const totalLodging=legs.reduce((s,l)=>{
+      const entry=entries.find(e=>e.id===l.destId);
+      if(!entry||!l.arriveDate||!l.departDate) return s;
+      const nights=Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24));
+      if(nights<=0) return s;
+      let cost=(entry.cost||0)*nights;
+      if(entry.discountPercent&&entry.discountType){
+        cost=cost*(1-entry.discountPercent/100);
+      }
+      return s+cost;
+    },0);
+    const totalCost=totalFuel+totalLodging;
+    
+    // Find current leg based on today's date
+    const today=new Date().toISOString().split('T')[0];
+    let currentLegIdx=-1;
+    for(let i=0;i<legs.length;i++){
+      const l=legs[i];
+      if(l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today){
+        currentLegIdx=i; break;
+      }
+    }
+    
+    return `
+      <div class="journey-card" style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--forest)">${j.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${legs.length} stop${legs.length!==1?'s':''} · ${totalMiles} mi · ${totalNights} nights</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:700;color:var(--teal)">$${Math.round(totalCost)}</div>
+            <div style="font-size:10px;color:var(--text-muted)">total cost</div>
+          </div>
+        </div>
+        
+        <!-- Cost breakdown -->
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:6px 10px;text-align:center">
+            <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(totalLodging)}</div>
+            <div style="font-size:9px;color:var(--text-muted)">Lodging</div>
+          </div>
+          <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:6px 10px;text-align:center">
+            <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(totalFuel)}</div>
+            <div style="font-size:9px;color:var(--text-muted)">Fuel</div>
+          </div>
+        </div>
+        
+        <!-- Legs preview -->
+        <div style="border-top:1px solid var(--border);padding-top:10px">
+          ${legs.slice(0,3).map((l,i)=>{
+            const isPast=l.departDate&&l.departDate<today;
+            const isCurrent=i===currentLegIdx;
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;${isPast?'opacity:0.5;':''}">
+              <div style="width:8px;height:8px;border-radius:50%;${isCurrent?'background:var(--teal);box-shadow:0 0 0 3px rgba(127,195,165,0.3);':'background:var(--teal);opacity:0.6;'}"></div>
+              <div style="flex:1;font-size:12px;color:var(--forest);${isCurrent?'font-weight:600;':''}">
+                ${l.destName}${isCurrent?' <span style="color:var(--teal);font-size:10px">📍 Now</span>':''}
+              </div>
+              <div style="font-size:10px;color:var(--text-muted)">${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>
+            </div>`;
+          }).join('')}
+          ${legs.length>3?`<div style="font-size:11px;color:var(--text-muted);padding:4px 0 0 16px">+${legs.length-3} more stops</div>`:''}
+        </div>
+        
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="viewJourneyOnMap('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:12px;font-weight:600">View on map</button>
+          <button onclick="openAddLegModal('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--teal);color:white;font-size:12px;font-weight:600">+ Add stop</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// View journey on map
+let journeyRouteLayer=null;
+function viewJourneyOnMap(journeyId){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs?.length) return;
+  
+  // Clear previous route
+  if(journeyRouteLayer){
+    map.removeLayer(journeyRouteLayer);
+  }
+  
+  // Create route line
+  const coords=[];
+  const today=new Date().toISOString().split('T')[0];
+  
+  journey.legs.forEach((leg,i)=>{
+    if(leg.destLat&&leg.destLng){
+      coords.push([leg.destLat,leg.destLng]);
+    }
+  });
+  
+  if(coords.length>1){
+    journeyRouteLayer=L.polyline(coords,{
+      color:'#7FC3A5',
+      weight:4,
+      opacity:0.8,
+      dashArray:'10,6'
+    }).addTo(map);
+    
+    // Fit map to show entire route
+    map.fitBounds(journeyRouteLayer.getBounds(),{padding:[50,50]});
+  }else if(coords.length===1){
+    map.setView(coords[0],10);
+  }
+  
+  closeDrawer();
+}
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
