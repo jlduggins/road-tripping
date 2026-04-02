@@ -979,19 +979,25 @@ textarea.inp{resize:none}
   <div class="confirm-box" style="max-width:380px;max-height:90vh;overflow-y:auto;text-align:left">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--forest)">📍 Add destination</h3>
     
-    <!-- From (auto-filled) -->
+    <!-- From (selectable) -->
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">From</label>
-      <div id="leg-from" style="background:rgba(127,195,165,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--forest)">
-        <span id="leg-from-name">Starting point</span>
+      <input type="hidden" id="leg-from-id"/>
+      <div id="leg-from-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span id="leg-from-name" style="font-size:13px;font-weight:600;color:var(--forest)">Starting point</span>
+          <button onclick="clearLegOrigin()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
+        </div>
       </div>
+      <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none"/>
+      <div id="leg-from-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
     </div>
     
     <!-- To (search/select) -->
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">To</label>
-      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" style="width:100%;margin-bottom:8px"/>
-      <div id="leg-search-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none"></div>
+      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%"/>
+      <div id="leg-search-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
       <input type="hidden" id="leg-dest-id"/>
       <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -1052,7 +1058,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 const ORS_API_KEY     = ''; // OpenRouteService API key - get free at openrouteservice.org
 
@@ -1877,7 +1883,16 @@ async function saveEntry(){
   try{ 
     await saveToFirestore(entry);
     
-    if(isNewEntry){
+    // Check if we should return to the leg modal
+    if(returnToLegModalAfterSave){
+      returnToLegModalAfterSave=false;
+      // Wait for Firestore to update entries, then open leg modal with this location selected
+      setTimeout(()=>{
+        openDrawer();
+        showDrawerSection('trips',document.querySelector('.dnav-btn:nth-child(2)'));
+        setTimeout(()=>openAddLegModal(editingJourneyId, entry.id), 100);
+      }, 300);
+    } else if(isNewEntry){
       // New entry: fly to the location on the map (don't open drawer)
       if(flyLat!=null && flyLng!=null){
         setTimeout(()=>map.flyTo([flyLat, flyLng], 14, {duration: 1}), 300);
@@ -2232,7 +2247,9 @@ async function saveFuelSettings(){
 }
 
 // Add leg modal
-function openAddLegModal(journeyId){
+let returnToLegModalAfterSave=false;
+
+function openAddLegModal(journeyId, preselectedDestId=null){
   editingJourneyId=journeyId;
   editingLegIndex=null;
   const journey=journeys.find(j=>j.id===journeyId);
@@ -2243,12 +2260,18 @@ function openAddLegModal(journeyId){
     const lastLeg=legs[legs.length-1];
     const destEntry=entries.find(e=>e.id===lastLeg.destId);
     document.getElementById('leg-from-name').textContent=destEntry?.name||'Previous destination';
+    document.getElementById('leg-from-id').value=lastLeg.destId;
     pendingLegFromId=lastLeg.destId;
+    document.getElementById('leg-from-selected').style.display='block';
+    document.getElementById('leg-from-search').style.display='none';
     // Suggest arrival date as departure from previous
     document.getElementById('leg-arrive').value=lastLeg.departDate||'';
   }else{
-    document.getElementById('leg-from-name').textContent='Starting point (your current location)';
+    document.getElementById('leg-from-name').textContent='📍 Current location';
+    document.getElementById('leg-from-id').value='';
     pendingLegFromId=null;
+    document.getElementById('leg-from-selected').style.display='block';
+    document.getElementById('leg-from-search').style.display='none';
     document.getElementById('leg-arrive').value=journey?.startDate||'';
   }
   
@@ -2257,23 +2280,128 @@ function openAddLegModal(journeyId){
   document.getElementById('leg-dest-id').value='';
   document.getElementById('leg-dest-selected').style.display='none';
   document.getElementById('leg-search-results').style.display='none';
+  document.getElementById('leg-from-results').style.display='none';
   document.getElementById('leg-depart').value='';
   document.getElementById('leg-notes').value='';
   document.getElementById('leg-preview').style.display='none';
   document.getElementById('leg-backups').style.display='none';
   document.getElementById('leg-backup-radius').textContent=fuelSettings.backupRadius||30;
   
+  // If we have a preselected destination (returning from add new location)
+  if(preselectedDestId){
+    const entry=entries.find(e=>e.id===preselectedDestId);
+    if(entry){
+      selectLegDestination(preselectedDestId);
+    }
+  }
+  
   document.getElementById('leg-modal').classList.add('show');
 }
 
 function closeLegModal(){
   document.getElementById('leg-modal').classList.remove('show');
+  returnToLegModalAfterSave=false;
+}
+
+// From field functions
+function clearLegOrigin(){
+  document.getElementById('leg-from-id').value='';
+  pendingLegFromId=null;
+  document.getElementById('leg-from-selected').style.display='none';
+  document.getElementById('leg-from-search').style.display='block';
+  document.getElementById('leg-from-search').value='';
+  document.getElementById('leg-from-search').focus();
+}
+
+function showFromOptions(){
+  const results=document.getElementById('leg-from-results');
+  // Show current location option + recent locations
+  let html='<div onclick="selectLegOrigin(null)" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;background:rgba(127,195,165,0.05)" onmouseover="this.style.background=\'rgba(127,195,165,0.15)\'" onmouseout="this.style.background=\'rgba(127,195,165,0.05)\'"><div style="font-size:13px;font-weight:600;color:var(--teal)">📍 Use current location</div></div>';
+  html+=entries.slice(0,6).map(e=>`
+    <div onclick="selectLegOrigin('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${e.type}</div>
+    </div>
+  `).join('');
+  results.innerHTML=html;
+  results.style.display='block';
+}
+
+function searchLocationsForLegFrom(query){
+  const results=document.getElementById('leg-from-results');
+  if(!query.trim()){
+    showFromOptions();
+    return;
+  }
+  const q=query.toLowerCase();
+  let html='<div onclick="selectLegOrigin(null)" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;background:rgba(127,195,165,0.05)" onmouseover="this.style.background=\'rgba(127,195,165,0.15)\'" onmouseout="this.style.background=\'rgba(127,195,165,0.05)\'"><div style="font-size:13px;font-weight:600;color:var(--teal)">📍 Use current location</div></div>';
+  const matches=entries.filter(e=>
+    e.name.toLowerCase().includes(q)||
+    (e.address||'').toLowerCase().includes(q)||
+    e.type.toLowerCase().includes(q)
+  ).slice(0,6);
+  
+  html+=matches.map(e=>`
+    <div onclick="selectLegOrigin('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${e.type}</div>
+    </div>
+  `).join('');
+  results.innerHTML=html;
+  results.style.display='block';
+}
+
+function selectLegOrigin(entryId){
+  if(entryId){
+    const entry=entries.find(e=>e.id===entryId);
+    if(!entry) return;
+    document.getElementById('leg-from-name').textContent=entry.name;
+    document.getElementById('leg-from-id').value=entryId;
+    pendingLegFromId=entryId;
+  }else{
+    document.getElementById('leg-from-name').textContent='📍 Current location';
+    document.getElementById('leg-from-id').value='';
+    pendingLegFromId=null;
+  }
+  document.getElementById('leg-from-selected').style.display='block';
+  document.getElementById('leg-from-search').style.display='none';
+  document.getElementById('leg-from-results').style.display='none';
+  
+  // Recalculate preview if destination is set
+  const destId=document.getElementById('leg-dest-id').value;
+  if(destId){
+    const destEntry=entries.find(e=>e.id===destId);
+    if(destEntry) calculateLegPreview(destEntry);
+  }
+}
+
+// To field functions
+function showToOptions(){
+  const results=document.getElementById('leg-search-results');
+  const query=document.getElementById('leg-search').value.trim();
+  if(query){
+    searchLocationsForLeg(query);
+    return;
+  }
+  // Show recent locations
+  if(!entries.length){
+    results.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">No locations logged yet</div>';
+    results.style.display='block';
+    return;
+  }
+  results.innerHTML=entries.slice(0,8).map(e=>`
+    <div onclick="selectLegDestination('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${e.type}${e.address?' · '+e.address.split(',').slice(-2).join(',').trim():''}</div>
+    </div>
+  `).join('');
+  results.style.display='block';
 }
 
 function searchLocationsForLeg(query){
   const results=document.getElementById('leg-search-results');
   if(!query.trim()){
-    results.style.display='none';
+    showToOptions();
     return;
   }
   const q=query.toLowerCase();
@@ -2444,6 +2572,7 @@ function showBackupOptions(){
 }
 
 function addNewLocationFromLeg(){
+  returnToLegModalAfterSave=true;
   closeLegModal();
   closeDrawer();
   openFormPanel(null);
