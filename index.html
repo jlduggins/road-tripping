@@ -242,6 +242,39 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 @media(min-width:641px){
   #drawer-resize{display:block}
 }
+
+/* ── Location Detail Panel (nested drawer) ── */
+#location-detail-panel{
+  position:fixed;top:0;bottom:0;z-index:910;
+  width:300px;min-width:280px;max-width:50vw;
+  background:var(--card);
+  display:flex;flex-direction:column;
+  transform:translateX(-100%);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 24px rgba(0,0,0,.2)
+}
+#location-detail-panel.open{transform:translateX(0)}
+#location-detail-panel.resizing{transition:none}
+#location-detail-resize{
+  position:absolute;top:0;bottom:0;right:0;width:6px;
+  cursor:ew-resize;background:transparent;z-index:10;
+  display:none
+}
+#location-detail-resize:hover,#location-detail-resize.active{background:rgba(184,85,211,.4)}
+@media(min-width:641px){
+  #location-detail-resize{display:block}
+}
+#location-detail-header{
+  padding:calc(18px + env(safe-area-inset-top)) 16px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+#location-detail-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+#location-detail-footer{
+  padding:12px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);flex-shrink:0
+}
+
 #drawer-header{
   padding:calc(18px + env(safe-area-inset-top)) 16px 14px;
   border-bottom:1px solid rgba(88,111,107,.1);
@@ -771,6 +804,21 @@ textarea.inp{resize:none}
       <span id="user-name"></span>
       <button class="signout-btn" onclick="doSignOut()">Sign out</button>
     </div>
+  </div>
+</div>
+
+<!-- Location Detail Panel (nested drawer for viewing location info) -->
+<div id="location-detail-panel">
+  <div id="location-detail-resize"></div>
+  <div id="location-detail-header">
+    <div style="font-size:14px;font-weight:600;color:var(--forest)">Location details</div>
+    <button onclick="closeLocationDetail()" style="background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer;padding:4px">✕</button>
+  </div>
+  <div id="location-detail-content">
+    <!-- Content populated by JS -->
+  </div>
+  <div id="location-detail-footer">
+    <button id="location-detail-edit-btn" onclick="editLocationFromDetail()" style="width:100%;padding:10px;background:var(--teal);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Edit location</button>
   </div>
 </div>
 
@@ -1541,6 +1589,97 @@ function openFormPanelById(id){
   if(entry) openFormPanel(entry);
 }
 
+// ── Location Detail Panel ─────────────────────────────────────────────────────
+let currentDetailEntryId=null;
+
+function openLocationDetail(entryId){
+  const entry=entries.find(e=>e.id===entryId);
+  if(!entry) return;
+  currentDetailEntryId=entryId;
+  
+  const panel=document.getElementById('location-detail-panel');
+  const content=document.getElementById('location-detail-content');
+  const drawer=document.getElementById('drawer');
+  
+  // Position panel to the right of the drawer
+  const drawerWidth=drawer.offsetWidth||320;
+  panel.style.left=drawerWidth+'px';
+  
+  // Build content
+  const hasPhoto=entry.photos&&entry.photos.length>0;
+  const photoUrl=hasPhoto?(typeof entry.photos[0]==='string'?entry.photos[0]:entry.photos[0].data):null;
+  const cost=entry.cost===0?'Free':entry.cost!=null?'$'+entry.cost:'--';
+  const hasDiscount=entry.discountType&&entry.discountPercent;
+  
+  // Amenities
+  const amenityLabels={
+    hasPotableWater:'💧 Water',hasDumpStation:'🚿 Dump',hasHookups:'🔌 Hookups',
+    hasTrash:'🗑 Trash',hasWaterFill:'💦 Fill',isSeasonal:'📅 Seasonal',
+    hasPets:'🐕 Pets OK',needs4x4:'🚙 4x4',needsReservations:'📋 Reservations'
+  };
+  const amenities=Object.entries(amenityLabels).filter(([k])=>entry[k]).map(([,v])=>v);
+  
+  content.innerHTML=`
+    ${hasPhoto?`<img src="${photoUrl}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;margin-bottom:16px">`:''}
+    
+    <div style="font-size:18px;font-weight:700;color:var(--forest);margin-bottom:4px">${entry.name}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${entry.address||entry.type||''}</div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--teal-mid);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--text-muted)">Cost/night</div>
+        <div style="font-size:16px;font-weight:600;color:var(--forest)">${cost}</div>
+      </div>
+      <div style="background:var(--teal-mid);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--text-muted)">Type</div>
+        <div style="font-size:16px;font-weight:600;color:var(--forest)">${entry.type||'--'}</div>
+      </div>
+    </div>
+    
+    ${hasDiscount?`
+      <div style="background:rgba(184,85,211,0.1);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;color:#8B3BA8">Discount</div>
+          <div style="font-size:14px;font-weight:600;color:#8B3BA8">${entry.discountType}</div>
+        </div>
+        <div style="font-size:18px;font-weight:700;color:#8B3BA8">${entry.discountPercent}% off</div>
+      </div>
+    `:''}
+    
+    ${amenities.length>0?`
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Amenities</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${amenities.map(a=>`<span style="background:rgba(127,195,165,0.15);color:#1D9E75;font-size:11px;padding:4px 8px;border-radius:4px">${a}</span>`).join('')}
+      </div>
+    `:''}
+    
+    ${entry.notes?`
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Notes</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5">${entry.notes}</div>
+    `:''}
+    
+    ${entry.rating?`
+      <div style="margin-top:16px;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px">Rating</div>
+      <div style="font-size:16px">${'★'.repeat(entry.rating)}${'☆'.repeat(5-entry.rating)}</div>
+    `:''}
+  `;
+  
+  panel.classList.add('open');
+}
+
+function closeLocationDetail(){
+  document.getElementById('location-detail-panel').classList.remove('open');
+  currentDetailEntryId=null;
+}
+
+function editLocationFromDetail(){
+  if(!currentDetailEntryId) return;
+  const entry=entries.find(e=>e.id===currentDetailEntryId);
+  closeLocationDetail();
+  closeDrawer();
+  if(entry) openFormPanel(entry);
+}
+
 function openFormPanel(entry,lat,lng){
   editId=entry?entry.id:null;
   pendingLat=entry?entry.lat:(lat!=null?lat:null);
@@ -2137,6 +2276,37 @@ function updateStateFilter(){
     if(!isResizing) return;
     isResizing=false;
     drawer.classList.remove('resizing');
+    handle.classList.remove('active');
+    document.body.style.cursor='';
+    document.body.style.userSelect='';
+  });
+})();
+
+// ── Location Detail Panel Resize ───────────────────────────────────────────────
+(function(){
+  const panel=document.getElementById('location-detail-panel');
+  const handle=document.getElementById('location-detail-resize');
+  if(!panel||!handle) return;
+  let isResizing=false,startX,startWidth;
+  handle.addEventListener('mousedown',e=>{
+    isResizing=true;
+    startX=e.clientX;
+    startWidth=panel.offsetWidth;
+    panel.classList.add('resizing');
+    handle.classList.add('active');
+    document.body.style.cursor='ew-resize';
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!isResizing) return;
+    const diff=e.clientX-startX;
+    const newWidth=Math.min(Math.max(startWidth+diff,280),window.innerWidth*0.5);
+    panel.style.width=newWidth+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!isResizing) return;
+    isResizing=false;
+    panel.classList.remove('resizing');
     handle.classList.remove('active');
     document.body.style.cursor='';
     document.body.style.userSelect='';
@@ -2874,11 +3044,11 @@ function openJourneyDetail(journeyId){
       
       <!-- Starting point -->
       ${legs.length>0&&legs[0].fromName?`
-        <div style="position:relative;padding-left:20px;padding-bottom:16px;opacity:0.7">
-          <div style="position:absolute;left:4px;top:12px;bottom:0;width:2px;background:var(--border);opacity:0.5"></div>
-          <div style="position:absolute;left:0;top:2px;width:10px;height:10px;border-radius:50%;background:#586F6B"></div>
+        <div style="position:relative;padding-left:24px;padding-bottom:16px;opacity:0.8">
+          <div style="position:absolute;left:6px;top:16px;bottom:0;width:2px;background:var(--border);opacity:0.5"></div>
+          <div style="position:absolute;left:0;top:2px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#586F6B">✪</div>
           <div style="margin-left:4px">
-            <div style="font-size:12px;font-weight:600;color:#586F6B">📍 ${legs[0].fromName}</div>
+            <div style="font-size:12px;font-weight:600;color:#586F6B">${legs[0].fromName}</div>
             <div style="font-size:11px;color:var(--text-muted)">Starting point</div>
           </div>
           <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
@@ -2908,7 +3078,7 @@ function openJourneyDetail(journeyId){
             <div style="background:${isCurrent?'rgba(127,195,165,0.1)':'transparent'};border-radius:8px;padding:${isCurrent?'10px':'0'};margin-left:4px">
               <div style="display:flex;justify-content:space-between;align-items:start">
                 <div style="flex:1">
-                  <div style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--forest)">${l.destName}</div>
+                  <div onclick="openLocationDetail('${l.destId}')" style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${l.destName}</div>
                   ${isCurrent?'<div style="font-size:11px;color:var(--teal);font-weight:600">📍 Currently here</div>':''}
                   <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
                     ${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}
@@ -3156,10 +3326,10 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   if(startLat&&startLng){
     allCoords.push([startLat,startLng]);
     const startIcon=L.divIcon({
-      html:`<div style="width:20px;height:20px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:600">S</div>`,
+      html:`<div style="width:22px;height:22px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:14px">✪</div>`,
       className:'journey-marker',
-      iconSize:[20,20],
-      iconAnchor:[10,10]
+      iconSize:[22,22],
+      iconAnchor:[11,11]
     });
     const startMarker=L.marker([startLat,startLng],{icon:startIcon,zIndexOffset:1000}).addTo(map);
     startMarker.bindPopup(`<b>${startName}</b><br>Starting point`);
@@ -3207,7 +3377,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     const firstGeom=parseGeometry(legs[0]?.routeGeometry);
     if(firstGeom){
       const line=L.polyline(firstGeom,{
-        color:'#7FC3A5',
+        color:'#B855D3',
         weight:4,
         opacity:0.85
       }).addTo(map);
@@ -3215,7 +3385,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     }else{
       // Fallback to straight line
       const line=L.polyline([allCoords[0],allCoords[1]],{
-        color:'#7FC3A5',
+        color:'#B855D3',
         weight:4,
         opacity:0.85,
         dashArray:'12,8'
@@ -3232,7 +3402,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
       if(geom){
         // Use actual route geometry
         const line=L.polyline(geom,{
-          color:isPastSegment?'#94a3b8':'#7FC3A5',
+          color:isPastSegment?'#94a3b8':'#B855D3',
           weight:isPastSegment?3:4,
           opacity:isPastSegment?0.4:0.85
         }).addTo(map);
@@ -3243,7 +3413,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
         const toCoord=allCoords[i+1];
         if(fromCoord&&toCoord){
           const line=L.polyline([fromCoord,toCoord],{
-            color:isPastSegment?'#94a3b8':'#7FC3A5',
+            color:isPastSegment?'#94a3b8':'#B855D3',
             weight:isPastSegment?3:4,
             opacity:isPastSegment?0.4:0.85,
             dashArray:'12,8'
