@@ -249,11 +249,13 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   width:300px;min-width:280px;max-width:50vw;
   background:var(--card);
   display:flex;flex-direction:column;
-  transform:translateX(-100%);
-  transition:transform .25s cubic-bezier(.4,0,.2,1);
-  box-shadow:4px 0 24px rgba(0,0,0,.2)
+  left:320px;
+  transform:translateX(-200%);
+  transition:transform .25s cubic-bezier(.4,0,.2,1), left .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 24px rgba(0,0,0,.2);
+  visibility:hidden
 }
-#location-detail-panel.open{transform:translateX(0)}
+#location-detail-panel.open{transform:translateX(0);visibility:visible}
 #location-detail-panel.resizing{transition:none}
 #location-detail-resize{
   position:absolute;top:0;bottom:0;right:0;width:6px;
@@ -1664,20 +1666,28 @@ function openLocationDetail(entryId){
     `:''}
   `;
   
-  panel.classList.add('open');
+  // Small delay to ensure left is set before adding open class
+  requestAnimationFrame(()=>{
+    panel.classList.add('open');
+  });
 }
 
 function closeLocationDetail(){
-  document.getElementById('location-detail-panel').classList.remove('open');
+  const panel=document.getElementById('location-detail-panel');
+  panel.classList.remove('open');
   currentDetailEntryId=null;
 }
 
 function editLocationFromDetail(){
   if(!currentDetailEntryId) return;
   const entry=entries.find(e=>e.id===currentDetailEntryId);
+  const entryId=currentDetailEntryId;
   closeLocationDetail();
   closeDrawer();
-  if(entry) openFormPanel(entry);
+  setTimeout(()=>{
+    const e=entries.find(x=>x.id===entryId);
+    if(e) openFormPanel(e);
+  },100);
 }
 
 function openFormPanel(entry,lat,lng){
@@ -3048,7 +3058,7 @@ function openJourneyDetail(journeyId){
           <div style="position:absolute;left:6px;top:16px;bottom:0;width:2px;background:var(--border);opacity:0.5"></div>
           <div style="position:absolute;left:0;top:2px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#586F6B">✪</div>
           <div style="margin-left:4px">
-            <div style="font-size:12px;font-weight:600;color:#586F6B">${legs[0].fromName}</div>
+            ${legs[0].fromId?`<div onclick="openLocationDetail('${legs[0].fromId}')" style="font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${legs[0].fromName}</div>`:`<div style="font-size:12px;font-weight:600;color:#586F6B">${legs[0].fromName}</div>`}
             <div style="font-size:11px;color:var(--text-muted)">Starting point</div>
           </div>
           <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
