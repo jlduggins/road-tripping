@@ -1,4 +1,4 @@
-const CACHE_NAME = 'road-tripping-v77';
+const CACHE_NAME = 'road-tripping-v78';
 const STATIC_URLS = [
   '/manifest.json',
   '/icons/icon-192.png',

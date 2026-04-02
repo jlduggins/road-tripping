@@ -1058,7 +1058,7 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
+const GEOCODIO_KEY    = 'YOUR_GEOCODIO_API_KEY';
 const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
 const ORS_API_KEY     = ''; // OpenRouteService API key - get free at openrouteservice.org
 
@@ -2646,15 +2646,15 @@ async function saveLeg(){
 // Render journeys list
 function renderJourneys(){
   const list=document.getElementById('journeys-list');
-  const noJourneys=document.getElementById('no-journeys');
+  const noJourneysEl=document.getElementById('no-journeys');
   
   if(!journeys.length){
-    noJourneys.style.display='block';
+    if(noJourneysEl) noJourneysEl.style.display='block';
     list.querySelectorAll('.journey-card').forEach(c=>c.remove());
     return;
   }
   
-  noJourneys.style.display='none';
+  if(noJourneysEl) noJourneysEl.style.display='none';
   
   list.innerHTML=journeys.map(j=>{
     const legs=j.legs||[];
@@ -2731,47 +2731,232 @@ function renderJourneys(){
         
         <!-- Actions -->
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button onclick="viewJourneyOnMap('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:12px;font-weight:600">View on map</button>
-          <button onclick="openAddLegModal('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--teal);color:white;font-size:12px;font-weight:600">+ Add stop</button>
+          <button onclick="event.stopPropagation();viewJourneyOnMap('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:12px;font-weight:600">View on map</button>
+          <button onclick="event.stopPropagation();openAddLegModal('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--teal);color:white;font-size:12px;font-weight:600">+ Add stop</button>
         </div>
       </div>
     `;
   }).join('');
+  
+  // Add click handlers to journey cards
+  document.querySelectorAll('.journey-card').forEach((card,i)=>{
+    card.style.cursor='pointer';
+    card.onclick=(e)=>{
+      if(e.target.tagName==='BUTTON') return;
+      openJourneyDetail(journeys[i].id);
+    };
+  });
+}
+
+// Journey detail view
+function openJourneyDetail(journeyId){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey) return;
+  
+  const legs=journey.legs||[];
+  const today=new Date().toISOString().split('T')[0];
+  
+  // Calculate totals
+  const totalMiles=legs.reduce((s,l)=>s+(l.distance||0),0);
+  const totalFuel=legs.reduce((s,l)=>s+(l.fuelCost||0),0);
+  const totalNights=legs.reduce((s,l)=>{
+    if(!l.arriveDate||!l.departDate) return s;
+    const nights=Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24));
+    return s+Math.max(0,nights);
+  },0);
+  const totalLodging=legs.reduce((s,l)=>{
+    const entry=entries.find(e=>e.id===l.destId);
+    if(!entry||!l.arriveDate||!l.departDate) return s;
+    const nights=Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24));
+    if(nights<=0) return s;
+    let cost=(entry.cost||0)*nights;
+    if(entry.discountPercent&&entry.discountType) cost=cost*(1-entry.discountPercent/100);
+    return s+cost;
+  },0);
+  
+  // Find current leg
+  let currentLegIdx=-1;
+  for(let i=0;i<legs.length;i++){
+    const l=legs[i];
+    if(l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today){
+      currentLegIdx=i; break;
+    }
+  }
+  
+  const list=document.getElementById('journeys-list');
+  list.innerHTML=`
+    <div style="margin-bottom:12px">
+      <button onclick="renderJourneys()" style="background:none;border:none;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
+        ← Back to journeys
+      </button>
+    </div>
+    
+    <div style="background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--forest)">${journey.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${legs.length} stops · ${totalMiles} mi · ${totalNights} nights</div>
+        </div>
+        <button onclick="editJourney('${journey.id}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer">Edit</button>
+      </div>
+      
+      <!-- Cost summary -->
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted)">Lodging</div>
+          <div style="font-size:16px;font-weight:700;color:var(--forest)">$${Math.round(totalLodging)}</div>
+        </div>
+        <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted)">Fuel</div>
+          <div style="font-size:16px;font-weight:700;color:var(--forest)">$${Math.round(totalFuel)}</div>
+        </div>
+        <div style="flex:1;background:var(--teal);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:rgba(255,255,255,0.8)">Total</div>
+          <div style="font-size:16px;font-weight:700;color:white">$${Math.round(totalFuel+totalLodging)}</div>
+        </div>
+      </div>
+      
+      <button onclick="viewJourneyOnMap('${journey.id}')" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:13px;font-weight:600;margin-bottom:8px">🗺 View on map</button>
+    </div>
+    
+    <!-- All legs -->
+    <div style="background:var(--card);border-radius:12px;padding:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--forest);margin-bottom:12px">Itinerary</div>
+      
+      ${legs.map((l,i)=>{
+        const isPast=l.departDate&&l.departDate<today;
+        const isCurrent=i===currentLegIdx;
+        const entry=entries.find(e=>e.id===l.destId);
+        const nights=l.arriveDate&&l.departDate?Math.max(0,Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24))):0;
+        let lodgingCost=entry?(entry.cost||0)*nights:0;
+        if(entry?.discountPercent&&entry?.discountType) lodgingCost=lodgingCost*(1-entry.discountPercent/100);
+        
+        return `
+          <div style="position:relative;padding-left:20px;padding-bottom:${i<legs.length-1?'16px':'0'};${isPast?'opacity:0.5;':''}">
+            <!-- Timeline line -->
+            ${i<legs.length-1?`<div style="position:absolute;left:4px;top:12px;bottom:0;width:2px;background:${isPast?'var(--border)':'var(--teal)'};opacity:0.5"></div>`:''}
+            
+            <!-- Stop marker -->
+            <div style="position:absolute;left:0;top:2px;width:10px;height:10px;border-radius:50%;${isCurrent?'background:var(--teal);box-shadow:0 0 0 4px rgba(127,195,165,0.3);':'background:'+(isPast?'var(--border)':'var(--teal)')};"></div>
+            
+            <!-- Stop details -->
+            <div style="background:${isCurrent?'rgba(127,195,165,0.1)':'transparent'};border-radius:8px;padding:${isCurrent?'10px':'0'};margin-left:4px">
+              <div style="display:flex;justify-content:space-between;align-items:start">
+                <div>
+                  <div style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--forest)">${l.destName}</div>
+                  ${isCurrent?'<div style="font-size:11px;color:var(--teal);font-weight:600">📍 Currently here</div>':''}
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+                    ${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}
+                    ${l.departDate?' - '+new Date(l.departDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}
+                    ${nights>0?' · '+nights+' night'+(nights>1?'s':''):''}
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  ${lodgingCost>0?`<div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(lodgingCost)}</div>`:'<div style="font-size:12px;color:var(--teal);font-weight:600">Free</div>'}
+                </div>
+              </div>
+              ${l.notes?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-style:italic">${l.notes}</div>`:''}
+            </div>
+            
+            <!-- Leg info (drive to next) -->
+            ${i<legs.length-1?`
+              <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
+                🚐 ${l.distance||'--'} mi · ${l.duration?Math.floor(l.duration/60)+'h '+Math.round(l.duration%60)+'m':'--'} · $${l.fuelCost||0} fuel
+              </div>
+            `:''}
+          </div>
+        `;
+      }).join('')}
+      
+      <!-- Add stop button -->
+      <button onclick="openAddLegModal('${journey.id}')" style="width:100%;margin-top:16px;padding:12px;border-radius:8px;border:2px dashed rgba(127,195,165,0.4);background:transparent;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer">
+        + Add next destination
+      </button>
+    </div>
+  `;
+}
+
+function editJourney(journeyId){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey) return;
+  editingJourneyId=journeyId;
+  document.getElementById('j-name').value=journey.name;
+  document.getElementById('j-start').value=journey.startDate||'';
+  document.getElementById('journey-modal').classList.add('show');
 }
 
 // View journey on map
 let journeyRouteLayer=null;
+let journeyMarkers=[];
+
 function viewJourneyOnMap(journeyId){
   const journey=journeys.find(j=>j.id===journeyId);
   if(!journey||!journey.legs?.length) return;
   
-  // Clear previous route
+  // Clear previous route and markers
   if(journeyRouteLayer){
     map.removeLayer(journeyRouteLayer);
+    journeyRouteLayer=null;
+  }
+  journeyMarkers.forEach(m=>map.removeLayer(m));
+  journeyMarkers=[];
+  
+  const legs=journey.legs;
+  const today=new Date().toISOString().split('T')[0];
+  const coords=[];
+  
+  // Find current leg index
+  let currentLegIdx=-1;
+  for(let i=0;i<legs.length;i++){
+    if(legs[i].arriveDate&&legs[i].departDate&&legs[i].arriveDate<=today&&legs[i].departDate>=today){
+      currentLegIdx=i; break;
+    }
   }
   
-  // Create route line
-  const coords=[];
-  const today=new Date().toISOString().split('T')[0];
-  
-  journey.legs.forEach((leg,i)=>{
-    if(leg.destLat&&leg.destLng){
-      coords.push([leg.destLat,leg.destLng]);
-    }
+  // Create markers and collect coords
+  legs.forEach((leg,i)=>{
+    if(!leg.destLat||!leg.destLng) return;
+    coords.push([leg.destLat,leg.destLng]);
+    
+    const isPast=leg.departDate&&leg.departDate<today;
+    const isCurrent=i===currentLegIdx;
+    
+    // Create custom marker
+    const markerHtml=isCurrent
+      ? `<div style="width:24px;height:24px;background:var(--teal);border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 6px rgba(127,195,165,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700">${i+1}</div>`
+      : `<div style="width:20px;height:20px;background:${isPast?'#94a3b8':'var(--teal)'};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:600;${isPast?'opacity:0.6;':''}">${i+1}</div>`;
+    
+    const icon=L.divIcon({
+      html:markerHtml,
+      className:'journey-marker',
+      iconSize:[24,24],
+      iconAnchor:[12,12]
+    });
+    
+    const marker=L.marker([leg.destLat,leg.destLng],{icon}).addTo(map);
+    marker.bindPopup(`<b>${leg.destName}</b><br>${leg.arriveDate||''} - ${leg.departDate||''}`);
+    journeyMarkers.push(marker);
   });
   
+  // Draw route line
   if(coords.length>1){
-    journeyRouteLayer=L.polyline(coords,{
-      color:'#7FC3A5',
-      weight:4,
-      opacity:0.8,
-      dashArray:'10,6'
-    }).addTo(map);
+    // Draw past segments dimmed
+    for(let i=0;i<coords.length-1;i++){
+      const isPastSegment=legs[i].departDate&&legs[i].departDate<today;
+      const line=L.polyline([coords[i],coords[i+1]],{
+        color:isPastSegment?'#94a3b8':'#7FC3A5',
+        weight:isPastSegment?3:4,
+        opacity:isPastSegment?0.4:0.8,
+        dashArray:isPastSegment?'6,6':'10,6'
+      }).addTo(map);
+      journeyMarkers.push(line); // Store for cleanup
+    }
     
-    // Fit map to show entire route
-    map.fitBounds(journeyRouteLayer.getBounds(),{padding:[50,50]});
+    // Fit bounds to show all stops
+    const bounds=L.latLngBounds(coords);
+    map.fitBounds(bounds,{padding:[60,60],maxZoom:12});
   }else if(coords.length===1){
-    map.setView(coords[0],10);
+    map.setView(coords[0],12);
   }
   
   closeDrawer();
