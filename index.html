@@ -2665,7 +2665,7 @@ async function saveLeg(){
     distance,
     duration,
     fuelCost,
-    routeGeometry // Actual road path from ORS
+    routeGeometry:routeGeometry?JSON.stringify(routeGeometry):null // Store as JSON string for Firestore
   };
   
   // Add leg to journey
@@ -2827,6 +2827,9 @@ function openJourneyDetail(journeyId){
     }
   }
   
+  // Check if any legs are missing route geometry
+  const hasMissingRoutes=legs.some(l=>!l.routeGeometry);
+  
   const list=document.getElementById('journeys-list');
   list.innerHTML=`
     <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
@@ -2842,7 +2845,10 @@ function openJourneyDetail(journeyId){
           <div style="font-size:18px;font-weight:700;color:var(--forest)">${journey.name}</div>
           <div style="font-size:12px;color:var(--text-muted)">${legs.length} stops · ${totalMiles} mi · ${totalNights} nights</div>
         </div>
-        <button onclick="editJourney('${journey.id}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer">Edit</button>
+        <div style="display:flex;gap:8px">
+          ${hasMissingRoutes?`<button onclick="refreshAllRoutes('${journey.id}')" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer" title="Fetch actual road routes">🔄 Routes</button>`:''}
+          <button onclick="editJourney('${journey.id}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer">Edit</button>
+        </div>
       </div>
       
       <!-- Cost summary -->
@@ -3188,10 +3194,19 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   
   // Draw route lines between each point
   if(allCoords.length>1){
+    // Helper to parse route geometry (stored as JSON string)
+    const parseGeometry=(geom)=>{
+      if(!geom) return null;
+      try{
+        const parsed=typeof geom==='string'?JSON.parse(geom):geom;
+        return parsed.map(c=>[c[1],c[0]]); // Convert [lng,lat] to [lat,lng]
+      }catch(e){ return null; }
+    };
+    
     // Draw route for first leg (from start to first destination)
-    if(legs[0]?.routeGeometry){
-      const routeCoords=legs[0].routeGeometry.map(c=>[c[1],c[0]]); // Convert [lng,lat] to [lat,lng]
-      const line=L.polyline(routeCoords,{
+    const firstGeom=parseGeometry(legs[0]?.routeGeometry);
+    if(firstGeom){
+      const line=L.polyline(firstGeom,{
         color:'#7FC3A5',
         weight:4,
         opacity:0.85
@@ -3212,11 +3227,11 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     for(let i=1;i<legs.length;i++){
       const leg=legs[i];
       const isPastSegment=legs[i-1]?.departDate&&legs[i-1].departDate<today;
+      const geom=parseGeometry(leg.routeGeometry);
       
-      if(leg.routeGeometry){
+      if(geom){
         // Use actual route geometry
-        const routeCoords=leg.routeGeometry.map(c=>[c[1],c[0]]); // Convert [lng,lat] to [lat,lng]
-        const line=L.polyline(routeCoords,{
+        const line=L.polyline(geom,{
           color:isPastSegment?'#94a3b8':'#7FC3A5',
           weight:isPastSegment?3:4,
           opacity:isPastSegment?0.4:0.85
@@ -3257,6 +3272,65 @@ function showJourneyOnMap(journeyId){
 function clearJourneyFromMap(){
   journeyMarkers.forEach(m=>map.removeLayer(m));
   journeyMarkers=[];
+}
+
+// Refresh all routes for a journey (fetch actual road geometry)
+async function refreshAllRoutes(journeyId){
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs?.length) return;
+  
+  const btn=event.target;
+  btn.textContent='⏳ Loading...';
+  btn.disabled=true;
+  
+  try{
+    const legs=[...journey.legs];
+    
+    for(let i=0;i<legs.length;i++){
+      const leg=legs[i];
+      let fromLat,fromLng;
+      
+      // Get origin coordinates
+      if(i===0){
+        // First leg - use stored from coords or current location
+        if(leg.fromLat&&leg.fromLng){
+          fromLat=leg.fromLat;
+          fromLng=leg.fromLng;
+        }else if(myDotMarker){
+          const ll=myDotMarker.getLatLng();
+          fromLat=ll.lat;
+          fromLng=ll.lng;
+          leg.fromLat=fromLat;
+          leg.fromLng=fromLng;
+          leg.fromName='Current Location';
+        }
+      }else{
+        // Subsequent legs - use previous destination
+        const prevLeg=legs[i-1];
+        fromLat=prevLeg.destLat;
+        fromLng=prevLeg.destLng;
+      }
+      
+      if(fromLat&&leg.destLat){
+        const route=await getRoute(fromLat,fromLng,leg.destLat,leg.destLng);
+        if(route){
+          leg.distance=Math.round(route.distance);
+          leg.duration=Math.round(route.duration);
+          leg.fuelCost=Math.round((route.distance/fuelSettings.mpg)*fuelSettings.pricePerGal);
+          leg.routeGeometry=route.geometry?JSON.stringify(route.geometry):null;
+        }
+      }
+    }
+    
+    journey.legs=legs;
+    await window._db.saveJourney(window._currentUser.uid,journey);
+    openJourneyDetail(journeyId);
+  }catch(e){
+    console.error('Refresh routes failed:',e);
+    alert('Failed to refresh routes');
+    btn.textContent='🔄 Routes';
+    btn.disabled=false;
+  }
 }
 
 // Delete journey
