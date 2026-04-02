@@ -1,6 +1,7 @@
-const CACHE_NAME = 'road-tripping-v79';
+const CACHE_NAME = 'road-tripping-v80';
 const STATIC_URLS = [
   '/manifest.json',
+  '/config.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',

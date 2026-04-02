@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <!-- Firebase modular SDK -->
 <script type="module">
@@ -1063,9 +1064,10 @@ textarea.inp{resize:none}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const GEOCODIO_KEY    = '9019b6c968e5677bc69e0b796e8b0618c6149bb';
-const ANTHROPIC_KEY   = 'YOUR_ANTHROPIC_API_KEY';
-const ORS_API_KEY     = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjZjNzVhMGIyZTg4NDQ1OTQ5M2FiYmE2MTZmNWFkMGEyIiwiaCI6Im11cm11cjY0In0='; // OpenRouteService API key - get free at openrouteservice.org
+// Config is loaded from config.js - API keys are stored there
+const GEOCODIO_KEY    = (typeof CONFIG !== 'undefined' && CONFIG.GEOCODIO_KEY) || '';
+const ANTHROPIC_KEY   = (typeof CONFIG !== 'undefined' && CONFIG.ANTHROPIC_KEY) || '';
+const ORS_API_KEY     = (typeof CONFIG !== 'undefined' && CONFIG.ORS_API_KEY) || '';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
@@ -2514,20 +2516,32 @@ function haversineDistance(lat1,lon1,lat2,lon2){
 async function getRoute(fromLat,fromLng,toLat,toLng){
   if(!ORS_API_KEY){
     // No API key, use straight-line estimate
+    console.log('[Route] No ORS API key, using estimate');
     const miles=haversineDistance(fromLat,fromLng,toLat,toLng);
     return {distance:miles*1.3, duration:miles*1.3/45*60}; // Rough estimate: 1.3x straight line, 45mph avg
   }
-  const url=`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
-  const res=await fetch(url);
-  const data=await res.json();
-  if(data.features&&data.features[0]){
-    const props=data.features[0].properties.summary;
-    return {
-      distance:props.distance*0.000621371, // meters to miles
-      duration:props.duration/60 // seconds to minutes
-    };
+  try{
+    console.log('[Route] Fetching from ORS...');
+    const url=`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
+    const res=await fetch(url);
+    const data=await res.json();
+    console.log('[Route] ORS response:', data);
+    if(data.features&&data.features[0]){
+      const props=data.features[0].properties.summary;
+      return {
+        distance:props.distance*0.000621371, // meters to miles
+        duration:props.duration/60 // seconds to minutes
+      };
+    }
+    if(data.error){
+      console.error('[Route] ORS error:', data.error);
+    }
+  }catch(e){
+    console.error('[Route] Fetch error:', e);
   }
-  return null;
+  // Fallback to estimate
+  const miles=haversineDistance(fromLat,fromLng,toLat,toLng);
+  return {distance:miles*1.3, duration:miles*1.3/45*60};
 }
 
 function findBackupOptions(destEntry){
@@ -2658,6 +2672,9 @@ async function saveLeg(){
   journey.legs=updatedLegs;
   await window._db.saveJourney(window._currentUser.uid,journey);
   closeLegModal();
+  
+  // Return to journey detail view
+  setTimeout(()=>openJourneyDetail(editingJourneyId), 100);
 }
 
 // Render journeys list
@@ -2840,6 +2857,21 @@ function openJourneyDetail(journeyId){
     <div style="background:var(--card);border-radius:12px;padding:16px">
       <div style="font-size:14px;font-weight:700;color:var(--forest);margin-bottom:12px">Itinerary</div>
       
+      <!-- Starting point -->
+      ${legs.length>0&&legs[0].fromName?`
+        <div style="position:relative;padding-left:20px;padding-bottom:16px;opacity:0.7">
+          <div style="position:absolute;left:4px;top:12px;bottom:0;width:2px;background:var(--border);opacity:0.5"></div>
+          <div style="position:absolute;left:0;top:2px;width:10px;height:10px;border-radius:50%;background:#586F6B"></div>
+          <div style="margin-left:4px">
+            <div style="font-size:12px;font-weight:600;color:#586F6B">📍 ${legs[0].fromName}</div>
+            <div style="font-size:11px;color:var(--text-muted)">Starting point</div>
+          </div>
+          <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
+            🚐 ${legs[0].distance||'--'} mi · ${legs[0].duration?Math.floor(legs[0].duration/60)+'h '+Math.round(legs[0].duration%60)+'m':'--'} · $${legs[0].fuelCost||0} fuel
+          </div>
+        </div>
+      `:''}
+      
       ${legs.map((l,i)=>{
         const isPast=l.departDate&&l.departDate<today;
         const isCurrent=i===currentLegIdx;
@@ -2885,7 +2917,7 @@ function openJourneyDetail(journeyId){
             <!-- Leg info (drive to next) -->
             ${i<legs.length-1?`
               <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
-                🚐 ${l.distance||'--'} mi · ${l.duration?Math.floor(l.duration/60)+'h '+Math.round(l.duration%60)+'m':'--'} · $${l.fuelCost||0} fuel
+                🚐 ${legs[i+1].distance||'--'} mi · ${legs[i+1].duration?Math.floor(legs[i+1].duration/60)+'h '+Math.round(legs[i+1].duration%60)+'m':'--'} · $${legs[i+1].fuelCost||0} fuel
               </div>
             `:''}
           </div>
