@@ -1504,14 +1504,6 @@ async function searchPlaces(query){
     return;
   }
   
-  // Check if API key is available
-  if(!GEOCODIO_KEY){
-    console.warn('[Autocomplete] Geocodio API key not configured - autocomplete disabled');
-    suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">Autocomplete unavailable (no API key)</div>';
-    suggestions.style.display='block';
-    return;
-  }
-  
   console.log('[Autocomplete] Starting search for:', query);
   
   // Debounce - wait 350ms after user stops typing
@@ -1521,22 +1513,28 @@ async function searchPlaces(query){
     suggestions.style.display='block';
     
     try{
-      // Use Geocodio for place search
-      const searchUrl=`https://api.geocod.io/v1.7/geocode?q=${encodeURIComponent(query)}&api_key=${GEOCODIO_KEY}&limit=6`;
-      console.log('[Autocomplete] Fetching:', searchUrl.replace(GEOCODIO_KEY, 'API_KEY_HIDDEN'));
+      // Use Photon (OpenStreetMap-based) for place search - free, no API key needed
+      // Better for searching places by name (parks, campgrounds, etc.)
+      let searchUrl=`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8`;
+      
+      // Bias results toward user's location if available
+      if(myDotMarker){
+        const ll=myDotMarker.getLatLng();
+        searchUrl+=`&lat=${ll.lat}&lon=${ll.lng}`;
+      }
+      
+      console.log('[Autocomplete] Fetching:', searchUrl);
       
       const res=await fetch(searchUrl);
       console.log('[Autocomplete] Response status:', res.status);
       
       if(!res.ok){
-        const errorText=await res.text();
-        console.error('[Autocomplete] API error:', errorText);
-        throw new Error('Geocodio '+res.status);
+        throw new Error('Photon '+res.status);
       }
       
       const data=await res.json();
       console.log('[Autocomplete] Results:', data);
-      const places=data.results||[];
+      const places=data.features||[];
       
       if(places.length===0){
         suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">No places found. Try a different search or enter details manually.</div>';
@@ -1546,8 +1544,21 @@ async function searchPlaces(query){
       
       // Render suggestions
       suggestions.innerHTML=places.map((p,i)=>{
-        const formatted=p.formatted_address||'';
-        const name=formatted.split(',')[0];
+        const props=p.properties||{};
+        const name=props.name||props.street||'Unknown';
+        const city=props.city||props.county||props.state||'';
+        const state=props.state||'';
+        const country=props.country||'';
+        const type=props.osm_value||props.type||'';
+        
+        // Build address string
+        let address=name;
+        if(city) address+=', '+city;
+        if(state&&state!==city) address+=', '+state;
+        if(country&&country!=='United States') address+=', '+country;
+        
+        // Format type nicely
+        const typeLabel=type?type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'';
         
         return `
           <div onclick="selectPlaceResult(${i})" 
@@ -1555,7 +1566,8 @@ async function searchPlaces(query){
                onmouseover="this.style.background='rgba(127,195,165,0.1)'" 
                onmouseout="this.style.background='transparent'">
             <div style="font-size:13px;font-weight:600;color:var(--forest)">${escapeHtml(name)}</div>
-            <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(formatted)}</div>
+            <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(address)}</div>
+            ${typeLabel?`<div style="font-size:10px;color:var(--teal);margin-top:2px">${escapeHtml(typeLabel)}</div>`:''}
           </div>
         `;
       }).join('');
@@ -1583,20 +1595,31 @@ function selectPlaceResult(index){
   if(!place) return;
   suggestions.style.display='none';
   
-  const formatted=place.formatted_address||'';
-  const name=formatted.split(',')[0];
-  const location=place.location||{};
+  const props=place.properties||{};
+  const coords=place.geometry?.coordinates||[];
+  const name=props.name||props.street||'';
   
-  // Set name - use first part of address
+  // Build full address
+  const city=props.city||props.county||'';
+  const state=props.state||'';
+  const country=props.country||'';
+  let address=name;
+  if(props.street&&props.street!==name) address=props.street;
+  if(props.housenumber) address=props.housenumber+' '+address;
+  if(city) address+=', '+city;
+  if(state) address+=', '+state;
+  if(country&&country!=='United States') address+=', '+country;
+  
+  // Set name
   document.getElementById('f-name').value=name;
   
-  // Set address - use full formatted address
-  document.getElementById('f-address').value=formatted;
+  // Set address
+  document.getElementById('f-address').value=address;
   
-  // Set coordinates
-  if(location.lat&&location.lng){
-    const lat=parseFloat(location.lat);
-    const lng=parseFloat(location.lng);
+  // Set coordinates (Photon returns [lng, lat])
+  if(coords.length>=2){
+    const lng=coords[0];
+    const lat=coords[1];
     document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
     
     // Update pending coordinates and show drag pin
