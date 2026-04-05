@@ -862,8 +862,10 @@ textarea.inp{resize:none}
     <div class="form-grid">
       <div class="full" style="position:relative">
         <label class="lbl">Location Name *</label>
-        <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites" oninput="searchPlaces(this.value)" autocomplete="off"/>
-        <div id="place-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:250px;overflow-y:auto;z-index:100"></div>
+        <div style="position:relative">
+          <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites" oninput="searchPlaces(this.value)" autocomplete="off"/>
+          <div id="place-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:250px;overflow-y:auto;z-index:9999"></div>
+        </div>
       </div>
       <div class="full">
         <label class="lbl">Address <span class="lbl-hint">(geocoded if no coords)</span></label>
