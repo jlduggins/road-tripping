@@ -266,10 +266,31 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
 @media(min-width:641px){
   #location-detail-resize{display:block}
 }
+/* Mobile: slide up from bottom */
+@media(max-width:640px){
+  #location-detail-panel{
+    top:auto;bottom:0;left:0;right:0;
+    width:100%;max-width:100%;min-width:100%;
+    height:85vh;max-height:85vh;
+    border-radius:20px 20px 0 0;
+    transform:translateY(100%);
+    box-shadow:0 -4px 24px rgba(0,0,0,.2)
+  }
+  #location-detail-panel.open{transform:translateY(0)}
+  #location-detail-header{
+    padding:14px 16px;
+    border-bottom:1px solid var(--border)
+  }
+  #location-detail-header::before{
+    content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:36px;height:4px;background:rgba(88,111,107,.2);border-radius:2px
+  }
+}
 #location-detail-header{
   padding:calc(18px + env(safe-area-inset-top)) 16px 14px;
   border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  position:relative
 }
 #location-detail-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
 #location-detail-footer{
@@ -1040,8 +1061,8 @@ textarea.inp{resize:none}
 </div>
 
 <!-- Add Leg Modal -->
-<div class="confirm-overlay" id="leg-modal">
-  <div class="confirm-box" style="max-width:380px;max-height:90vh;overflow-y:auto;text-align:left">
+<div class="confirm-overlay" id="leg-modal" onclick="handleLegModalOverlayClick(event)">
+  <div class="confirm-box" style="max-width:380px;max-height:90vh;overflow-y:auto;text-align:left" onclick="event.stopPropagation()">
     <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--forest)">📍 Add destination</h3>
     
     <!-- From (selectable) -->
@@ -1266,6 +1287,8 @@ window._subscribeFirestore=function(uid){
     updateStateFilter();
     renderMarkers();
     renderEntries();
+    // Refresh backup options if leg modal is open with a destination selected
+    refreshBackupOptionsIfNeeded();
   }, err=>console.error('Firestore:',err));
   
   // Subscribe to journeys
@@ -2027,6 +2050,11 @@ async function saveEntry(){
   let lat=null, lng=null;
   const coordsText=document.getElementById('f-coords').value.trim();
   const address=document.getElementById('f-address').value.trim();
+  
+  // Check if we're editing and if address changed
+  const existingEntry=editId?entries.find(e=>e.id===editId):null;
+  const addressChanged=existingEntry&&address&&address!==existingEntry.address;
+  const coordsCleared=existingEntry&&!coordsText&&(existingEntry.lat!=null||existingEntry.lng!=null);
 
   // Priority 1: typed coordinates in the field
   if(coordsText){
@@ -2035,19 +2063,24 @@ async function saveEntry(){
     else{ showFormErr('Invalid coordinates — use format: 37.6137, -113.0998'); return; }
   }
   // Priority 2: drag pin (only if no coords typed and pin was actively moved)
-  if(lat==null&&dragPin){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
-  // Priority 3: geocode address — only if coords field is empty and no drag pin
-  if(lat==null&&address){
+  if(lat==null&&dragPin&&!coordsCleared){ const ll=dragPin.getLatLng(); lat=ll.lat; lng=ll.lng; }
+  // Priority 3: geocode address — if coords field is empty and we have an address
+  // Also geocode if address changed during edit (even if coords were cleared)
+  if(lat==null&&address&&(addressChanged||coordsCleared||!existingEntry)){
     btn.textContent='Finding…'; btn.disabled=true;
     infoEl.textContent='🔍 Looking up address…'; infoEl.style.display='block';
     try{
       const result=await geocodeAddress(address);
-      if(result){ lat=result.lat; lng=result.lng; document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6); infoEl.textContent='✓ Found: '+address; }
+      if(result){ 
+        lat=result.lat; lng=result.lng; 
+        document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6); 
+        infoEl.textContent='✓ Found: '+address; 
+      }
       else{ showFormErr('Could not find that address. Try being more specific or paste lat/lng.'); btn.textContent='Save'; btn.disabled=false; return; }
     }catch(e){ showFormErr('Geocoding failed — check connection or enter coords manually.'); btn.textContent='Save'; btn.disabled=false; return; }
     btn.textContent='Save'; btn.disabled=false;
   }
-  // If coords field was explicitly cleared, lat/lng will be null — that's intentional
+  // If coords field was explicitly cleared AND no address to geocode, lat/lng will be null
 
   const amenities={};
   Object.entries(AMENITY_MAP).forEach(([el,key])=>{ amenities[key]=document.getElementById(el).checked; });
@@ -2555,12 +2588,57 @@ function openAddLegModal(journeyId, preselectedDestId=null){
     }
   }
   
+  // Store initial state for change detection
+  storeLegModalInitialState();
+  
   document.getElementById('leg-modal').classList.add('show');
+}
+
+// Track initial leg modal state for unsaved changes detection
+let legModalInitialState=null;
+
+function storeLegModalInitialState(){
+  legModalInitialState={
+    destId:document.getElementById('leg-dest-id').value,
+    arrive:document.getElementById('leg-arrive').value,
+    depart:document.getElementById('leg-depart').value,
+    notes:document.getElementById('leg-notes').value,
+    fuelPrice:document.getElementById('leg-fuel-price').value,
+    fuelUnit:document.getElementById('leg-fuel-unit').value
+  };
+}
+
+function hasLegModalChanges(){
+  if(!legModalInitialState) return false;
+  return (
+    document.getElementById('leg-dest-id').value!==legModalInitialState.destId||
+    document.getElementById('leg-arrive').value!==legModalInitialState.arrive||
+    document.getElementById('leg-depart').value!==legModalInitialState.depart||
+    document.getElementById('leg-notes').value!==legModalInitialState.notes||
+    document.getElementById('leg-fuel-price').value!==legModalInitialState.fuelPrice||
+    document.getElementById('leg-fuel-unit').value!==legModalInitialState.fuelUnit
+  );
+}
+
+function handleLegModalOverlayClick(event){
+  // Only handle clicks directly on the overlay, not on children
+  if(event.target.id!=='leg-modal') return;
+  
+  if(hasLegModalChanges()){
+    if(confirm('You have unsaved changes. Save before closing?')){
+      saveLeg();
+    }else{
+      closeLegModal();
+    }
+  }else{
+    closeLegModal();
+  }
 }
 
 function closeLegModal(){
   document.getElementById('leg-modal').classList.remove('show');
   returnToLegModalAfterSave=false;
+  legModalInitialState=null;
 }
 
 // From field functions
@@ -2878,6 +2956,16 @@ function findBackupOptions(destEntry){
   }else{
     el.style.display='none';
   }
+}
+
+// Refresh backup options if leg modal is open with a destination
+function refreshBackupOptionsIfNeeded(){
+  const modal=document.getElementById('leg-modal');
+  if(!modal||!modal.classList.contains('show')) return;
+  const destId=document.getElementById('leg-dest-id').value;
+  if(!destId) return;
+  const destEntry=entries.find(e=>e.id===destId);
+  if(destEntry) findBackupOptions(destEntry);
 }
 
 function showBackupOptions(){
@@ -3394,6 +3482,9 @@ async function editLeg(journeyId,legIndex){
   // Show preview
   const destEntry=entries.find(e=>e.id===leg.destId);
   if(destEntry) calculateLegPreview(destEntry);
+  
+  // Store initial state for change detection
+  storeLegModalInitialState();
   
   document.getElementById('leg-modal').classList.add('show');
 }
