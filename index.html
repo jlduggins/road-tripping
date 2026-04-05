@@ -860,9 +860,10 @@ textarea.inp{resize:none}
       📍 Drag the yellow pin on the map to adjust the location
     </div>
     <div class="form-grid">
-      <div class="full">
+      <div class="full" style="position:relative">
         <label class="lbl">Location Name *</label>
-        <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites"/>
+        <input class="inp" id="f-name" placeholder="e.g. Yellow Post Sites" oninput="searchPlaces(this.value)" autocomplete="off"/>
+        <div id="place-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:white;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:250px;overflow-y:auto;z-index:100"></div>
       </div>
       <div class="full">
         <label class="lbl">Address <span class="lbl-hint">(geocoded if no coords)</span></label>
@@ -909,7 +910,7 @@ textarea.inp{resize:none}
           <option value="">None</option>
           <option value="AAA">AAA</option>
           <option value="Veteran">Veteran</option>
-          <option value="Disabled Veteran">Disabled Veteran</option>
+          <option value="Access Pass">Access Pass</option>
           <option value="Good Sam">Good Sam</option>
           <option value="Senior">Senior</option>
           <option value="Disability">Disability</option>
@@ -1283,6 +1284,10 @@ window._subscribeFirestore=function(uid){
     isFirstSnapshot = false;
     entries=docs;
     console.log('[Firestore] entries set to:', entries.length, 'items');
+    
+    // Migrate "Disabled Veteran" to "Access Pass" for any existing entries
+    migrateDisabledVeteranToAccessPass(uid, docs);
+    
     updateCount();
     updateStateFilter();
     renderMarkers();
@@ -1332,6 +1337,24 @@ async function addSampleLocation(uid){
     console.log('[Sample] Sample entry saved successfully');
   } catch(e) {
     console.error('[Sample] Failed to add sample location:', e);
+  }
+}
+
+// Migrate "Disabled Veteran" discount type to "Access Pass"
+async function migrateDisabledVeteranToAccessPass(uid, docs){
+  const toMigrate = docs.filter(e => e.discountType === 'Disabled Veteran');
+  if(toMigrate.length === 0) return;
+  
+  console.log(`[Migration] Found ${toMigrate.length} entries with "Disabled Veteran" to migrate to "Access Pass"`);
+  
+  for(const entry of toMigrate){
+    try {
+      const updated = { ...entry, discountType: 'Access Pass' };
+      await window._db.saveEntry(uid, updated);
+      console.log(`[Migration] Updated entry "${entry.name}" to Access Pass`);
+    } catch(e) {
+      console.error(`[Migration] Failed to update entry "${entry.name}":`, e);
+    }
   }
 }
 
@@ -1451,6 +1474,128 @@ function clearAllFilters(){
 
 async function saveToFirestore(entry){ await window._db.save(window._currentUser.uid,entry); }
 async function deleteFromFirestore(id){ await window._db.remove(window._currentUser.uid,id); }
+
+// ── Place Search (Autocomplete) ────────────────────────────────────────────────
+let placeSearchTimeout=null;
+let lastPlaceQuery='';
+
+async function searchPlaces(query){
+  const suggestions=document.getElementById('place-suggestions');
+  
+  // Clear previous timeout
+  if(placeSearchTimeout) clearTimeout(placeSearchTimeout);
+  
+  // Hide if query too short
+  if(!query||query.length<3){
+    suggestions.style.display='none';
+    return;
+  }
+  
+  // Debounce - wait 300ms after user stops typing
+  placeSearchTimeout=setTimeout(async()=>{
+    if(query===lastPlaceQuery) return;
+    lastPlaceQuery=query;
+    
+    try{
+      // Use Nominatim (OpenStreetMap) for place search - free, no API key needed
+      // Bias towards camping/outdoor locations and current map view
+      let searchUrl=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1`;
+      
+      // Add bounding box bias if we have a map location
+      if(map&&myDotMarker){
+        const ll=myDotMarker.getLatLng();
+        // Create a ~200 mile bounding box around user's location
+        const delta=3; // roughly 200 miles
+        searchUrl+=`&viewbox=${ll.lng-delta},${ll.lat+delta},${ll.lng+delta},${ll.lat-delta}&bounded=0`;
+      }
+      
+      const res=await fetch(searchUrl,{
+        headers:{'User-Agent':'RoadTrippingPWA/1.0'}
+      });
+      
+      if(!res.ok) throw new Error('Nominatim '+res.status);
+      const places=await res.json();
+      
+      if(places.length===0){
+        suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">No places found. Try a different search or enter details manually.</div>';
+        suggestions.style.display='block';
+        return;
+      }
+      
+      // Render suggestions
+      suggestions.innerHTML=places.map(p=>{
+        const name=p.name||p.display_name.split(',')[0];
+        const address=p.display_name;
+        const type=p.type?(p.type.charAt(0).toUpperCase()+p.type.slice(1).replace(/_/g,' ')):'';
+        return `
+          <div onclick="selectPlace(${JSON.stringify(p).replace(/"/g,'&quot;')})" 
+               style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s"
+               onmouseover="this.style.background='rgba(127,195,165,0.1)'" 
+               onmouseout="this.style.background='transparent'">
+            <div style="font-size:13px;font-weight:600;color:var(--forest)">${escapeHtml(name)}</div>
+            <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(address)}</div>
+            ${type?`<div style="font-size:10px;color:var(--teal);margin-top:2px">${escapeHtml(type)}</div>`:''}
+          </div>
+        `;
+      }).join('');
+      suggestions.style.display='block';
+      
+    }catch(e){
+      console.error('Place search failed:',e);
+      suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">Search unavailable. Enter details manually.</div>';
+      suggestions.style.display='block';
+    }
+  },300);
+}
+
+function selectPlace(place){
+  const suggestions=document.getElementById('place-suggestions');
+  suggestions.style.display='none';
+  
+  // Set name - use the place name, or first part of display_name
+  const name=place.name||place.display_name.split(',')[0];
+  document.getElementById('f-name').value=name;
+  
+  // Set address - use full display name
+  document.getElementById('f-address').value=place.display_name;
+  
+  // Set coordinates
+  if(place.lat&&place.lon){
+    const lat=parseFloat(place.lat);
+    const lng=parseFloat(place.lon);
+    document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
+    
+    // Update pending coordinates and show drag pin
+    pendingLat=lat;
+    pendingLng=lng;
+    showDragPin(lat,lng);
+    
+    // Pan map to location
+    if(map) map.flyTo([lat,lng],14,{duration:1});
+    
+    // Show coords hint
+    const hint=document.getElementById('coords-hint');
+    hint.textContent='📍 '+lat.toFixed(5)+', '+lng.toFixed(5);
+    hint.style.display='block';
+  }
+  
+  lastPlaceQuery='';
+}
+
+function escapeHtml(text){
+  const div=document.createElement('div');
+  div.textContent=text;
+  return div.innerHTML;
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click',e=>{
+  const suggestions=document.getElementById('place-suggestions');
+  const nameInput=document.getElementById('f-name');
+  if(suggestions&&!suggestions.contains(e.target)&&e.target!==nameInput){
+    suggestions.style.display='none';
+  }
+});
 
 // ── Geocodio ──────────────────────────────────────────────────────────────────
 async function geocodeAddress(address){
