@@ -1179,6 +1179,11 @@ const GEOCODIO_KEY    = (typeof CONFIG !== 'undefined' && CONFIG.GEOCODIO_KEY) |
 const ANTHROPIC_KEY   = (typeof CONFIG !== 'undefined' && CONFIG.ANTHROPIC_KEY) || '';
 const ORS_API_KEY     = (typeof CONFIG !== 'undefined' && CONFIG.ORS_API_KEY) || '';
 
+// Log config status at startup
+console.log('[Config] CONFIG object:', typeof CONFIG !== 'undefined' ? 'loaded' : 'NOT FOUND');
+console.log('[Config] GEOCODIO_KEY:', GEOCODIO_KEY ? 'set (' + GEOCODIO_KEY.substring(0,8) + '...)' : 'EMPTY');
+console.log('[Config] ORS_API_KEY:', ORS_API_KEY ? 'set' : 'EMPTY');
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_LABEL={visited:'Visited',planned:'Planned',saved:'Saved for Later'};
 const AMENITY_MAP={'a-water':'hasPotableWater','a-dump':'hasDumpStation','a-hookups':'hasHookups','a-trash':'hasTrash','a-fill':'hasWaterFill','a-seasonal':'isSeasonal','a-pets':'hasPets','a-4x4':'needs4x4','a-reservations':'needsReservations'};
@@ -1480,7 +1485,13 @@ let placeSearchTimeout=null;
 let lastPlaceQuery='';
 
 async function searchPlaces(query){
+  console.log('[Autocomplete] searchPlaces called with:', query);
   const suggestions=document.getElementById('place-suggestions');
+  
+  if(!suggestions){
+    console.error('[Autocomplete] place-suggestions element not found');
+    return;
+  }
   
   // Clear previous timeout
   if(placeSearchTimeout) clearTimeout(placeSearchTimeout);
@@ -1493,27 +1504,36 @@ async function searchPlaces(query){
   
   // Check if API key is available
   if(!GEOCODIO_KEY){
-    console.warn('Geocodio API key not configured - autocomplete disabled');
+    console.warn('[Autocomplete] Geocodio API key not configured - autocomplete disabled');
+    suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">Autocomplete unavailable (no API key)</div>';
+    suggestions.style.display='block';
     return;
   }
   
+  console.log('[Autocomplete] Starting search for:', query);
+  
   // Debounce - wait 350ms after user stops typing
   placeSearchTimeout=setTimeout(async()=>{
-    if(query===lastPlaceQuery) return;
-    lastPlaceQuery=query;
-    
-    // Show loading state
+    // Show loading state immediately
     suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">🔍 Searching...</div>';
     suggestions.style.display='block';
     
     try{
       // Use Geocodio for place search
-      let searchUrl=`https://api.geocod.io/v1.7/geocode?q=${encodeURIComponent(query)}&api_key=${GEOCODIO_KEY}&limit=6`;
+      const searchUrl=`https://api.geocod.io/v1.7/geocode?q=${encodeURIComponent(query)}&api_key=${GEOCODIO_KEY}&limit=6`;
+      console.log('[Autocomplete] Fetching:', searchUrl.replace(GEOCODIO_KEY, 'API_KEY_HIDDEN'));
       
       const res=await fetch(searchUrl);
+      console.log('[Autocomplete] Response status:', res.status);
       
-      if(!res.ok) throw new Error('Geocodio '+res.status);
+      if(!res.ok){
+        const errorText=await res.text();
+        console.error('[Autocomplete] API error:', errorText);
+        throw new Error('Geocodio '+res.status);
+      }
+      
       const data=await res.json();
+      console.log('[Autocomplete] Results:', data);
       const places=data.results||[];
       
       if(places.length===0){
@@ -1526,9 +1546,6 @@ async function searchPlaces(query){
       suggestions.innerHTML=places.map((p,i)=>{
         const formatted=p.formatted_address||'';
         const name=formatted.split(',')[0];
-        const location=p.location||{};
-        const components=p.address_components||{};
-        const placeType=components.place||components.city||components.county||'';
         
         return `
           <div onclick="selectPlaceResult(${i})" 
@@ -1544,10 +1561,17 @@ async function searchPlaces(query){
       // Store results for selection
       suggestions._results=places;
       suggestions.style.display='block';
+      console.log('[Autocomplete] Displayed', places.length, 'results');
       
     }catch(e){
-      console.error('Place search failed:',e);
+      console.error('[Autocomplete] Place search failed:',e);
       suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">Search unavailable. Enter details manually.</div>';
+      suggestions.style.display='block';
+    }
+    
+    lastPlaceQuery=query;
+  },350);
+}
       suggestions.style.display='block';
     }
   },350);
