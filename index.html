@@ -1670,9 +1670,15 @@ function openLocationDetail(entryId){
   const content=document.getElementById('location-detail-content');
   const drawer=document.getElementById('drawer');
   
-  // Position panel to the right of the drawer
-  const drawerWidth=drawer.offsetWidth||320;
-  panel.style.left=drawerWidth+'px';
+  // Position panel to the right of the drawer (desktop only)
+  // On mobile, CSS handles positioning (slides up from bottom)
+  const isMobile=window.innerWidth<=640;
+  if(!isMobile){
+    const drawerWidth=drawer.offsetWidth||320;
+    panel.style.left=drawerWidth+'px';
+  }else{
+    panel.style.left=''; // Clear any inline left style for mobile
+  }
   
   // Build content
   const hasPhoto=entry.photos&&entry.photos.length>0;
