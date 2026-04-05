@@ -1350,7 +1350,7 @@ async function migrateDisabledVeteranToAccessPass(uid, docs){
   for(const entry of toMigrate){
     try {
       const updated = { ...entry, discountType: 'Access Pass' };
-      await window._db.saveEntry(uid, updated);
+      await window._db.save(uid, updated);
       console.log(`[Migration] Updated entry "${entry.name}" to Access Pass`);
     } catch(e) {
       console.error(`[Migration] Failed to update entry "${entry.name}":`, e);
@@ -1491,30 +1491,30 @@ async function searchPlaces(query){
     return;
   }
   
-  // Debounce - wait 300ms after user stops typing
+  // Check if API key is available
+  if(!GEOCODIO_KEY){
+    console.warn('Geocodio API key not configured - autocomplete disabled');
+    return;
+  }
+  
+  // Debounce - wait 350ms after user stops typing
   placeSearchTimeout=setTimeout(async()=>{
     if(query===lastPlaceQuery) return;
     lastPlaceQuery=query;
     
+    // Show loading state
+    suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">🔍 Searching...</div>';
+    suggestions.style.display='block';
+    
     try{
-      // Use Nominatim (OpenStreetMap) for place search - free, no API key needed
-      // Bias towards camping/outdoor locations and current map view
-      let searchUrl=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1`;
+      // Use Geocodio for place search
+      let searchUrl=`https://api.geocod.io/v1.7/geocode?q=${encodeURIComponent(query)}&api_key=${GEOCODIO_KEY}&limit=6`;
       
-      // Add bounding box bias if we have a map location
-      if(map&&myDotMarker){
-        const ll=myDotMarker.getLatLng();
-        // Create a ~200 mile bounding box around user's location
-        const delta=3; // roughly 200 miles
-        searchUrl+=`&viewbox=${ll.lng-delta},${ll.lat+delta},${ll.lng+delta},${ll.lat-delta}&bounded=0`;
-      }
+      const res=await fetch(searchUrl);
       
-      const res=await fetch(searchUrl,{
-        headers:{'User-Agent':'RoadTrippingPWA/1.0'}
-      });
-      
-      if(!res.ok) throw new Error('Nominatim '+res.status);
-      const places=await res.json();
+      if(!res.ok) throw new Error('Geocodio '+res.status);
+      const data=await res.json();
+      const places=data.results||[];
       
       if(places.length===0){
         suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">No places found. Try a different search or enter details manually.</div>';
@@ -1523,21 +1523,26 @@ async function searchPlaces(query){
       }
       
       // Render suggestions
-      suggestions.innerHTML=places.map(p=>{
-        const name=p.name||p.display_name.split(',')[0];
-        const address=p.display_name;
-        const type=p.type?(p.type.charAt(0).toUpperCase()+p.type.slice(1).replace(/_/g,' ')):'';
+      suggestions.innerHTML=places.map((p,i)=>{
+        const formatted=p.formatted_address||'';
+        const name=formatted.split(',')[0];
+        const location=p.location||{};
+        const components=p.address_components||{};
+        const placeType=components.place||components.city||components.county||'';
+        
         return `
-          <div onclick="selectPlace(${JSON.stringify(p).replace(/"/g,'&quot;')})" 
+          <div onclick="selectPlaceResult(${i})" 
                style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s"
                onmouseover="this.style.background='rgba(127,195,165,0.1)'" 
                onmouseout="this.style.background='transparent'">
             <div style="font-size:13px;font-weight:600;color:var(--forest)">${escapeHtml(name)}</div>
-            <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(address)}</div>
-            ${type?`<div style="font-size:10px;color:var(--teal);margin-top:2px">${escapeHtml(type)}</div>`:''}
+            <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(formatted)}</div>
           </div>
         `;
       }).join('');
+      
+      // Store results for selection
+      suggestions._results=places;
       suggestions.style.display='block';
       
     }catch(e){
@@ -1545,24 +1550,31 @@ async function searchPlaces(query){
       suggestions.innerHTML='<div style="padding:12px;color:var(--text-muted);font-size:13px">Search unavailable. Enter details manually.</div>';
       suggestions.style.display='block';
     }
-  },300);
+  },350);
 }
 
-function selectPlace(place){
+function selectPlaceResult(index){
   const suggestions=document.getElementById('place-suggestions');
+  const places=suggestions._results||[];
+  const place=places[index];
+  
+  if(!place) return;
   suggestions.style.display='none';
   
-  // Set name - use the place name, or first part of display_name
-  const name=place.name||place.display_name.split(',')[0];
+  const formatted=place.formatted_address||'';
+  const name=formatted.split(',')[0];
+  const location=place.location||{};
+  
+  // Set name - use first part of address
   document.getElementById('f-name').value=name;
   
-  // Set address - use full display name
-  document.getElementById('f-address').value=place.display_name;
+  // Set address - use full formatted address
+  document.getElementById('f-address').value=formatted;
   
   // Set coordinates
-  if(place.lat&&place.lon){
-    const lat=parseFloat(place.lat);
-    const lng=parseFloat(place.lon);
+  if(location.lat&&location.lng){
+    const lat=parseFloat(location.lat);
+    const lng=parseFloat(location.lng);
     document.getElementById('f-coords').value=lat.toFixed(6)+', '+lng.toFixed(6);
     
     // Update pending coordinates and show drag pin
@@ -1599,7 +1611,7 @@ document.addEventListener('click',e=>{
 
 // ── Geocodio ──────────────────────────────────────────────────────────────────
 async function geocodeAddress(address){
-  const url=`https://api.geocod.io/v1.12/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
+  const url=`https://api.geocod.io/v1.7/geocode?q=${encodeURIComponent(address)}&api_key=${GEOCODIO_KEY}&limit=1&format=simple`;
   const res=await fetch(url);
   if(!res.ok) throw new Error('Geocodio '+res.status);
   const data=await res.json();
