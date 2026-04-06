@@ -1,4 +1,4 @@
-const CACHE_NAME = 'the-fallback-v8';
+const CACHE_NAME = 'the-fallback-v9';
 const STATIC_URLS = [
   '/manifest.json',
   '/config.js',
