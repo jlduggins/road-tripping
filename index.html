@@ -9,9 +9,11 @@
 <meta name="theme-color" content="#3d5a4c"/>
 <title>The Fallback</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" href="favicon.ico" sizes="any"/>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/logo.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="icons/logo.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="icons/logo.png"/>
+<link rel="mask-icon" href="icons/logo.png" color="#163F2E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -1831,24 +1833,30 @@ async function loadStateParksInView(){
   loading.style.display='inline';
   
   try{
-    // PAD-US Manager_Name service - filter for State Park and Recreation (SPR)
+    // PAD-US Manager_Name service - query for State Parks using multiple criteria
+    // SPR = State Park and Recreation, also check Des_Tp for SP (State Park) designation
     const bbox=`${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name/FeatureServer/0/query?where=Mang_Name='SPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Unit_Nm,Mang_Name&returnGeometry=true&f=geojson`;
+    // Query: SPR (State Park and Recreation) OR Des_Tp contains 'SP' (State Park designation)
+    const whereClause=encodeURIComponent("Mang_Name='SPR' OR Des_Tp='SP'");
+    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name/FeatureServer/0/query?where=${whereClause}&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Unit_Nm,Mang_Name,Des_Tp&returnGeometry=true&f=geojson`;
     
+    console.log('State Parks query URL:', url);
     const resp=await fetch(url);
     const data=await resp.json();
+    console.log('State Parks response:', data.features ? data.features.length + ' features' : data);
     
     if(data.features && data.features.length>0){
       stateParksCache[cacheKey]=true;
       
+      // Blue color for state parks overlay
+      const style={color:'#2563eb',fillColor:'#3b82f6',fillOpacity:0.35,weight:1.5};
+      
       if(stateParksLayer){
         // Add new features to existing layer
-        L.geoJSON(data,{
-          style:{color:'#9E6549',fillColor:'#9E6549',fillOpacity:0.4,weight:1}
-        }).eachLayer(l=>stateParksLayer.addLayer(l));
+        L.geoJSON(data,{style}).eachLayer(l=>stateParksLayer.addLayer(l));
       } else {
         stateParksLayer=L.geoJSON(data,{
-          style:{color:'#9E6549',fillColor:'#9E6549',fillOpacity:0.4,weight:1},
+          style,
           onEachFeature:(f,l)=>{
             if(f.properties && f.properties.Unit_Nm){
               l.bindPopup(`<b>${f.properties.Unit_Nm}</b><br>State Park`);
@@ -1856,6 +1864,8 @@ async function loadStateParksInView(){
           }
         }).addTo(map);
       }
+    } else if(data.error){
+      console.error('PAD-US API error:', data.error);
     }
   } catch(e){
     console.error('Error loading state parks:',e);
