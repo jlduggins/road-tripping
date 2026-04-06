@@ -1,8 +1,11 @@
-const CACHE_NAME = 'the-fallback-v7';
+const CACHE_NAME = 'the-fallback-v8';
 const STATIC_URLS = [
   '/manifest.json',
   '/config.js',
-  '/icons/logo.png',
+  '/icons/icon-32.png',
+  '/icons/icon-180.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
