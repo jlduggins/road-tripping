@@ -9,7 +9,8 @@
 <meta name="theme-color" content="#3d5a4c"/>
 <title>The Fallback</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/logo.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="icons/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -673,7 +674,10 @@ textarea.inp{resize:none}
 <!-- Layers Panel -->
 <div id="layers-panel" style="position:fixed;right:16px;top:140px;background:white;border-radius:12px;
      box-shadow:0 4px 20px rgba(0,0,0,.25);padding:16px;z-index:1100;display:none;min-width:200px">
-  <div style="font-weight:600;margin-bottom:12px;color:#374151;font-size:14px">Map Layers</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-weight:600;color:#374151;font-size:14px">Map Layers</div>
+    <button onclick="closeLayersPanel()" style="background:none;border:none;cursor:pointer;padding:4px;color:#6b7280;font-size:18px;line-height:1">&times;</button>
+  </div>
   
   <div style="margin-bottom:16px">
     <div style="font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Base Map</div>
@@ -1722,6 +1726,9 @@ function initMap(){
   streetLayer.addTo(map);
 
   map.on('click',e=>{
+    // Don't create pin if we just closed the layers panel
+    if(typeof layersPanelJustClosed!=='undefined' && layersPanelJustClosed) return;
+    
     if(document.getElementById('form-panel').classList.contains('open')){
       // Move drag pin while form is open
       moveDragPin(e.latlng.lat,e.latlng.lng);
@@ -1808,8 +1815,8 @@ async function loadStateParksInView(){
   const bounds=map.getBounds();
   const zoom=map.getZoom();
   
-  // Only load at zoom 7+ to avoid too much data
-  if(zoom<7){
+  // Only load at zoom 8+ to avoid too much data
+  if(zoom<8){
     if(stateParksLayer){
       map.removeLayer(stateParksLayer);
       stateParksLayer=null;
@@ -1824,9 +1831,9 @@ async function loadStateParksInView(){
   loading.style.display='inline';
   
   try{
-    // PAD-US Fee Managers feature layer - filter for State Park and Recreation
+    // PAD-US Manager_Name service - filter for State Park and Recreation (SDPR)
     const bbox=`${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/PADUS4_0Fee_Managers/FeatureServer/0/query?where=Mang_Name='SDPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&outFields=Unit_Nm,Mang_Name&f=geojson`;
+    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name/FeatureServer/0/query?where=Mang_Name='SDPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Unit_Nm,Mang_Name&returnGeometry=true&f=geojson`;
     
     const resp=await fetch(url);
     const data=await resp.json();
@@ -1857,12 +1864,22 @@ async function loadStateParksInView(){
   loading.style.display='none';
 }
 
+// Close layers panel - track if we just closed it to prevent map click
+let layersPanelJustClosed=false;
+
+function closeLayersPanel(){
+  const panel=document.getElementById('layers-panel');
+  if(panel) panel.style.display='none';
+  layersPanelJustClosed=true;
+  setTimeout(()=>{ layersPanelJustClosed=false; },300);
+}
+
 // Close layers panel when clicking outside
 document.addEventListener('click',e=>{
   const panel=document.getElementById('layers-panel');
   const btn=document.getElementById('btn-layers');
   if(panel && btn && panel.style.display==='block' && !panel.contains(e.target) && !btn.contains(e.target)){
-    panel.style.display='none';
+    closeLayersPanel();
   }
 });
 
