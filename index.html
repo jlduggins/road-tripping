@@ -9,10 +9,8 @@
 <meta name="theme-color" content="#3d5a4c"/>
 <title>The Fallback</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="icon" type="image/x-icon" href="favicon.ico"/>
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
-<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png"/>
-<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -700,6 +698,14 @@ textarea.inp{resize:none}
       <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#D2F6C5;border:1px solid #ccc;border-radius:2px"></span> Forest Service</div>
       <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#C9ECD3;border:1px solid #ccc;border-radius:2px"></span> National Park</div>
       <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#D6EBF2;border:1px solid #ccc;border-radius:2px"></span> Fish & Wildlife</div>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="layer-stateparks" onchange="toggleStateParksLayer()" style="accent-color:var(--forest)">
+      <span style="font-size:14px;color:#374151">State Parks</span>
+      <span id="stateparks-loading" style="display:none;font-size:11px;color:#6b7280">(loading...)</span>
+    </label>
+    <div id="stateparks-legend" style="display:none;margin-left:26px;margin-top:4px;font-size:11px;color:#6b7280">
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#9E6549;border:1px solid #ccc;border-radius:2px"></span> State Park</div>
     </div>
   </div>
 </div>
@@ -1764,6 +1770,91 @@ function togglePublicLandsLayer(){
     map.removeLayer(publicLandsLayer);
     legend.style.display='none';
   }
+}
+
+// State Parks layer from PAD-US
+let stateParksLayer=null;
+let stateParksCache={};
+
+async function toggleStateParksLayer(){
+  const cb=document.getElementById('layer-stateparks');
+  const legend=document.getElementById('stateparks-legend');
+  const loading=document.getElementById('stateparks-loading');
+  
+  if(cb.checked){
+    legend.style.display='block';
+    if(stateParksLayer){
+      stateParksLayer.addTo(map);
+    } else {
+      // Load state parks for current view
+      loadStateParksInView();
+      // Also load when map moves
+      map.on('moveend',loadStateParksInView);
+    }
+  } else {
+    if(stateParksLayer){
+      map.removeLayer(stateParksLayer);
+    }
+    legend.style.display='none';
+    map.off('moveend',loadStateParksInView);
+  }
+}
+
+async function loadStateParksInView(){
+  const cb=document.getElementById('layer-stateparks');
+  if(!cb.checked) return;
+  
+  const loading=document.getElementById('stateparks-loading');
+  const bounds=map.getBounds();
+  const zoom=map.getZoom();
+  
+  // Only load at zoom 7+ to avoid too much data
+  if(zoom<7){
+    if(stateParksLayer){
+      map.removeLayer(stateParksLayer);
+      stateParksLayer=null;
+    }
+    return;
+  }
+  
+  // Create cache key from bounds
+  const cacheKey=`${bounds.toBBoxString()}-${zoom}`;
+  if(stateParksCache[cacheKey]) return;
+  
+  loading.style.display='inline';
+  
+  try{
+    // PAD-US Fee Managers feature layer - filter for State Park and Recreation
+    const bbox=`${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/PADUS4_0Fee_Managers/FeatureServer/0/query?where=Mang_Name='SDPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&outFields=Unit_Nm,Mang_Name&f=geojson`;
+    
+    const resp=await fetch(url);
+    const data=await resp.json();
+    
+    if(data.features && data.features.length>0){
+      stateParksCache[cacheKey]=true;
+      
+      if(stateParksLayer){
+        // Add new features to existing layer
+        L.geoJSON(data,{
+          style:{color:'#9E6549',fillColor:'#9E6549',fillOpacity:0.4,weight:1}
+        }).eachLayer(l=>stateParksLayer.addLayer(l));
+      } else {
+        stateParksLayer=L.geoJSON(data,{
+          style:{color:'#9E6549',fillColor:'#9E6549',fillOpacity:0.4,weight:1},
+          onEachFeature:(f,l)=>{
+            if(f.properties && f.properties.Unit_Nm){
+              l.bindPopup(`<b>${f.properties.Unit_Nm}</b><br>State Park`);
+            }
+          }
+        }).addTo(map);
+      }
+    }
+  } catch(e){
+    console.error('Error loading state parks:',e);
+  }
+  
+  loading.style.display='none';
 }
 
 // Close layers panel when clicking outside
