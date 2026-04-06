@@ -1831,9 +1831,9 @@ async function loadStateParksInView(){
   loading.style.display='inline';
   
   try{
-    // PAD-US Manager_Name service - filter for State Park and Recreation (SDPR)
+    // PAD-US Manager_Name service - filter for State Park and Recreation (SPR)
     const bbox=`${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name/FeatureServer/0/query?where=Mang_Name='SDPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Unit_Nm,Mang_Name&returnGeometry=true&f=geojson`;
+    const url=`https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/Manager_Name/FeatureServer/0/query?where=Mang_Name='SPR'&geometry=${encodeURIComponent(bbox)}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=Unit_Nm,Mang_Name&returnGeometry=true&f=geojson`;
     
     const resp=await fetch(url);
     const data=await resp.json();
