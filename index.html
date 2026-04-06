@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="Road Tripping"/>
+<meta name="apple-mobile-web-app-title" content="The Fallback"/>
 <meta name="theme-color" content="#3d5a4c"/>
-<title>Road Tripping</title>
+<title>The Fallback</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
@@ -589,17 +589,21 @@ textarea.inp{resize:none}
 
 <!-- Loading -->
 <div id="loading-screen">
-  <img src="icons/logo.svg" alt="" style="height:60px;width:auto;margin-bottom:12px"/>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <img src="icons/logo.png" alt="" style="height:60px;width:auto"/>
+    <span style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:700"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
+  </div>
   <div class="spinner"></div>
-  <div style="color:var(--text-muted);font-size:14px;font-weight:500">Loading Road Tripping…</div>
+  <div style="color:var(--text-muted);font-size:14px;font-weight:500">Loading The Fallback…</div>
 </div>
 
 <!-- Login -->
 <div id="login-screen" style="display:none">
-  <div class="login-logo">
-    <img src="icons/logo.svg" alt="Road Tripping"/>
+  <div class="login-logo" style="display:flex;align-items:center;justify-content:center;gap:16px">
+    <img src="icons/logo.png" alt="" style="height:100px;width:auto"/>
+    <span style="font-family:'Poppins',sans-serif;font-size:42px;font-weight:700"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
   </div>
-  <p class="login-desc">Log camping spots, track routes, get AI suggestions — synced across all your devices.</p>
+  <p class="login-desc">Route planning for life on the move.</p>
   <button class="google-btn" onclick="window._firebaseAuth.signInWithGoogle()">
     <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
     Continue with Google
@@ -618,7 +622,7 @@ textarea.inp{resize:none}
 <!-- Top bar -->
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
-  <span id="top-title"><span style="color:#F5F5F5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
+  <span id="top-title"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
   <span id="top-count">0 locations</span>
 </div>
 
@@ -678,7 +682,7 @@ textarea.inp{resize:none}
   <div id="drawer-resize"></div>
   <div id="drawer-header">
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#F5F5F5">Road</span> <span style="color:#7FC3A5">Tripping</span></span>
+      <span class="drawer-title" style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
       <div id="top-count2" style="font-size:12px;color:var(--forest)">0 locations</div>
     </div>
     <button id="drawer-close" onclick="closeDrawer()">✕</button>
@@ -1327,7 +1331,7 @@ async function addSampleLocation(uid){
     status: 'saved',
     rating: 4,
     cost: 30,
-    notes: 'This is a sample location to show you how Road Tripping works! Beautiful views of the Grand Canyon. Reservations required. No hookups. Delete this anytime by tapping the trash icon.',
+    notes: 'This is a sample location to show you how The Fallback works! Beautiful views of the Grand Canyon. Reservations required. No hookups. Delete this anytime by tapping the trash icon.',
     hasPotableWater: true,
     hasTrash: true,
     hasPets: true,
@@ -1716,7 +1720,7 @@ let lastKnownPos=null;
 
 function locateMe(){
   if(!navigator.geolocation){
-    alert('Geolocation not available.\n\nIf using Home Screen app:\niPhone Settings → Road Tripping → Location → While Using the App');
+    alert('Geolocation not available.\n\nIf using Home Screen app:\niPhone Settings → The Fallback → Location → While Using the App');
     return;
   }
   // If we already have a position from watchPosition, use it instantly
@@ -1736,7 +1740,7 @@ function locateMe(){
         // Check if running as standalone PWA
         const isPWA = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
         if(isPWA){
-          alert('Location access denied.\n\nFor Home Screen apps:\niPhone Settings → Road Tripping → Location → While Using the App');
+          alert('Location access denied.\n\nFor Home Screen apps:\niPhone Settings → The Fallback → Location → While Using the App');
         } else {
           alert('Location access denied.\n\nSettings → Privacy & Security → Location Services → Safari → Allow While Using App');
         }

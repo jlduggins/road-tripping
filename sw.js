@@ -1,4 +1,4 @@
-const CACHE_NAME = 'road-tripping-v97';
+const CACHE_NAME = 'the-fallback-v1';
 const STATIC_URLS = [
   '/manifest.json',
   '/config.js',

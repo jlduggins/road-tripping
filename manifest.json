@@ -1,7 +1,7 @@
 {
-  "name": "Road Tripping",
-  "short_name": "Road Tripping",
-  "description": "Log and discover camping spots for van life and mobile living",
+  "name": "The Fallback",
+  "short_name": "The Fallback",
+  "description": "Route planning for life on the move",
   "start_url": "/road-tripping/",
   "scope": "/road-tripping/",
   "display": "standalone",
