@@ -650,8 +650,8 @@ textarea.inp{resize:none}
     style="width:44px;height:44px;border-radius:12px;border:none;background:white;
            box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:20px;color:#374151;
            display:flex;align-items:center;justify-content:center;cursor:pointer">−</button>
-  <!-- Layers / satellite toggle -->
-  <button id="btn-satellite" onclick="toggleSatellite()" title="Toggle satellite"
+  <!-- Layers panel toggle -->
+  <button id="btn-layers" onclick="toggleLayersPanel()" title="Map layers"
     style="width:44px;height:44px;border-radius:12px;border:none;background:white;
            box-shadow:0 2px 12px rgba(0,0,0,.2);
            display:flex;align-items:center;justify-content:center;cursor:pointer">
@@ -670,6 +670,38 @@ textarea.inp{resize:none}
       <line x1="18" y1="12" x2="22" y2="12"/>
     </svg>
   </button>
+</div>
+
+<!-- Layers Panel -->
+<div id="layers-panel" style="position:fixed;right:16px;top:140px;background:white;border-radius:12px;
+     box-shadow:0 4px 20px rgba(0,0,0,.25);padding:16px;z-index:1100;display:none;min-width:200px">
+  <div style="font-weight:600;margin-bottom:12px;color:#374151;font-size:14px">Map Layers</div>
+  
+  <div style="margin-bottom:16px">
+    <div style="font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Base Map</div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0">
+      <input type="radio" name="basemap" value="street" checked onchange="setBasemap('street')" style="accent-color:var(--forest)">
+      <span style="font-size:14px;color:#374151">Street</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0">
+      <input type="radio" name="basemap" value="satellite" onchange="setBasemap('satellite')" style="accent-color:var(--forest)">
+      <span style="font-size:14px;color:#374151">Satellite</span>
+    </label>
+  </div>
+  
+  <div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Public Lands</div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="layer-sma" onchange="togglePublicLandsLayer()" style="accent-color:var(--forest)">
+      <span style="font-size:14px;color:#374151">Federal Lands (BLM/NF/NP)</span>
+    </label>
+    <div id="sma-legend" style="display:none;margin-left:26px;margin-top:4px;font-size:11px;color:#6b7280">
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#FEF0AC;border:1px solid #ccc;border-radius:2px"></span> BLM</div>
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#D2F6C5;border:1px solid #ccc;border-radius:2px"></span> Forest Service</div>
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#C9ECD3;border:1px solid #ccc;border-radius:2px"></span> National Park</div>
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:#D6EBF2;border:1px solid #ccc;border-radius:2px"></span> Fish & Wildlife</div>
+    </div>
+  </div>
 </div>
 
 <div class="map-hint-bar" id="map-hint">Tap the map to log a location</div>
@@ -1208,7 +1240,7 @@ const AMENITY_META=[
 // ── State ─────────────────────────────────────────────────────────────────────
 let entries=[],editId=null,pendingLat=null,pendingLng=null,currentRating=0,pendingPhotos=[];
 let map,markers=[],myDotMarker=null,myDotCircle=null,dragPin=null;
-let streetLayer,satelliteLayer,isSatellite=false;
+let streetLayer,satelliteLayer,publicLandsLayer,isSatellite=false;
 let aiMessages=[],deleteTargetId=null;
 let firestoreUnsub=null,journeyUnsub=null,mapReady=false;
 
@@ -1677,6 +1709,10 @@ function initMap(){
   satelliteLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
     attribution:'Tiles &copy; Esri',maxZoom:19
   });
+  // BLM Surface Management Agency layer - shows BLM, USFS, NPS, etc.
+  publicLandsLayer=L.tileLayer('https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_Cached_without_PriUnk/MapServer/tile/{z}/{y}/{x}',{
+    attribution:'Surface Management &copy; BLM',maxZoom:14,opacity:0.6
+  });
   streetLayer.addTo(map);
 
   map.on('click',e=>{
@@ -1695,17 +1731,49 @@ function initMap(){
 const LAYERS_SVG=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
 const MAP_SVG=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`;
 
-function toggleSatellite(){
-  isSatellite=!isSatellite;
-  const btn=document.getElementById('btn-satellite');
-  if(isSatellite){
-    map.removeLayer(streetLayer); satelliteLayer.addTo(map);
-    btn.innerHTML=MAP_SVG; btn.title='Switch to street view';
+function toggleLayersPanel(){
+  const panel=document.getElementById('layers-panel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+}
+
+function setBasemap(type){
+  if(type==='satellite'){
+    map.removeLayer(streetLayer);
+    if(!map.hasLayer(satelliteLayer)) satelliteLayer.addTo(map);
+    satelliteLayer.bringToBack();
+    isSatellite=true;
   } else {
-    map.removeLayer(satelliteLayer); streetLayer.addTo(map);
-    btn.innerHTML=LAYERS_SVG; btn.title='Switch to satellite view';
+    map.removeLayer(satelliteLayer);
+    if(!map.hasLayer(streetLayer)) streetLayer.addTo(map);
+    streetLayer.bringToBack();
+    isSatellite=false;
+  }
+  // Keep public lands on top if enabled
+  if(map.hasLayer(publicLandsLayer)){
+    publicLandsLayer.bringToFront();
   }
 }
+
+function togglePublicLandsLayer(){
+  const cb=document.getElementById('layer-sma');
+  const legend=document.getElementById('sma-legend');
+  if(cb.checked){
+    publicLandsLayer.addTo(map);
+    legend.style.display='block';
+  } else {
+    map.removeLayer(publicLandsLayer);
+    legend.style.display='none';
+  }
+}
+
+// Close layers panel when clicking outside
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('layers-panel');
+  const btn=document.getElementById('btn-layers');
+  if(panel && btn && panel.style.display==='block' && !panel.contains(e.target) && !btn.contains(e.target)){
+    panel.style.display='none';
+  }
+});
 
 function updateMyDot(lat,lng){
   if(myDotCircle){myDotCircle.remove();myDotCircle=null;}
