@@ -709,7 +709,7 @@ textarea.inp{resize:none}
       <span id="stateparks-loading" style="display:none;font-size:11px;color:#6b7280">(loading...)</span>
     </label>
     <div id="stateparks-legend" style="display:none;margin-left:26px;margin-top:4px;font-size:11px;color:#6b7280">
-      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:rgba(59,130,246,0.7);border:1px solid #2563eb;border-radius:2px"></span> State Park</div>
+      <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:12px;height:12px;background:rgba(59,130,246,0.15);border:1px solid #2563eb;border-radius:2px"></span> State Park</div>
     </div>
   </div>
 </div>
@@ -1846,8 +1846,8 @@ async function loadStateParksInView(){
     if(data.features && data.features.length>0){
       stateParksCache[cacheKey]=true;
       
-      // Blue color for state parks overlay - 70% opacity
-      const style={color:'#2563eb',fillColor:'#3b82f6',fillOpacity:0.7,weight:1.5};
+      // Blue color for state parks overlay - 15% opacity
+      const style={color:'#2563eb',fillColor:'#3b82f6',fillOpacity:0.15,weight:1.5};
       
       if(stateParksLayer){
         // Add new features to existing layer
