@@ -4639,10 +4639,10 @@ function openSendToMapsModal(journeyId){
     </div>
     
     <div style="border-top:1px solid var(--border);padding-top:16px">
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Share route</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Full route</div>
       <button onclick="shareFullRoute()" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:white;text-align:left;cursor:pointer">
-        <div style="font-size:14px;color:var(--forest)">Share full route link</div>
-        <div style="font-size:12px;color:var(--text-muted)">Copy Google Maps link with all stops</div>
+        <div style="font-size:14px;color:var(--forest)">Open full route</div>
+        <div style="font-size:12px;color:var(--text-muted)">Navigate all stops in order</div>
       </button>
     </div>
   `;
@@ -4725,7 +4725,7 @@ function openInGoogleMaps(){
       window.open(url,'_blank');
     }
   }else if(pendingMapsAction.type==='share'){
-    // Full route with all waypoints
+    // Full route with all waypoints - open directly
     const journey=journeys.find(j=>j.id===mapsModalJourneyId);
     if(journey&&journey.legs){
       const coords=journey.legs.map(l=>{
@@ -4734,7 +4734,7 @@ function openInGoogleMaps(){
       }).filter(Boolean);
       
       if(coords.length>0){
-        // Google Maps: origin + destination + waypoints
+        // Google Maps: destination + waypoints
         let url;
         if(coords.length===1){
           url=`https://www.google.com/maps/dir/?api=1&destination=${coords[0]}&travelmode=driving`;
@@ -4743,17 +4743,7 @@ function openInGoogleMaps(){
           const waypoints=coords.slice(0,-1).join('|');
           url=`https://www.google.com/maps/dir/?api=1&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
         }
-        
-        // Copy to clipboard for sharing
-        if(navigator.clipboard){
-          navigator.clipboard.writeText(url).then(()=>{
-            alert('Route link copied to clipboard!');
-          }).catch(()=>{
-            window.open(url,'_blank');
-          });
-        }else{
-          window.open(url,'_blank');
-        }
+        window.open(url,'_blank');
       }
     }
   }
