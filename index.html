@@ -3852,8 +3852,8 @@ function renderJourneys(){
         <div style="display:flex;gap:8px;margin-top:12px">
           <button onclick="event.stopPropagation();viewJourneyOnMap('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:12px;font-weight:600">View on map</button>
           <button onclick="event.stopPropagation();openAddLegModal('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--teal);color:white;font-size:12px;font-weight:600">+ Add stop</button>
-          <button onclick="event.stopPropagation();openSendToMapsModal('${j.id}')" style="width:42px;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;display:flex;align-items:center;justify-content:center" title="Send to Maps">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
+          <button onclick="event.stopPropagation();openSendToMapsModal('${j.id}')" style="width:44px;height:36px;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;display:flex;align-items:center;justify-content:center" title="Send to Maps">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
           </button>
         </div>
       </div>
@@ -3927,8 +3927,8 @@ function openJourneyDetail(journeyId){
         </div>
         <div style="display:flex;align-items:center;gap:20px">
           ${hasMissingRoutes?`<button onclick="refreshAllRoutes('${journey.id}')" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer" title="Fetch actual road routes">🔄</button>`:''}
-          <button onclick="openSendToMapsModal('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px" title="Send to Maps">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
+          <button onclick="openSendToMapsModal('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:6px" title="Send to Maps">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
           </button>
           <button onclick="editJourney('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px;font-size:16px" title="Edit journey">✏️</button>
         </div>
@@ -4450,12 +4450,12 @@ function openSendToMapsModal(journeyId){
   let nextStopIndex=0;
   let nextStopDistance=null;
   
-  if(userLat&&userLng){
+  if(lastKnownPos&&lastKnownPos.lat){
     // Find which stop user is closest to or past
     for(let i=0;i<legs.length;i++){
       const entry=entries.find(e=>e.id===legs[i].destId);
       if(entry&&entry.lat){
-        const dist=haversineDistance(userLat,userLng,entry.lat,entry.lng);
+        const dist=haversineDistance(lastKnownPos.lat,lastKnownPos.lng,entry.lat,entry.lng);
         if(dist<10){ // Within 10 miles of a stop
           nextStopIndex=Math.min(i+1,legs.length-1); // Next stop after current
           break;
@@ -4465,7 +4465,7 @@ function openSendToMapsModal(journeyId){
     // Calculate distance to next stop
     const nextEntry=entries.find(e=>e.id===legs[nextStopIndex].destId);
     if(nextEntry&&nextEntry.lat){
-      nextStopDistance=Math.round(haversineDistance(userLat,userLng,nextEntry.lat,nextEntry.lng));
+      nextStopDistance=Math.round(haversineDistance(lastKnownPos.lat,lastKnownPos.lng,nextEntry.lat,nextEntry.lng));
     }
   }
   
