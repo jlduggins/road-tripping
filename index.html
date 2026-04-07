@@ -1846,8 +1846,8 @@ async function loadStateParksInView(){
     if(data.features && data.features.length>0){
       stateParksCache[cacheKey]=true;
       
-      // Blue color for state parks overlay - 5% opacity
-      const style={color:'#2563eb',fillColor:'#3b82f6',fillOpacity:0.05,weight:1.5};
+      // Blue color for state parks overlay - 5% fill, 50% border opacity
+      const style={color:'rgba(37,99,235,0.5)',fillColor:'#3b82f6',fillOpacity:0.05,weight:1.5};
       
       if(stateParksLayer){
         // Add new features to existing layer
@@ -2050,14 +2050,19 @@ function openFormPanelById(id){
 // ── Location Detail Panel ─────────────────────────────────────────────────────
 let currentDetailEntryId=null;
 let returnToLocationDetailAfterSave=null;
+let currentDetailJourneyContext=null; // {journeyId, legIndex} when viewing from journey
+let viewingBackupForEntryId=null; // When viewing a backup option
 
-function openLocationDetail(entryId){
+function openLocationDetail(entryId, journeyContext=null){
   const entry=entries.find(e=>e.id===entryId);
   if(!entry) return;
   currentDetailEntryId=entryId;
+  currentDetailJourneyContext=journeyContext;
+  viewingBackupForEntryId=null;
   
   const panel=document.getElementById('location-detail-panel');
   const content=document.getElementById('location-detail-content');
+  const footer=document.getElementById('location-detail-footer');
   const drawer=document.getElementById('drawer');
   
   // Position panel to the right of the drawer (desktop only)
@@ -2143,6 +2148,53 @@ function openLocationDetail(entryId){
     `:''}
   `;
   
+  // If viewing from journey context, add backup options section
+  if(journeyContext && entry.lat){
+    const radius=fuelSettings.backupRadius||30;
+    const backups=entries.filter(e=>{
+      if(e.id===entry.id) return false;
+      if(!e.lat) return false;
+      const dist=haversineDistance(entry.lat,entry.lng,e.lat,e.lng);
+      return dist<=radius;
+    });
+    
+    if(backups.length>0){
+      content.innerHTML+=`
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:10px">💡 Backup Options (within ${radius}mi)</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${backups.map(b=>{
+              const dist=Math.round(haversineDistance(entry.lat,entry.lng,b.lat,b.lng));
+              const cost=b.cost===0?'Free':b.cost!=null?'$'+b.cost+'/night':'';
+              return `
+                <div onclick="openBackupLocationDetail('${b.id}')" style="background:rgba(245,158,11,0.08);border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(245,158,11,0.15)'" onmouseout="this.style.background='rgba(245,158,11,0.08)'">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13px;font-weight:600;color:var(--forest)">${b.name}</div>
+                      <div style="font-size:11px;color:var(--text-muted)">${b.type||''}${cost?' · '+cost:''}</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:12px;font-weight:600;color:#92400e">${dist}mi</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Update footer to show Edit destination button
+    footer.innerHTML=`
+      <button onclick="editDestinationFromDetail()" style="width:100%;padding:10px;background:var(--teal);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Edit destination</button>
+      <button onclick="editLocationFromDetail()" style="width:100%;padding:10px;background:white;color:var(--forest);border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Edit location details</button>
+    `;
+  }else{
+    // Standard footer
+    footer.innerHTML=`<button onclick="editLocationFromDetail()" style="width:100%;padding:10px;background:var(--teal);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Edit location</button>`;
+  }
+  
   // Small delay to ensure left is set before adding open class
   requestAnimationFrame(()=>{
     panel.classList.add('open');
@@ -2153,6 +2205,8 @@ function closeLocationDetail(){
   const panel=document.getElementById('location-detail-panel');
   panel.classList.remove('open');
   currentDetailEntryId=null;
+  currentDetailJourneyContext=null;
+  viewingBackupForEntryId=null;
 }
 
 function editLocationFromDetail(){
@@ -2165,6 +2219,189 @@ function editLocationFromDetail(){
     const e=entries.find(x=>x.id===entryId);
     if(e) openFormPanel(e);
   },100);
+}
+
+function editDestinationFromDetail(){
+  if(!currentDetailJourneyContext) return;
+  const {journeyId, legIndex}=currentDetailJourneyContext;
+  closeLocationDetail();
+  editLeg(journeyId, legIndex);
+}
+
+function openBackupLocationDetail(backupEntryId){
+  const backupEntry=entries.find(e=>e.id===backupEntryId);
+  if(!backupEntry) return;
+  
+  // Store which entry we're viewing as backup for
+  viewingBackupForEntryId=currentDetailEntryId;
+  currentDetailEntryId=backupEntryId;
+  
+  const panel=document.getElementById('location-detail-panel');
+  const content=document.getElementById('location-detail-content');
+  const footer=document.getElementById('location-detail-footer');
+  
+  // Build backup location content
+  const hasPhoto=backupEntry.photos&&backupEntry.photos.length>0;
+  const photoUrl=hasPhoto?(typeof backupEntry.photos[0]==='string'?backupEntry.photos[0]:backupEntry.photos[0].data):null;
+  const cost=backupEntry.cost===0?'Free':backupEntry.cost!=null?'$'+backupEntry.cost:'--';
+  const hasDiscount=backupEntry.discountType&&backupEntry.discountPercent;
+  
+  const amenityLabels={
+    hasPotableWater:'💧 Water',hasDumpStation:'🚿 Dump',hasHookups:'🔌 Hookups',
+    hasTrash:'🗑 Trash',hasWaterFill:'💦 Fill',isSeasonal:'📅 Seasonal',
+    hasPets:'🐕 Pets OK',needs4x4:'🚙 4x4',needsReservations:'📋 Reservations'
+  };
+  const amenities=Object.entries(amenityLabels).filter(([k])=>backupEntry[k]).map(([,v])=>v);
+  
+  // Calculate distance from original destination
+  const originalEntry=entries.find(e=>e.id===viewingBackupForEntryId);
+  const distFromOriginal=originalEntry?Math.round(haversineDistance(originalEntry.lat,originalEntry.lng,backupEntry.lat,backupEntry.lng)):null;
+  
+  content.innerHTML=`
+    <div style="margin-bottom:12px">
+      <button onclick="backToOriginalLocation()" style="background:none;border:none;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px">
+        ← Back to ${originalEntry?.name||'destination'}
+      </button>
+    </div>
+    
+    ${hasPhoto?`<img src="${photoUrl}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;margin-bottom:16px">`:''}
+    
+    <div style="background:rgba(245,158,11,0.1);border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px">💡</span>
+      <div style="font-size:12px;color:#92400e;font-weight:500">Backup option${distFromOriginal?' · '+distFromOriginal+'mi from original':''}</div>
+    </div>
+    
+    <div style="font-size:18px;font-weight:700;color:var(--forest);margin-bottom:4px">${backupEntry.name}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${backupEntry.address||backupEntry.type||''}</div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--teal-mid);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--text-muted)">Cost/night</div>
+        <div style="font-size:16px;font-weight:600;color:var(--forest)">${cost}</div>
+      </div>
+      <div style="background:var(--teal-mid);border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:var(--text-muted)">Type</div>
+        <div style="font-size:16px;font-weight:600;color:var(--forest)">${backupEntry.type||'--'}</div>
+      </div>
+    </div>
+    
+    ${hasDiscount?`
+      <div style="background:rgba(184,85,211,0.1);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;color:#8B3BA8">Discount</div>
+          <div style="font-size:14px;font-weight:600;color:#8B3BA8">${backupEntry.discountType}</div>
+        </div>
+        <div style="font-size:18px;font-weight:700;color:#8B3BA8">${backupEntry.discountPercent}% off</div>
+      </div>
+    `:''}
+    
+    ${amenities.length>0?`
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Amenities</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${amenities.map(a=>`<span style="background:rgba(127,195,165,0.15);color:#1D9E75;font-size:11px;padding:4px 8px;border-radius:4px">${a}</span>`).join('')}
+      </div>
+    `:''}
+    
+    ${backupEntry.notes?`
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Notes</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:16px">${backupEntry.notes}</div>
+    `:''}
+    
+    ${backupEntry.link?`
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">Website</div>
+      <a href="${backupEntry.link}" target="_blank" rel="noopener" style="display:block;background:var(--teal-mid);border-radius:10px;padding:12px;text-decoration:none;color:var(--forest)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🔗</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${backupEntry.linkTitle||'View Website'}</div>
+            <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${backupEntry.link}</div>
+          </div>
+          <span style="color:var(--teal);font-size:14px">→</span>
+        </div>
+      </a>
+    `:''}
+  `;
+  
+  // Update footer with replacement button
+  footer.innerHTML=`
+    <button onclick="replaceDestinationWithBackup('${backupEntryId}')" style="width:100%;padding:12px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">Save as replacement</button>
+    <button onclick="editBackupLocationFromDetail('${backupEntryId}')" style="width:100%;padding:10px;background:white;color:var(--forest);border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">View full details</button>
+  `;
+}
+
+function backToOriginalLocation(){
+  if(viewingBackupForEntryId && currentDetailJourneyContext){
+    openLocationDetail(viewingBackupForEntryId, currentDetailJourneyContext);
+  }
+}
+
+function editBackupLocationFromDetail(backupEntryId){
+  returnToLocationDetailAfterSave=backupEntryId;
+  closeLocationDetail();
+  closeDrawer();
+  setTimeout(()=>{
+    const e=entries.find(x=>x.id===backupEntryId);
+    if(e) openFormPanel(e);
+  },100);
+}
+
+async function replaceDestinationWithBackup(backupEntryId){
+  if(!currentDetailJourneyContext) return;
+  
+  const {journeyId, legIndex}=currentDetailJourneyContext;
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs||!journey.legs[legIndex]) return;
+  
+  const backupEntry=entries.find(e=>e.id===backupEntryId);
+  if(!backupEntry) return;
+  
+  const leg=journey.legs[legIndex];
+  const oldDestId=leg.destId;
+  
+  // Update the leg with new destination
+  leg.destId=backupEntryId;
+  leg.destName=backupEntry.name;
+  
+  // Recalculate route for this leg (from previous stop)
+  let fromEntry=null;
+  if(legIndex>0){
+    const prevLeg=journey.legs[legIndex-1];
+    fromEntry=entries.find(e=>e.id===prevLeg.destId);
+  }
+  
+  if(fromEntry && backupEntry.lat){
+    try{
+      const route=await getRoute(fromEntry.lat,fromEntry.lng,backupEntry.lat,backupEntry.lng);
+      if(route){
+        leg.distance=Math.round(route.distance);
+        leg.duration=Math.round(route.duration);
+        leg.fuelCost=Math.round((route.distance/fuelSettings.mpg)*(leg.fuelPrice||fuelSettings.pricePerGal));
+      }
+    }catch(e){console.error('Route calc error:',e);}
+  }
+  
+  // Recalculate route for next leg if exists
+  if(legIndex<journey.legs.length-1){
+    const nextLeg=journey.legs[legIndex+1];
+    const nextEntry=entries.find(e=>e.id===nextLeg.destId);
+    if(nextEntry && backupEntry.lat){
+      try{
+        const route=await getRoute(backupEntry.lat,backupEntry.lng,nextEntry.lat,nextEntry.lng);
+        if(route){
+          nextLeg.distance=Math.round(route.distance);
+          nextLeg.duration=Math.round(route.duration);
+          nextLeg.fuelCost=Math.round((route.distance/fuelSettings.mpg)*(nextLeg.fuelPrice||fuelSettings.pricePerGal));
+        }
+      }catch(e){console.error('Route calc error:',e);}
+    }
+  }
+  
+  // Save journey
+  await window._db.saveJourney(window._currentUser.uid,journey);
+  
+  // Close detail panel and refresh journey view
+  closeLocationDetail();
+  openJourneyDetail(journeyId);
 }
 
 function openFormPanel(entry,lat,lng){
@@ -3725,7 +3962,7 @@ function openJourneyDetail(journeyId){
             <div style="background:${isCurrent?'rgba(127,195,165,0.1)':'transparent'};border-radius:8px;padding:${isCurrent?'10px':'0'};margin-left:4px">
               <div style="display:flex;justify-content:space-between;align-items:start">
                 <div style="flex:1">
-                  <div onclick="openLocationDetail('${l.destId}')" style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${l.destName}</div>
+                  <div onclick="openLocationDetail('${l.destId}',{journeyId:'${journey.id}',legIndex:${i}})" style="font-size:14px;font-weight:${isCurrent?'700':'600'};color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${l.destName}</div>
                   ${isCurrent?'<div style="font-size:11px;color:var(--teal);font-weight:600">📍 Currently here</div>':''}
                   <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
                     ${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}
