@@ -1109,6 +1109,29 @@ textarea.inp{resize:none}
   </div>
 </div>
 
+<!-- Send to Maps Modal -->
+<div class="confirm-overlay" id="maps-modal" onclick="if(event.target.id==='maps-modal')closeMapsModal()">
+  <div class="confirm-box" style="max-width:320px;text-align:left" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:18px;font-weight:700;color:var(--forest);margin:0">Send to Maps</h3>
+      <button onclick="closeMapsModal()" style="background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer">✕</button>
+    </div>
+    
+    <div id="maps-modal-content">
+      <!-- Content populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Maps App Picker Modal -->
+<div class="confirm-overlay" id="maps-picker-modal" onclick="if(event.target.id==='maps-picker-modal')closeMapsPickerModal()">
+  <div class="confirm-box" style="max-width:280px;text-align:center" onclick="event.stopPropagation()">
+    <h3 style="font-size:16px;font-weight:700;color:var(--forest);margin-bottom:16px">Open with</h3>
+    <button id="maps-picker-apple" onclick="openInAppleMaps()" style="width:100%;padding:14px;border-radius:8px;border:1px solid var(--border);background:white;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">Apple Maps</button>
+    <button id="maps-picker-google" onclick="openInGoogleMaps()" style="width:100%;padding:14px;border-radius:8px;border:1px solid var(--border);background:white;font-size:14px;font-weight:600;cursor:pointer">Google Maps</button>
+  </div>
+</div>
+
 <!-- Add Leg Modal -->
 <div class="confirm-overlay" id="leg-modal" onclick="handleLegModalOverlayClick(event)">
   <div class="confirm-box" style="max-width:380px;max-height:90vh;overflow-y:auto;text-align:left" onclick="event.stopPropagation()">
@@ -1846,8 +1869,8 @@ async function loadStateParksInView(){
     if(data.features && data.features.length>0){
       stateParksCache[cacheKey]=true;
       
-      // Blue color for state parks overlay - 5% fill, 50% border opacity
-      const style={color:'rgba(37,99,235,0.5)',fillColor:'#3b82f6',fillOpacity:0.05,weight:1.5};
+      // Blue color for state parks overlay - 5% fill, 30% border opacity
+      const style={color:'rgba(37,99,235,0.3)',fillColor:'#3b82f6',fillOpacity:0.05,weight:1.5};
       
       if(stateParksLayer){
         // Add new features to existing layer
@@ -3829,6 +3852,9 @@ function renderJourneys(){
         <div style="display:flex;gap:8px;margin-top:12px">
           <button onclick="event.stopPropagation();viewJourneyOnMap('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;color:var(--teal);font-size:12px;font-weight:600">View on map</button>
           <button onclick="event.stopPropagation();openAddLegModal('${j.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--teal);color:white;font-size:12px;font-weight:600">+ Add stop</button>
+          <button onclick="event.stopPropagation();openSendToMapsModal('${j.id}')" style="width:42px;padding:8px;border-radius:8px;border:1px solid var(--teal);background:white;display:flex;align-items:center;justify-content:center" title="Send to Maps">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
+          </button>
         </div>
       </div>
     `;
@@ -3899,9 +3925,12 @@ function openJourneyDetail(journeyId){
           <div style="font-size:18px;font-weight:700;color:var(--forest)">${journey.name}</div>
           <div style="font-size:12px;color:var(--text-muted)">${legs.length} stops · ${totalMiles} mi · ${totalNights} nights</div>
         </div>
-        <div style="display:flex;gap:8px">
-          ${hasMissingRoutes?`<button onclick="refreshAllRoutes('${journey.id}')" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer" title="Fetch actual road routes">🔄 Routes</button>`:''}
-          <button onclick="editJourney('${journey.id}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer">Edit</button>
+        <div style="display:flex;align-items:center;gap:20px">
+          ${hasMissingRoutes?`<button onclick="refreshAllRoutes('${journey.id}')" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer" title="Fetch actual road routes">🔄</button>`:''}
+          <button onclick="openSendToMapsModal('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px" title="Send to Maps">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M12 3v12M12 3l4 4M12 3L8 7"/><rect x="4" y="11" width="16" height="10" rx="2" fill="none"/></svg>
+          </button>
+          <button onclick="editJourney('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px;font-size:16px" title="Edit journey">✏️</button>
         </div>
       </div>
       
@@ -4400,6 +4429,191 @@ async function refreshAllRoutes(journeyId){
     btn.textContent='🔄 Routes';
     btn.disabled=false;
   }
+}
+
+// ── Send to Maps ─────────────────────────────────────────────────────────────
+let mapsModalJourneyId=null;
+let pendingMapsAction=null; // {type:'navigate'|'share', destId?:string}
+
+function openSendToMapsModal(journeyId){
+  mapsModalJourneyId=journeyId;
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(!journey||!journey.legs||!journey.legs.length){
+    alert('No stops in this journey');
+    return;
+  }
+  
+  const legs=journey.legs;
+  const content=document.getElementById('maps-modal-content');
+  
+  // Determine next stop based on user location proximity
+  let nextStopIndex=0;
+  let nextStopDistance=null;
+  
+  if(userLat&&userLng){
+    // Find which stop user is closest to or past
+    for(let i=0;i<legs.length;i++){
+      const entry=entries.find(e=>e.id===legs[i].destId);
+      if(entry&&entry.lat){
+        const dist=haversineDistance(userLat,userLng,entry.lat,entry.lng);
+        if(dist<10){ // Within 10 miles of a stop
+          nextStopIndex=Math.min(i+1,legs.length-1); // Next stop after current
+          break;
+        }
+      }
+    }
+    // Calculate distance to next stop
+    const nextEntry=entries.find(e=>e.id===legs[nextStopIndex].destId);
+    if(nextEntry&&nextEntry.lat){
+      nextStopDistance=Math.round(haversineDistance(userLat,userLng,nextEntry.lat,nextEntry.lng));
+    }
+  }
+  
+  const nextStop=legs[nextStopIndex];
+  const nextStopName=nextStop?.destName||'First stop';
+  
+  content.innerHTML=`
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Navigate to</div>
+      <button onclick="selectMapsDestination('${nextStop.destId}')" style="width:100%;padding:12px;border-radius:8px;border:1.5px solid var(--teal);background:white;text-align:left;cursor:pointer;margin-bottom:8px">
+        <div style="font-size:14px;font-weight:600;color:var(--forest)">Next stop: ${nextStopName}</div>
+        ${nextStopDistance?`<div style="font-size:12px;color:var(--text-muted)">${nextStopDistance} mi away</div>`:''}
+      </button>
+      ${legs.length>1?`
+        <button onclick="showStopPicker()" id="stop-picker-btn" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:white;text-align:left;cursor:pointer">
+          <div style="font-size:14px;color:var(--text-mid)">Choose a different stop...</div>
+        </button>
+        <div id="stop-picker-list" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto">
+          ${legs.map((l,i)=>`
+            <div onclick="selectMapsDestination('${l.destId}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--forest)" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='white'">
+              ${l.destName}
+            </div>
+          `).join('')}
+        </div>
+      `:''}
+    </div>
+    
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Share route</div>
+      <button onclick="shareFullRoute()" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:white;text-align:left;cursor:pointer">
+        <div style="font-size:14px;color:var(--forest)">Share full route link</div>
+        <div style="font-size:12px;color:var(--text-muted)">Copy Google Maps link with all stops</div>
+      </button>
+    </div>
+  `;
+  
+  document.getElementById('maps-modal').classList.add('show');
+}
+
+function closeMapsModal(){
+  document.getElementById('maps-modal').classList.remove('show');
+  mapsModalJourneyId=null;
+}
+
+function showStopPicker(){
+  const list=document.getElementById('stop-picker-list');
+  const btn=document.getElementById('stop-picker-btn');
+  if(list.style.display==='none'){
+    list.style.display='block';
+    btn.style.display='none';
+  }else{
+    list.style.display='none';
+    btn.style.display='block';
+  }
+}
+
+function selectMapsDestination(destId){
+  pendingMapsAction={type:'navigate',destId};
+  closeMapsModal();
+  document.getElementById('maps-picker-modal').classList.add('show');
+}
+
+function shareFullRoute(){
+  pendingMapsAction={type:'share'};
+  closeMapsModal();
+  document.getElementById('maps-picker-modal').classList.add('show');
+}
+
+function closeMapsPickerModal(){
+  document.getElementById('maps-picker-modal').classList.remove('show');
+  pendingMapsAction=null;
+}
+
+function openInAppleMaps(){
+  if(!pendingMapsAction) return;
+  
+  if(pendingMapsAction.type==='navigate'){
+    // Navigate to single destination
+    const entry=entries.find(e=>e.id===pendingMapsAction.destId);
+    if(entry&&entry.lat){
+      const url=`https://maps.apple.com/?daddr=${entry.lat},${entry.lng}&dirflg=d`;
+      window.open(url,'_blank');
+    }
+  }else if(pendingMapsAction.type==='share'){
+    // Full route - Apple Maps doesn't support multiple waypoints well, use coordinates
+    const journey=journeys.find(j=>j.id===mapsModalJourneyId);
+    if(journey&&journey.legs){
+      const coords=journey.legs.map(l=>{
+        const e=entries.find(x=>x.id===l.destId);
+        return e&&e.lat?`${e.lat},${e.lng}`:null;
+      }).filter(Boolean);
+      
+      if(coords.length>0){
+        // Apple Maps: destination + waypoints not well supported, just open first dest
+        const url=`https://maps.apple.com/?daddr=${coords.join('+to:')}`;
+        window.open(url,'_blank');
+      }
+    }
+  }
+  
+  closeMapsPickerModal();
+}
+
+function openInGoogleMaps(){
+  if(!pendingMapsAction) return;
+  
+  if(pendingMapsAction.type==='navigate'){
+    // Navigate to single destination
+    const entry=entries.find(e=>e.id===pendingMapsAction.destId);
+    if(entry&&entry.lat){
+      const url=`https://www.google.com/maps/dir/?api=1&destination=${entry.lat},${entry.lng}&travelmode=driving`;
+      window.open(url,'_blank');
+    }
+  }else if(pendingMapsAction.type==='share'){
+    // Full route with all waypoints
+    const journey=journeys.find(j=>j.id===mapsModalJourneyId);
+    if(journey&&journey.legs){
+      const coords=journey.legs.map(l=>{
+        const e=entries.find(x=>x.id===l.destId);
+        return e&&e.lat?`${e.lat},${e.lng}`:null;
+      }).filter(Boolean);
+      
+      if(coords.length>0){
+        // Google Maps: origin + destination + waypoints
+        let url;
+        if(coords.length===1){
+          url=`https://www.google.com/maps/dir/?api=1&destination=${coords[0]}&travelmode=driving`;
+        }else{
+          const dest=coords[coords.length-1];
+          const waypoints=coords.slice(0,-1).join('|');
+          url=`https://www.google.com/maps/dir/?api=1&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
+        }
+        
+        // Copy to clipboard for sharing
+        if(navigator.clipboard){
+          navigator.clipboard.writeText(url).then(()=>{
+            alert('Route link copied to clipboard!');
+          }).catch(()=>{
+            window.open(url,'_blank');
+          });
+        }else{
+          window.open(url,'_blank');
+        }
+      }
+    }
+  }
+  
+  closeMapsPickerModal();
 }
 
 // Delete journey
