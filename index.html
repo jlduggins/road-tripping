@@ -3176,8 +3176,12 @@ function selectLegDestination(entryId){
   // Calculate route preview
   calculateLegPreview(entry);
   
-  // Find backup options
-  findBackupOptions(entry);
+  // Find backup options - only show when editing existing leg, not when adding new
+  if(editingLegIndex!==null){
+    findBackupOptions(entry);
+  }else{
+    document.getElementById('leg-backups').style.display='none';
+  }
 }
 
 function clearLegDestination(){
@@ -3875,9 +3879,12 @@ async function editLeg(journeyId,legIndex){
   const unitLabel=(leg.fuelPriceUnit||fuelSettings.priceUnit)==='L'?'/L':'/gal';
   document.getElementById('leg-fuel-default').textContent=`${fuelSettings.mpg} mpg, $${fuelSettings.pricePerGal.toFixed(2)}${fuelSettings.priceUnit==='L'?'/L':'/gal'}`;
   
-  // Show preview
+  // Show preview and backup options (editing existing leg)
   const destEntry=entries.find(e=>e.id===leg.destId);
-  if(destEntry) calculateLegPreview(destEntry);
+  if(destEntry){
+    calculateLegPreview(destEntry);
+    findBackupOptions(destEntry);
+  }
   
   // Store initial state for change detection
   storeLegModalInitialState();
