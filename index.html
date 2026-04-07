@@ -751,7 +751,7 @@ textarea.inp{resize:none}
 
   <div class="drawer-nav">
     <button class="dnav-btn active" onclick="showDrawerSection('entries',this)"><span class="dnav-icon">☰</span> Entries</button>
-    <button class="dnav-btn" onclick="showDrawerSection('trips',this)"><span class="dnav-icon">🗺</span> Trips</button>
+    <button class="dnav-btn" onclick="showDrawerSection('trips',this)"><span class="dnav-icon"><img src="icons/road_trip_icon.png" alt="" style="width:18px;height:18px;vertical-align:middle"></span> Trips</button>
     <button class="dnav-btn" onclick="showDrawerSection('ai',this)"><span class="dnav-icon">✨</span> AI</button>
   </div>
 
@@ -3141,7 +3141,7 @@ function updateStateFilter(){
     
     // Swipe up
     if(diff>50){
-      if(state==='peeked') setDrawerState('open');
+      if(state==='peeked') setDrawerState('expanded'); // Go directly to full open
       else if(state==='open') setDrawerState('expanded');
       dragging=false; // Prevent multiple state changes
     }
@@ -3164,7 +3164,7 @@ function updateStateFilter(){
     const now=Date.now();
     if(now-lastTap<300){
       const state=getDrawerState();
-      if(state==='peeked') setDrawerState('open');
+      if(state==='peeked') setDrawerState('expanded'); // Go directly to full open
       else if(state==='open') setDrawerState('expanded');
       else setDrawerState('open');
     }
@@ -3976,11 +3976,11 @@ function openJourneyDetail(journeyId){
         </div>
         <div style="display:flex;align-items:center;gap:16px">
           ${hasMissingRoutes?`<button onclick="refreshAllRoutes('${journey.id}')" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer" title="Fetch actual road routes">🔄</button>`:''}
-          <button onclick="viewJourneyOnMapPeeked('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px" title="View on map">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          </button>
           <button onclick="openSendToMapsModal('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px" title="Send to Maps">
             <svg width="18" height="22" viewBox="0 0 20 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1v14M10 1l5 5M10 1L5 6"/><path d="M3 12v8a2 2 0 002 2h10a2 2 0 002-2v-8"/></svg>
+          </button>
+          <button onclick="viewJourneyOnMapPeeked('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px" title="View on map">
+            <img src="icons/road_trip_icon.png" alt="View on map" style="width:22px;height:22px;opacity:0.7">
           </button>
           <button onclick="editJourney('${journey.id}')" style="background:none;border:none;cursor:pointer;padding:4px;font-size:16px" title="Edit journey">✏️</button>
         </div>
