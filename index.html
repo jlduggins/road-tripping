@@ -2065,6 +2065,11 @@ function showDrawerSection(name,btn){
   if(btn) btn.classList.add('active');
   if(name==='ai') renderAI();
   
+  // When switching to Entries, clear journey view and restore all markers
+  if(name==='entries'){
+    clearJourneyFromMap();
+  }
+  
   // Hide Log Location button on Trips tab
   const logBtn=document.getElementById('log-location-btn');
   if(logBtn) logBtn.style.display=(name==='trips')?'none':'block';
@@ -4284,7 +4289,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   if(startLat&&startLng){
     allCoords.push([startLat,startLng]);
     const startIcon=L.divIcon({
-      html:`<div style="width:22px;height:22px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:14px">✪</div>`,
+      html:`<div style="width:22px;height:22px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"/></svg></div>`,
       className:'journey-marker',
       iconSize:[22,22],
       iconAnchor:[11,11]
@@ -4296,8 +4301,13 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   
   // Create markers for each stop and collect coords
   legs.forEach((leg,i)=>{
-    if(!leg.destLat||!leg.destLng) return;
-    allCoords.push([leg.destLat,leg.destLng]);
+    // Look up current entry coordinates (not stored leg coords which may be outdated)
+    const entry=entries.find(e=>e.id===leg.destId);
+    const lat=entry?.lat||leg.destLat;
+    const lng=entry?.lng||leg.destLng;
+    
+    if(!lat||!lng) return;
+    allCoords.push([lat,lng]);
     
     const isPast=leg.departDate&&leg.departDate<today;
     const isCurrent=i===currentLegIdx;
@@ -4315,7 +4325,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     });
     
     // Use zIndexOffset to put journey markers above location pins
-    const marker=L.marker([leg.destLat,leg.destLng],{icon,zIndexOffset:1000+i}).addTo(map);
+    const marker=L.marker([lat,lng],{icon,zIndexOffset:1000+i}).addTo(map);
     marker.bindPopup(`<b>${leg.destName}</b><br>${leg.arriveDate||''} - ${leg.departDate||''}`);
     journeyMarkers.push(marker);
   });
