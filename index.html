@@ -4652,7 +4652,7 @@ function openSendToMapsModal(journeyId){
 
 function closeMapsModal(){
   document.getElementById('maps-modal').classList.remove('show');
-  mapsModalJourneyId=null;
+  // Don't clear mapsModalJourneyId here - it's needed by the picker modal
 }
 
 function showStopPicker(){
