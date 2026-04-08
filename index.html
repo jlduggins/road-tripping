@@ -580,9 +580,9 @@ textarea.inp{resize:none}
   #drawer.peeked .drawer-nav{padding:4px 12px}
   .dnav-btn{flex-direction:row;gap:6px;justify-content:center;padding:8px 4px}
   #map-controls{bottom:calc(18px + env(safe-area-inset-bottom));transition:bottom 0.3s ease}
-  body:has(#drawer.open:not(.peeked):not(.expanded)) #map-controls{bottom:calc(40vh + 18px)}
-  body:has(#drawer.open.expanded) #map-controls{bottom:calc(85vh + 18px)}
-  body:has(#drawer.open.peeked) #map-controls{bottom:calc(60px + 18px + env(safe-area-inset-bottom))}
+  #map-controls.drawer-peeked{bottom:calc(70px + env(safe-area-inset-bottom))}
+  #map-controls.drawer-open{bottom:calc(40vh + 18px)}
+  #map-controls.drawer-expanded{bottom:calc(85vh + 18px)}
   #btn-log{top:calc(78px + env(safe-area-inset-top))}
   .form-grid{grid-template-columns:1fr!important}
   .full{grid-column:1!important}
@@ -1173,26 +1173,24 @@ textarea.inp{resize:none}
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">To</label>
       <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%"/>
-      <div id="leg-search-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
+      <div id="leg-search-results" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
       <input type="hidden" id="leg-dest-id"/>
-      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:8px">
+      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:4px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span id="leg-dest-name" style="font-size:13px;font-weight:600;color:var(--forest)"></span>
           <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
         </div>
       </div>
-      <button onclick="addNewLocationFromLeg()" style="margin-top:8px;background:none;border:none;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
-        <span>+</span> Add new location
-      </button>
+      <button onclick="addNewLocationFromLeg()" style="margin-top:6px;background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:0">+ Add new location</button>
     </div>
     
     <!-- Dates -->
-    <div style="display:flex;gap:16px;margin-bottom:16px">
-      <div style="flex:1">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Arrive</label>
         <input class="inp" type="date" id="leg-arrive" style="width:100%"/>
       </div>
-      <div style="flex:1">
+      <div>
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Depart</label>
         <input class="inp" type="date" id="leg-depart" style="width:100%"/>
       </div>
@@ -2060,9 +2058,11 @@ function openDrawer(){
   renderEntries();
   // Close drawer when map is clicked
   map&&map.once('click',()=>closeDrawer());
+  if(typeof updateMapControlsPosition==='function') updateMapControlsPosition();
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
+  if(typeof updateMapControlsPosition==='function') updateMapControlsPosition();
 }
 function showDrawerSection(name,btn){
   document.querySelectorAll('.drawer-section').forEach(s=>s.classList.remove('active'));
@@ -3164,6 +3164,17 @@ function updateStateFilter(){
     drawer.classList.remove('expanded','peeked');
     if(state==='expanded') drawer.classList.add('expanded');
     else if(state==='peeked') drawer.classList.add('peeked');
+    updateMapControlsPosition();
+  }
+  
+  function updateMapControlsPosition(){
+    const controls=document.getElementById('map-controls');
+    if(!controls) return;
+    controls.classList.remove('drawer-peeked','drawer-open','drawer-expanded');
+    if(!drawer.classList.contains('open')) return; // Closed - default position
+    if(drawer.classList.contains('peeked')) controls.classList.add('drawer-peeked');
+    else if(drawer.classList.contains('expanded')) controls.classList.add('drawer-expanded');
+    else controls.classList.add('drawer-open');
   }
   
   header.addEventListener('touchstart',e=>{
@@ -3476,13 +3487,13 @@ function showToOptions(){
     searchLocationsForLeg(query);
     return;
   }
-  // Show recent locations
+  // Show all locations
   if(!entries.length){
     results.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">No locations logged yet</div>';
     results.style.display='block';
     return;
   }
-  results.innerHTML=entries.slice(0,8).map(e=>`
+  results.innerHTML=entries.map(e=>`
     <div onclick="selectLegDestination('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
       <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
       <div style="font-size:11px;color:var(--text-muted)">${e.type}${e.address?' · '+e.address.split(',').slice(-2).join(',').trim():''}</div>
@@ -3502,7 +3513,7 @@ function searchLocationsForLeg(query){
     e.name.toLowerCase().includes(q)||
     (e.address||'').toLowerCase().includes(q)||
     e.type.toLowerCase().includes(q)
-  ).slice(0,8);
+  );
   
   if(!matches.length){
     results.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text-muted)">No matches found</div>';
