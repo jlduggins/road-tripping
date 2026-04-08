@@ -2058,11 +2058,11 @@ function openDrawer(){
   renderEntries();
   // Close drawer when map is clicked
   map&&map.once('click',()=>closeDrawer());
-  if(typeof updateMapControlsPosition==='function') updateMapControlsPosition();
+  if(window.updateMapControlsPosition) window.updateMapControlsPosition();
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
-  if(typeof updateMapControlsPosition==='function') updateMapControlsPosition();
+  if(window.updateMapControlsPosition) window.updateMapControlsPosition();
 }
 function showDrawerSection(name,btn){
   document.querySelectorAll('.drawer-section').forEach(s=>s.classList.remove('active'));
@@ -3164,10 +3164,11 @@ function updateStateFilter(){
     drawer.classList.remove('expanded','peeked');
     if(state==='expanded') drawer.classList.add('expanded');
     else if(state==='peeked') drawer.classList.add('peeked');
-    updateMapControlsPosition();
+    window.updateMapControlsPosition();
   }
   
-  function updateMapControlsPosition(){
+  // Make this global so openDrawer/closeDrawer can call it
+  window.updateMapControlsPosition=function(){
     const controls=document.getElementById('map-controls');
     if(!controls) return;
     controls.classList.remove('drawer-peeked','drawer-open','drawer-expanded');
@@ -3175,7 +3176,7 @@ function updateStateFilter(){
     if(drawer.classList.contains('peeked')) controls.classList.add('drawer-peeked');
     else if(drawer.classList.contains('expanded')) controls.classList.add('drawer-expanded');
     else controls.classList.add('drawer-open');
-  }
+  };
   
   header.addEventListener('touchstart',e=>{
     if(!isMobile()||!drawer.classList.contains('open')) return;
