@@ -1160,40 +1160,42 @@ textarea.inp{resize:none}
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">From</label>
       <input type="hidden" id="leg-from-id"/>
-      <div id="leg-from-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;box-sizing:border-box">
+      <div id="leg-from-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span id="leg-from-name" style="font-size:13px;font-weight:600;color:var(--forest)">Starting point</span>
-          <button onclick="clearLegOrigin()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0">✕</button>
+          <button onclick="clearLegOrigin()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
         </div>
       </div>
-      <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none;box-sizing:border-box"/>
+      <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none"/>
       <div id="leg-from-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
     </div>
     
     <!-- To (search/select) -->
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">To</label>
-      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%;box-sizing:border-box"/>
-      <div id="leg-search-results" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
+      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%"/>
+      <div id="leg-search-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
       <input type="hidden" id="leg-dest-id"/>
-      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:4px;box-sizing:border-box">
+      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span id="leg-dest-name" style="font-size:13px;font-weight:600;color:var(--forest)"></span>
-          <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0">✕</button>
+          <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
         </div>
       </div>
-      <button onclick="addNewLocationFromLeg()" style="margin-top:6px;background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:0">+ Add new location</button>
+      <button onclick="addNewLocationFromLeg()" style="margin-top:8px;background:none;border:none;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
+        <span>+</span> Add new location
+      </button>
     </div>
     
     <!-- Dates -->
-    <div style="display:flex;margin-bottom:16px">
-      <div style="flex:1;min-width:0;margin-right:12px">
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="flex:1">
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Arrive</label>
-        <input class="inp" type="date" id="leg-arrive"/>
+        <input class="inp" type="date" id="leg-arrive" style="width:100%"/>
       </div>
-      <div style="flex:1;min-width:0;margin-left:12px">
+      <div style="flex:1">
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Depart</label>
-        <input class="inp" type="date" id="leg-depart"/>
+        <input class="inp" type="date" id="leg-depart" style="width:100%"/>
       </div>
     </div>
     
