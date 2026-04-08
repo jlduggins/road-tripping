@@ -182,7 +182,8 @@ input,select,textarea{font-family:inherit;outline:none;box-sizing:border-box}
   bottom:calc(18px + env(safe-area-inset-bottom));
   background:var(--card);border-radius:var(--radius);
   box-shadow:var(--shadow-lg);
-  display:flex;flex-direction:column;overflow:hidden
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:bottom 0.3s ease
 }
 #map-controls button{
   width:48px;height:48px;border:none;background:transparent;
@@ -647,7 +648,7 @@ textarea.inp{resize:none}
 <!-- Right column: zoom in, zoom out, satellite, locate — all in one flex column -->
 <div id="map-controls"
   style="position:fixed;z-index:500;
-         right:12px;bottom:calc(16px + env(safe-area-inset-bottom));
+         right:12px;
          display:flex;flex-direction:column;align-items:center;gap:8px">
   <!-- Zoom in -->
   <button onclick="map&&map.zoomIn()" title="Zoom in"
@@ -1185,14 +1186,14 @@ textarea.inp{resize:none}
     </div>
     
     <!-- Dates -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">
-      <div>
+    <div style="display:flex;gap:20px;margin-bottom:16px">
+      <div style="flex:1;min-width:0">
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Arrive</label>
-        <input class="inp" type="date" id="leg-arrive" style="width:100%;box-sizing:border-box"/>
+        <input class="inp" type="date" id="leg-arrive"/>
       </div>
-      <div>
+      <div style="flex:1;min-width:0">
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Depart</label>
-        <input class="inp" type="date" id="leg-depart" style="width:100%;box-sizing:border-box"/>
+        <input class="inp" type="date" id="leg-depart"/>
       </div>
     </div>
     
