@@ -3253,7 +3253,7 @@ async function saveNewJourney(){
     uid:window._currentUser.uid,
     name,
     createdAt:editingJourneyId?(journeys.find(j=>j.id===editingJourneyId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
-    legs:editingJourneyId?(journeys.find(j=>j.id===editingJourneyId)||{}).legs||[]
+    legs:editingJourneyId?(journeys.find(j=>j.id===editingJourneyId)||{}).legs||[]:[]
   };
   await window._db.saveJourney(window._currentUser.uid,journey);
   closeJourneyModal();
