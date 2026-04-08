@@ -1159,40 +1159,40 @@ textarea.inp{resize:none}
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">From</label>
       <input type="hidden" id="leg-from-id"/>
-      <div id="leg-from-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px">
+      <div id="leg-from-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;box-sizing:border-box">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span id="leg-from-name" style="font-size:13px;font-weight:600;color:var(--forest)">Starting point</span>
-          <button onclick="clearLegOrigin()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
+          <button onclick="clearLegOrigin()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0">✕</button>
         </div>
       </div>
-      <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none"/>
+      <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none;box-sizing:border-box"/>
       <div id="leg-from-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
     </div>
     
     <!-- To (search/select) -->
     <div style="margin-bottom:16px">
       <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">To</label>
-      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%"/>
+      <input class="inp" type="text" id="leg-search" placeholder="Search your locations..." oninput="searchLocationsForLeg(this.value)" onfocus="showToOptions()" style="width:100%;box-sizing:border-box"/>
       <div id="leg-search-results" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
       <input type="hidden" id="leg-dest-id"/>
-      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:4px">
+      <div id="leg-dest-selected" style="display:none;background:rgba(127,195,165,0.15);border-radius:8px;padding:10px 12px;margin-top:4px;box-sizing:border-box">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span id="leg-dest-name" style="font-size:13px;font-weight:600;color:var(--forest)"></span>
-          <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer">✕</button>
+          <button onclick="clearLegDestination()" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0">✕</button>
         </div>
       </div>
       <button onclick="addNewLocationFromLeg()" style="margin-top:6px;background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:0">+ Add new location</button>
     </div>
     
     <!-- Dates -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">
       <div>
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Arrive</label>
-        <input class="inp" type="date" id="leg-arrive" style="width:100%"/>
+        <input class="inp" type="date" id="leg-arrive" style="width:100%;box-sizing:border-box"/>
       </div>
       <div>
         <label style="font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px">Depart</label>
-        <input class="inp" type="date" id="leg-depart" style="width:100%"/>
+        <input class="inp" type="date" id="leg-depart" style="width:100%;box-sizing:border-box"/>
       </div>
     </div>
     
@@ -4581,6 +4581,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     if(window.innerWidth<=640 && drawer){
       drawer.classList.remove('expanded');
       drawer.classList.add('peeked');
+      if(window.updateMapControlsPosition) window.updateMapControlsPosition();
     }else{
       closeDrawer();
     }
@@ -4599,6 +4600,7 @@ function viewJourneyOnMapPeeked(journeyId){
   if(window.innerWidth<=640 && drawer){
     drawer.classList.remove('expanded');
     drawer.classList.add('peeked');
+    if(window.updateMapControlsPosition) window.updateMapControlsPosition();
   }
 }
 
