@@ -3804,6 +3804,29 @@ async function saveLeg(){
   }
   
   journey.legs=updatedLegs;
+  
+  // If editing a leg, recalculate the NEXT leg's route since its origin changed
+  if(editingLegIndex!==null && editingLegIndex < updatedLegs.length - 1){
+    const nextLeg=updatedLegs[editingLegIndex + 1];
+    const nextDestEntry=entries.find(e=>e.id===nextLeg.destId);
+    if(nextDestEntry && destEntry.lat){
+      try{
+        const nextRoute=await getRoute(destEntry.lat, destEntry.lng, nextDestEntry.lat, nextDestEntry.lng);
+        if(nextRoute){
+          nextLeg.fromLat=destEntry.lat;
+          nextLeg.fromLng=destEntry.lng;
+          nextLeg.fromName=destEntry.name;
+          nextLeg.distance=Math.round(nextRoute.distance);
+          nextLeg.duration=Math.round(nextRoute.duration);
+          nextLeg.fuelCost=Math.round(calculateFuelCost(nextRoute.distance, nextLeg.fuelPrice||fuelSettings.pricePerGal, nextLeg.fuelPriceUnit||'gal'));
+          nextLeg.routeGeometry=nextRoute.geometry?JSON.stringify(nextRoute.geometry):null;
+        }
+      }catch(e){
+        console.log('Could not recalculate next leg route');
+      }
+    }
+  }
+  
   await window._db.saveJourney(window._currentUser.uid,journey);
   closeLegModal();
   
@@ -3846,12 +3869,19 @@ function renderJourneys(){
     },0);
     const totalCost=totalFuel+totalLodging;
     
-    // Find current leg based on today's date
+    // Find current leg - based on GPS proximity AND dates
     const today=new Date().toISOString().split('T')[0];
     let currentLegIdx=-1;
+    const proximityThreshold=15;
     for(let i=0;i<legs.length;i++){
       const l=legs[i];
-      if(l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today){
+      const isWithinDates=l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today;
+      let isNearby=false;
+      if(lastKnownPos&&lastKnownPos.lat&&l.destLat){
+        const dist=haversineDistance(lastKnownPos.lat,lastKnownPos.lng,l.destLat,l.destLng);
+        isNearby=dist<=proximityThreshold;
+      }
+      if(isWithinDates && (isNearby || !lastKnownPos)){
         currentLegIdx=i; break;
       }
     }
@@ -3950,11 +3980,23 @@ function openJourneyDetail(journeyId){
     return s+cost;
   },0);
   
-  // Find current leg
+  // Find current leg - based on GPS proximity AND dates
   let currentLegIdx=-1;
+  const proximityThreshold=15; // miles - if within this distance, consider "here"
+  
   for(let i=0;i<legs.length;i++){
     const l=legs[i];
-    if(l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today){
+    const isWithinDates=l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today;
+    
+    // Check GPS proximity if we have user location
+    let isNearby=false;
+    if(lastKnownPos&&lastKnownPos.lat&&l.destLat){
+      const dist=haversineDistance(lastKnownPos.lat,lastKnownPos.lng,l.destLat,l.destLng);
+      isNearby=dist<=proximityThreshold;
+    }
+    
+    // Must be within dates AND nearby (or no GPS available, fall back to dates only)
+    if(isWithinDates && (isNearby || !lastKnownPos)){
       currentLegIdx=i; break;
     }
   }
@@ -4302,10 +4344,18 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   const today=new Date().toISOString().split('T')[0];
   const allCoords=[];
   
-  // Find current leg index
+  // Find current leg - based on GPS proximity AND dates
   let currentLegIdx=-1;
+  const proximityThreshold=15;
   for(let i=0;i<legs.length;i++){
-    if(legs[i].arriveDate&&legs[i].departDate&&legs[i].arriveDate<=today&&legs[i].departDate>=today){
+    const l=legs[i];
+    const isWithinDates=l.arriveDate&&l.departDate&&l.arriveDate<=today&&l.departDate>=today;
+    let isNearby=false;
+    if(lastKnownPos&&lastKnownPos.lat&&l.destLat){
+      const dist=haversineDistance(lastKnownPos.lat,lastKnownPos.lng,l.destLat,l.destLng);
+      isNearby=dist<=proximityThreshold;
+    }
+    if(isWithinDates && (isNearby || !lastKnownPos)){
       currentLegIdx=i; break;
     }
   }
