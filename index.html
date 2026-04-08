@@ -3911,18 +3911,20 @@ function renderJourneys(){
     // Find current leg - based on GPS proximity only
     const proximityThreshold=15;
     let currentLegIdx=-1;
+    let atStartingPoint=false;
     const userLat=lastKnownPos?.lat;
     const userLng=lastKnownPos?.lng;
     if(userLat){
       let closestDist=Infinity;
-      // Check if near starting point (first leg origin) - highlight leg 0
+      // Check if near starting point (first leg origin)
       if(legs.length>0){
         const firstLeg=legs[0];
         if(firstLeg.fromLat){
           const distToStart=haversineDistance(userLat,userLng,firstLeg.fromLat,firstLeg.fromLng);
           if(distToStart<=proximityThreshold && distToStart<closestDist){
             closestDist=distToStart;
-            currentLegIdx=0;
+            atStartingPoint=true;
+            currentLegIdx=-1;
           }
         }
       }
@@ -3933,6 +3935,7 @@ function renderJourneys(){
           const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
           if(dist<=proximityThreshold && dist<closestDist){
             closestDist=dist;
+            atStartingPoint=false;
             currentLegIdx=i;
           }
         }
@@ -4035,30 +4038,33 @@ function openJourneyDetail(journeyId){
   
   // Find current leg - based on GPS proximity only
   let currentLegIdx=-1;
+  let atStartingPoint=false;
   const proximityThreshold=15; // miles
   const userLat=lastKnownPos?.lat;
   const userLng=lastKnownPos?.lng;
   
   if(userLat){
     let closestDist=Infinity;
-    // Check if near starting point (first leg origin) - highlight leg 0
+    // Check if near starting point (first leg origin)
     if(legs.length>0){
       const firstLeg=legs[0];
       if(firstLeg.fromLat){
         const distToStart=haversineDistance(userLat,userLng,firstLeg.fromLat,firstLeg.fromLng);
         if(distToStart<=proximityThreshold && distToStart<closestDist){
           closestDist=distToStart;
-          currentLegIdx=0;
+          atStartingPoint=true;
+          currentLegIdx=-1; // No leg highlighted when at starting point
         }
       }
     }
-    // Check destinations
+    // Check destinations - only override if closer than starting point
     for(let i=0;i<legs.length;i++){
       const l=legs[i];
       if(l.destLat){
         const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
         if(dist<=proximityThreshold && dist<closestDist){
           closestDist=dist;
+          atStartingPoint=false;
           currentLegIdx=i;
         }
       }
@@ -4118,12 +4124,12 @@ function openJourneyDetail(journeyId){
       
       <!-- Starting point -->
       ${legs.length>0&&legs[0].fromName?`
-        <div style="position:relative;padding-left:24px;padding-bottom:16px;opacity:0.8">
+        <div style="position:relative;padding-left:24px;padding-bottom:16px;${atStartingPoint?'':'opacity:0.8;'}">
           <div style="position:absolute;left:6px;top:16px;bottom:0;width:2px;background:var(--border);opacity:0.5"></div>
-          <div style="position:absolute;left:0;top:2px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#586F6B">✪</div>
-          <div style="margin-left:4px">
-            ${legs[0].fromId?`<div onclick="openLocationDetail('${legs[0].fromId}')" style="font-size:12px;font-weight:600;color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${legs[0].fromName}</div>`:`<div style="font-size:12px;font-weight:600;color:#586F6B">${legs[0].fromName}</div>`}
-            <div style="font-size:11px;color:var(--text-muted)">Starting point</div>
+          <div style="position:absolute;left:0;top:2px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:14px;color:${atStartingPoint?'var(--teal)':'#586F6B'}">✪</div>
+          <div style="margin-left:4px;${atStartingPoint?'background:rgba(127,195,165,0.1);border-radius:8px;padding:10px;margin-left:0;':''}">
+            ${legs[0].fromId?`<div onclick="openLocationDetail('${legs[0].fromId}')" style="font-size:12px;font-weight:${atStartingPoint?'700':'600'};color:var(--teal);cursor:pointer;text-decoration:underline;text-decoration-color:rgba(127,195,165,0.4)">${legs[0].fromName}</div>`:`<div style="font-size:12px;font-weight:${atStartingPoint?'700':'600'};color:${atStartingPoint?'var(--teal)':'#586F6B'}">${legs[0].fromName}</div>`}
+            ${atStartingPoint?'<div style="font-size:11px;color:var(--teal);font-weight:600">📍 Currently here</div>':'<div style="font-size:11px;color:var(--text-muted)">Starting point</div>'}
           </div>
           <div style="margin:10px 0 0 4px;padding:6px 10px;background:rgba(88,111,107,0.05);border-radius:6px;font-size:11px;color:var(--text-muted)">
             🚐 ${legs[0].distance||'--'} mi · ${legs[0].duration?Math.floor(legs[0].duration/60)+'h '+Math.round(legs[0].duration%60)+'m':'--'} · $${legs[0].fuelCost||0} fuel
@@ -4409,19 +4415,21 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   
   // Find current leg - based on GPS proximity only
   let currentLegIdx=-1;
+  let atStartingPoint=false;
   const proximityThreshold=15;
   const userLat=lastKnownPos?.lat;
   const userLng=lastKnownPos?.lng;
   if(userLat){
     let closestDist=Infinity;
-    // Check if near starting point (first leg origin) - highlight leg 0
+    // Check if near starting point (first leg origin)
     if(legs.length>0){
       const firstLeg=legs[0];
       if(firstLeg.fromLat){
         const distToStart=haversineDistance(userLat,userLng,firstLeg.fromLat,firstLeg.fromLng);
         if(distToStart<=proximityThreshold && distToStart<closestDist){
           closestDist=distToStart;
-          currentLegIdx=0;
+          atStartingPoint=true;
+          currentLegIdx=-1;
         }
       }
     }
@@ -4432,6 +4440,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
         const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
         if(dist<=proximityThreshold && dist<closestDist){
           closestDist=dist;
+          atStartingPoint=false;
           currentLegIdx=i;
         }
       }
