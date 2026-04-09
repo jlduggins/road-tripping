@@ -1667,10 +1667,19 @@ async function initLocationHandling(){
   const state=await checkLocationPermission();
   
   if(state==='granted'){
-    // Already have permission, start watching
+    // Already have permission, get position and center map
     hideLocationBanner();
     hideLocationDeniedIndicator();
-    startWatchingLocation();
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        updateMyDot(pos.coords.latitude,pos.coords.longitude);
+        if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
+        startWatchingLocation();
+      },
+      ()=>{ startWatchingLocation(); },
+      {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
+    );
   } else if(state==='denied'){
     // Permission denied, show indicator
     showLocationDeniedIndicator();
@@ -3539,11 +3548,27 @@ async function saveLeg(){
       fromName=fromEntry.name;
     }
   }
-  if(!fromLat&&myDotMarker){
-    const ll=myDotMarker.getLatLng();
-    fromLat=ll.lat; 
-    fromLng=ll.lng;
-    fromName='Current Location';
+  if(!fromLat){
+    // Try to use current location
+    if(lastKnownPos){
+      fromLat=lastKnownPos.lat; 
+      fromLng=lastKnownPos.lng;
+      fromName='Current Location';
+    }else if(myDotMarker){
+      const ll=myDotMarker.getLatLng();
+      fromLat=ll.lat; 
+      fromLng=ll.lng;
+      fromName='Current Location';
+    }else{
+      // No location available - warn user
+      const journey=journeys.find(j=>j.id===editingJourneyId);
+      const existingLegs=journey?.legs||[];
+      if(existingLegs.length===0){
+        // First leg requires a starting point
+        alert('Unable to determine your current location.\n\nPlease either:\n• Enable location access, or\n• Select a saved location as your starting point');
+        return;
+      }
+    }
   }
   
   // Calculate route info
@@ -4214,14 +4239,17 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   // Add starting point marker if we have coordinates
   if(startLat&&startLng){
     allCoords.push([startLat,startLng]);
+    // Use special styling if user is currently at starting point
     const startIcon=L.divIcon({
-      html:`<div style="width:22px;height:22px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"/></svg></div>`,
+      html: atStartingPoint
+        ? `<div style="width:28px;height:28px;background:#586F6B;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 8px rgba(88,111,107,0.3);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"/></svg></div>`
+        : `<div style="width:22px;height:22px;background:#586F6B;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"/></svg></div>`,
       className:'journey-marker',
-      iconSize:[22,22],
-      iconAnchor:[11,11]
+      iconSize: atStartingPoint ? [28,28] : [22,22],
+      iconAnchor: atStartingPoint ? [14,14] : [11,11]
     });
     const startMarker=L.marker([startLat,startLng],{icon:startIcon,zIndexOffset:1000}).addTo(map);
-    startMarker.bindPopup(`<b>${startName}</b><br>Starting point`);
+    startMarker.bindPopup(`<b>${startName}</b><br>${atStartingPoint?'📍 Currently here':'Starting point'}`);
     journeyMarkers.push(startMarker);
   }
   
@@ -4251,7 +4279,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     
     // Use zIndexOffset to put journey markers above location pins
     const marker=L.marker([lat,lng],{icon,zIndexOffset:1000+i}).addTo(map);
-    marker.bindPopup(`<b>${leg.destName}</b><br>${leg.arriveDate||''} - ${leg.departDate||''}`);
+    marker.bindPopup(`<b>${leg.destName}</b><br>${isCurrent?'📍 Currently here<br>':''}${leg.arriveDate||''} - ${leg.departDate||''}`);
     journeyMarkers.push(marker);
   });
   
@@ -4275,13 +4303,12 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
         opacity:0.85
       }).addTo(map);
       journeyMarkers.push(line);
-    }else{
-      // Fallback to straight line
+    }else if(allCoords.length>=2){
+      // Fallback to straight line (no dashes - route just not calculated)
       const line=L.polyline([allCoords[0],allCoords[1]],{
         color:'#B855D3',
         weight:4,
-        opacity:0.85,
-        dashArray:'12,8'
+        opacity:0.85
       }).addTo(map);
       journeyMarkers.push(line);
     }
@@ -4300,15 +4327,14 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
         }).addTo(map);
         journeyMarkers.push(line);
       }else{
-        // Fallback to straight dashed line if no geometry
+        // Fallback to straight line if no geometry (no dashes)
         const fromCoord=allCoords[i]; // i because allCoords includes start
         const toCoord=allCoords[i+1];
         if(fromCoord&&toCoord){
           const line=L.polyline([fromCoord,toCoord],{
             color:'#B855D3',
             weight:4,
-            opacity:0.85,
-            dashArray:'12,8'
+            opacity:0.85
           }).addTo(map);
           journeyMarkers.push(line);
         }
