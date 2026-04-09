@@ -203,6 +203,43 @@ input, select, textarea {
   font-weight: 600;
 }
 
+/* Location Permission Banner */
+#location-banner {
+  display: none;
+  position: fixed;
+  z-index: 650;
+  top: calc(70px + var(--safe-top));
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, var(--forest), #4a5d5a);
+  color: white;
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+/* Location Denied Indicator */
+#location-denied-indicator {
+  display: none;
+  position: fixed;
+  z-index: var(--z-controls);
+  top: calc(78px + var(--safe-top));
+  left: 68px;
+  background: rgba(88, 111, 107, .9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#location-denied-indicator:hover {
+  background: rgba(88, 111, 107, 1);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    5. MAP & CONTROLS
    ═══════════════════════════════════════════════════════════════════════════ */
