@@ -3606,12 +3606,16 @@ function renderJourneys(){
             <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(totalFuel)}</div>
             <div style="font-size:9px;color:var(--text-muted)">Fuel</div>
           </div>
+          <div style="flex:1;background:var(--teal);border-radius:6px;padding:6px 10px;text-align:center">
+            <div style="font-size:12px;font-weight:600;color:white">$${Math.round(totalCost)}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.8)">Total</div>
+          </div>
         </div>
         
         <!-- Collapsible Legs preview -->
         <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-          <button onclick="event.stopPropagation();toggleJourneyLegs('${j.id}')" style="width:20px;height:20px;border-radius:50%;background:rgba(127,195,165,0.15);color:var(--teal);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0">
-            <span id="legs-toggle-${j.id}">+</span>
+          <button onclick="event.stopPropagation();toggleJourneyLegs('${j.id}')" style="width:20px;height:20px;border-radius:50%;background:rgba(127,195,165,0.15);color:var(--teal);font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;line-height:1;padding:0">
+            <span id="legs-toggle-${j.id}" style="margin-top:-1px">+</span>
           </button>
           <div style="flex:1;height:1px;background:var(--border)"></div>
         </div>
