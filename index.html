@@ -1636,30 +1636,64 @@ function tryGetLocation(centerMap=true){
       startWatchingLocation();
     },
     err=>{
-      // Error - only show denied indicator for permission denied (code 1)
       console.log('[Location] getCurrentPosition ERROR:', err.code, err.message);
       if(err.code===1){
+        // Permission denied
         locationPermissionState='denied';
         hideLocationBanner();
         showLocationDeniedIndicator();
+      } else if(err.code===2 || err.code===3){
+        // Position unavailable (2) or timeout (3)
+        // Permission was granted, just couldn't get position yet
+        locationPermissionState='granted';
+        hideLocationBanner(); // Hide banner - permission is granted
+        console.log('[Location] Falling back to watchPosition');
+        startWatchingLocation(centerMap);
       }
-      // For timeout (code 3) or position unavailable (code 2), silently fail
     },
     {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
   );
 }
 
 // Start watching location for continuous updates
-function startWatchingLocation(){
-  if(!navigator.geolocation || locationWatchId) return;
+// centerMapOnFirst: if true, center map when first position is received
+function startWatchingLocation(centerMapOnFirst=false){
+  if(!navigator.geolocation) return;
+  
+  // Clear existing watch if any
+  if(locationWatchId){
+    navigator.geolocation.clearWatch(locationWatchId);
+    locationWatchId=null;
+  }
+  
+  console.log('[Location] Starting watchPosition, centerMapOnFirst:', centerMapOnFirst);
+  let hasReceivedPosition=false;
   
   locationWatchId=navigator.geolocation.watchPosition(
     pos=>{
+      console.log('[Location] watchPosition SUCCESS:', pos.coords.latitude, pos.coords.longitude);
       locationPermissionState='granted';
+      hideLocationBanner();
+      hideLocationDeniedIndicator();
       lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
       updateMyDot(pos.coords.latitude,pos.coords.longitude);
+      
+      // Center map on first position if requested
+      if(centerMapOnFirst && !hasReceivedPosition && map){
+        console.log('[Location] Centering map on first watchPosition result');
+        map.setView([pos.coords.latitude,pos.coords.longitude],12);
+      }
+      hasReceivedPosition=true;
     },
-    ()=>{}, // Silently handle watch errors
+    err=>{
+      console.log('[Location] watchPosition ERROR:', err.code, err.message);
+      if(err.code===1){
+        locationPermissionState='denied';
+        hideLocationBanner();
+        showLocationDeniedIndicator();
+      }
+      // For other errors, keep watching - it may recover
+    },
     {enableHighAccuracy:true,maximumAge:10000,timeout:30000}
   );
 }
