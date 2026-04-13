@@ -1525,19 +1525,15 @@ function updateMyDot(lat,lng){
 }
 
 let lastKnownPos=null;
-let locationPermissionState='unknown'; // 'unknown', 'granted', 'denied', 'prompt'
+let locationPermissionState='unknown'; // 'unknown', 'granted', 'denied'
+let locationWatchId=null;
 
 // Check if user has previously dismissed the location banner
 function hasUserDismissedLocationBanner(){
   return localStorage.getItem('locationBannerDismissed')==='true';
 }
 
-// Check if we should show the first-time location prompt
-function shouldShowLocationPrompt(){
-  return !localStorage.getItem('locationPromptShown') && locationPermissionState!=='granted';
-}
-
-// Show the location permission banner (non-intrusive)
+// Show the location permission banner (informational only)
 function showLocationBanner(){
   if(hasUserDismissedLocationBanner() || locationPermissionState==='granted') return;
   document.getElementById('location-banner').style.display='block';
@@ -1548,7 +1544,7 @@ function hideLocationBanner(){
   document.getElementById('location-banner').style.display='none';
 }
 
-// Dismiss the banner (optionally remember the choice)
+// Dismiss the banner and remember the choice
 function dismissLocationBanner(remember){
   hideLocationBanner();
   if(remember){
@@ -1572,6 +1568,7 @@ function showLocationHelp(){
   const instructions=document.getElementById('location-help-instructions');
   const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   
   if(isPWA && isIOS){
     instructions.innerHTML=`
@@ -1580,16 +1577,16 @@ function showLocationHelp(){
       <div style="margin-bottom:6px">3. Tap <strong>Location</strong></div>
       <div>4. Select <strong>While Using the App</strong></div>
     `;
-  } else if(isIOS){
+  } else if(isIOS || isSafari){
     instructions.innerHTML=`
-      <div style="margin-bottom:6px">1. Open <strong>Settings</strong></div>
+      <div style="margin-bottom:6px">1. Open macOS <strong>System Settings</strong></div>
       <div style="margin-bottom:6px">2. Go to <strong>Privacy & Security → Location Services</strong></div>
-      <div style="margin-bottom:6px">3. Find <strong>Safari</strong> (or your browser)</div>
-      <div>4. Select <strong>While Using the App</strong></div>
+      <div style="margin-bottom:6px">3. Find <strong>Safari</strong> and enable it</div>
+      <div>4. Reload this page</div>
     `;
   } else {
     instructions.innerHTML=`
-      <div style="margin-bottom:6px">1. Click the <strong>lock/info icon</strong> in the address bar</div>
+      <div style="margin-bottom:6px">1. Click the <strong>site settings icon</strong> in the address bar</div>
       <div style="margin-bottom:6px">2. Find <strong>Location</strong> permission</div>
       <div>3. Change to <strong>Allow</strong></div>
     `;
@@ -1604,14 +1601,12 @@ function closeLocationHelpModal(){
 
 function retryLocationPermission(){
   closeLocationHelpModal();
-  requestLocationPermission();
+  hideLocationDeniedIndicator();
+  tryGetLocation(true);
 }
 
-// Request location permission
-function requestLocationPermission(){
-  hideLocationBanner();
-  localStorage.setItem('locationPromptShown','true');
-  
+// Main function to get location - handles all cases
+function tryGetLocation(centerMap=true){
   if(!navigator.geolocation){
     locationPermissionState='denied';
     showLocationDeniedIndicator();
@@ -1620,159 +1615,77 @@ function requestLocationPermission(){
   
   navigator.geolocation.getCurrentPosition(
     pos=>{
-      locationPermissionState='granted';
-      hideLocationDeniedIndicator();
-      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      updateMyDot(pos.coords.latitude,pos.coords.longitude);
-      if(map) map.setView([pos.coords.latitude,pos.coords.longitude],14);
-      startWatchingLocation();
-    },
-    err=>{
-      if(err.code===1){
-        locationPermissionState='denied';
-        showLocationDeniedIndicator();
-        showLocationHelp();
-      }
-    },
-    {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
-  );
-}
-
-// Check permission state on load (modern browsers)
-async function checkLocationPermission(){
-  if(!navigator.permissions) return 'unknown';
-  try{
-    const result=await navigator.permissions.query({name:'geolocation'});
-    locationPermissionState=result.state; // 'granted', 'denied', or 'prompt'
-    
-    // Listen for changes (e.g., user enables permission after prompt)
-    result.addEventListener('change',()=>{
-      locationPermissionState=result.state;
-      if(result.state==='granted'){
-        hideLocationBanner();
-        hideLocationDeniedIndicator();
-        // Get position and center map
-        navigator.geolocation.getCurrentPosition(
-          pos=>{
-            lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-            updateMyDot(pos.coords.latitude,pos.coords.longitude);
-            if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
-            startWatchingLocation();
-          },
-          ()=>{ startWatchingLocation(); },
-          {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
-        );
-      } else if(result.state==='denied'){
-        showLocationDeniedIndicator();
-      }
-    });
-    
-    return result.state;
-  } catch(e){
-    return 'unknown';
-  }
-}
-
-// Initialize location handling
-async function initLocationHandling(){
-  const state=await checkLocationPermission();
-  
-  if(state==='granted'){
-    // Already have permission, get position and center map
-    hideLocationBanner();
-    hideLocationDeniedIndicator();
-    navigator.geolocation.getCurrentPosition(
-      pos=>{
-        lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-        updateMyDot(pos.coords.latitude,pos.coords.longitude);
-        if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
-        startWatchingLocation();
-      },
-      ()=>{ startWatchingLocation(); },
-      {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
-    );
-  } else if(state==='denied'){
-    // Permission denied, show indicator
-    showLocationDeniedIndicator();
-  } else if(state==='prompt' || state==='unknown'){
-    // First time or unknown (Safari doesn't support permissions.query for geolocation)
-    // Show informational banner, then try to get location (browser will prompt)
-    if(!hasUserDismissedLocationBanner()){
-      showLocationBanner();
-    }
-    // Try to get location - this will trigger the browser's permission prompt
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(
-        pos=>{
-          locationPermissionState='granted';
-          hideLocationBanner();
-          hideLocationDeniedIndicator();
-          lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-          updateMyDot(pos.coords.latitude,pos.coords.longitude);
-          if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
-          startWatchingLocation();
-        },
-        err=>{
-          if(err.code===1){
-            locationPermissionState='denied';
-            hideLocationBanner();
-            showLocationDeniedIndicator();
-          }
-        },
-        {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
-      );
-    }
-  }
-}
-
-function locateMe(){
-  if(!navigator.geolocation){
-    showLocationHelp();
-    return;
-  }
-  // If we already have a position from watchPosition, use it instantly
-  if(lastKnownPos){
-    if(map) map.setView([lastKnownPos.lat,lastKnownPos.lng],14);
-    return;
-  }
-  // First time — get position
-  navigator.geolocation.getCurrentPosition(
-    pos=>{
+      // Success!
       locationPermissionState='granted';
       hideLocationBanner();
       hideLocationDeniedIndicator();
       lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
       updateMyDot(pos.coords.latitude,pos.coords.longitude);
-      if(map) map.setView([pos.coords.latitude,pos.coords.longitude],14);
+      if(centerMap && map){
+        map.setView([pos.coords.latitude,pos.coords.longitude],12);
+      }
       startWatchingLocation();
     },
-    err=>{ 
-      if(err.code===1) {
+    err=>{
+      // Error - only show denied indicator for permission denied (code 1)
+      if(err.code===1){
         locationPermissionState='denied';
+        hideLocationBanner();
         showLocationDeniedIndicator();
-        showLocationHelp();
       }
+      // For timeout (code 3) or position unavailable (code 2), silently fail
     },
-    {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
+    {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
   );
 }
 
+// Start watching location for continuous updates
 function startWatchingLocation(){
-  if(!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(
+  if(!navigator.geolocation || locationWatchId) return;
+  
+  locationWatchId=navigator.geolocation.watchPosition(
     pos=>{
       locationPermissionState='granted';
       lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
       updateMyDot(pos.coords.latitude,pos.coords.longitude);
     },
-    err=>{
-      if(err.code===1 && locationPermissionState!=='denied'){
-        locationPermissionState='denied';
-        showLocationDeniedIndicator();
-      }
-    },
+    ()=>{}, // Silently handle watch errors
     {enableHighAccuracy:true,maximumAge:10000,timeout:30000}
   );
+}
+
+// Initialize location handling - called after map is ready
+function initLocationHandling(){
+  // Show informational banner if not dismissed (will auto-hide on success)
+  if(!hasUserDismissedLocationBanner()){
+    showLocationBanner();
+  }
+  
+  // Try to get location - browser will prompt if needed
+  tryGetLocation(true);
+}
+
+// Locate me button handler
+function locateMe(){
+  if(!navigator.geolocation){
+    showLocationHelp();
+    return;
+  }
+  
+  // If we already have a position, just center on it
+  if(lastKnownPos){
+    if(map) map.setView([lastKnownPos.lat,lastKnownPos.lng],14);
+    return;
+  }
+  
+  // If permission was denied, show help
+  if(locationPermissionState==='denied'){
+    showLocationHelp();
+    return;
+  }
+  
+  // Try to get location
+  tryGetLocation(true);
 }
 
 // Draggable yellow pin
