@@ -1696,6 +1696,13 @@ function openLocationDetail(entryId, journeyContext=null){
       </div>
     </div>
     
+    ${(entry.dateVisited||entry.arrivalDate)?`
+      <div style="background:var(--teal-mid);border-radius:10px;padding:10px;margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text-muted)">Date Visited</div>
+        <div style="font-size:14px;font-weight:600;color:var(--forest)">${new Date((entry.dateVisited||entry.arrivalDate)+'T12:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      </div>
+    `:''}
+    
     ${hasDiscount?`
       <div style="background:rgba(184,85,211,0.1);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -1741,11 +1748,29 @@ function openLocationDetail(entryId, journeyContext=null){
   // If viewing from journey context, add backup options section
   if(journeyContext && entry.lat){
     const radius=fuelSettings.backupRadius||30;
+    
+    // Get the destination's arrival date for seasonal filtering
+    const journey=journeys.find(j=>j.id===journeyContext.journeyId);
+    const leg=journey?.legs?.[journeyContext.legIndex];
+    const destArriveDate=leg?.arriveDate;
+    
+    // Helper to check if a date falls within seasonal window (May 1 - Sept 30)
+    function isInSeasonalWindow(dateStr){
+      if(!dateStr) return true; // No date = assume in season
+      const d=new Date(dateStr+'T12:00');
+      const month=d.getMonth(); // 0-indexed: 4=May, 8=Sept
+      // May (4) through September (8)
+      return month>=4 && month<=8;
+    }
+    
     const backups=entries.filter(e=>{
       if(e.id===entry.id) return false;
       if(!e.lat) return false;
       const dist=haversineDistance(entry.lat,entry.lng,e.lat,e.lng);
-      return dist<=radius;
+      if(dist>radius) return false;
+      // Exclude seasonal locations if destination arrival is outside May-Sept
+      if(e.isSeasonal && destArriveDate && !isInSeasonalWindow(destArriveDate)) return false;
+      return true;
     });
     
     if(backups.length>0){
@@ -3257,11 +3282,25 @@ async function getRoute(fromLat,fromLng,toLat,toLng){
 function findBackupOptions(destEntry){
   if(!destEntry.lat) return;
   const radius=fuelSettings.backupRadius||30;
+  const arriveDate=document.getElementById('leg-arrive').value;
+  
+  // Helper to check if a date falls within seasonal window (May 1 - Sept 30)
+  function isInSeasonalWindow(dateStr){
+    if(!dateStr) return true; // No date = assume in season
+    const d=new Date(dateStr+'T12:00');
+    const month=d.getMonth(); // 0-indexed: 4=May, 8=Sept
+    // May (4) through September (8)
+    return month>=4 && month<=8;
+  }
+  
   const backups=entries.filter(e=>{
     if(e.id===destEntry.id) return false;
     if(!e.lat) return false;
     const dist=haversineDistance(destEntry.lat,destEntry.lng,e.lat,e.lng);
-    return dist<=radius;
+    if(dist>radius) return false;
+    // Exclude seasonal locations if arrival date is outside May-Sept
+    if(e.isSeasonal && arriveDate && !isInSeasonalWindow(arriveDate)) return false;
+    return true;
   });
   
   const el=document.getElementById('leg-backups');
