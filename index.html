@@ -170,16 +170,15 @@ window._db={
 
 <div id="offline-banner">⚠ You're offline — your data is safe</div>
 
-<!-- Location permission banner (subtle, dismissible) -->
-<div id="location-banner" style="display:none;position:fixed;z-index:650;top:calc(70px + env(safe-area-inset-top));left:0;right:0;background:linear-gradient(135deg,#586F6B,#4a5d5a);color:white;padding:10px 16px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
-  <div style="display:flex;align-items:center;gap:10px;max-width:600px;margin:0 auto">
-    <span style="font-size:18px">📍</span>
+<!-- Location permission banner (informational, dismissible) -->
+<div id="location-banner" style="display:none;position:fixed;z-index:650;top:calc(70px + env(safe-area-inset-top));left:0;right:0;background:linear-gradient(135deg,#586F6B,#4a5d5a);color:white;padding:12px 16px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+  <div style="display:flex;align-items:center;gap:12px;max-width:600px;margin:0 auto">
+    <span style="font-size:20px">📍</span>
     <div style="flex:1">
-      <div style="font-weight:600;margin-bottom:2px">Location access improves your experience</div>
-      <div style="font-size:11px;opacity:.85">See your position on the map and track journey progress</div>
+      <div style="font-weight:600;margin-bottom:2px">Enable location for the best experience</div>
+      <div style="font-size:11px;opacity:.85">See your position on the map, track journey progress, and use "Current location" as a starting point.</div>
     </div>
-    <button onclick="requestLocationPermission()" style="background:var(--teal);color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap">Enable</button>
-    <button onclick="dismissLocationBanner(true)" style="background:none;border:none;color:white;opacity:.7;font-size:18px;padding:4px;cursor:pointer">✕</button>
+    <button onclick="dismissLocationBanner(true)" style="background:none;border:none;color:white;opacity:.7;font-size:20px;padding:4px;cursor:pointer" aria-label="Dismiss">✕</button>
   </div>
 </div>
 
@@ -1360,8 +1359,10 @@ function initMap(){
     }
   });
 
-  locateMe();
   renderMarkers();
+  
+  // Initialize location handling after map is ready
+  initLocationHandling();
 }
 
 const LAYERS_SVG=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
@@ -1644,13 +1645,23 @@ async function checkLocationPermission(){
     const result=await navigator.permissions.query({name:'geolocation'});
     locationPermissionState=result.state; // 'granted', 'denied', or 'prompt'
     
-    // Listen for changes
+    // Listen for changes (e.g., user enables permission after prompt)
     result.addEventListener('change',()=>{
       locationPermissionState=result.state;
       if(result.state==='granted'){
         hideLocationBanner();
         hideLocationDeniedIndicator();
-        startWatchingLocation();
+        // Get position and center map
+        navigator.geolocation.getCurrentPosition(
+          pos=>{
+            lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+            updateMyDot(pos.coords.latitude,pos.coords.longitude);
+            if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
+            startWatchingLocation();
+          },
+          ()=>{ startWatchingLocation(); },
+          {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
+        );
       } else if(result.state==='denied'){
         showLocationDeniedIndicator();
       }
@@ -1684,9 +1695,32 @@ async function initLocationHandling(){
     // Permission denied, show indicator
     showLocationDeniedIndicator();
   } else if(state==='prompt' || state==='unknown'){
-    // First time or unknown - show banner after delay if not dismissed
+    // First time or unknown (Safari doesn't support permissions.query for geolocation)
+    // Show informational banner, then try to get location (browser will prompt)
     if(!hasUserDismissedLocationBanner()){
-      setTimeout(()=>showLocationBanner(),3000);
+      showLocationBanner();
+    }
+    // Try to get location - this will trigger the browser's permission prompt
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        pos=>{
+          locationPermissionState='granted';
+          hideLocationBanner();
+          hideLocationDeniedIndicator();
+          lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+          updateMyDot(pos.coords.latitude,pos.coords.longitude);
+          if(map) map.setView([pos.coords.latitude,pos.coords.longitude],12);
+          startWatchingLocation();
+        },
+        err=>{
+          if(err.code===1){
+            locationPermissionState='denied';
+            hideLocationBanner();
+            showLocationDeniedIndicator();
+          }
+        },
+        {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
+      );
     }
   }
 }
@@ -4742,7 +4776,7 @@ async function confirmDeleteJourney(journeyId){
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load',()=>{ initLocationHandling(); renderAI(); });
+window.addEventListener('load',()=>{ renderAI(); });
 </script>
 </body>
 </html>
