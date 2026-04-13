@@ -1564,6 +1564,9 @@ function hideLocationDeniedIndicator(){
 
 // Show location help modal with platform-specific instructions
 function showLocationHelp(){
+  console.log('[Location] showLocationHelp called - MODAL SHOWING');
+  console.trace('[Location] Stack trace for modal');
+  
   const modal=document.getElementById('location-help-modal');
   const instructions=document.getElementById('location-help-instructions');
   const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
@@ -1607,27 +1610,34 @@ function retryLocationPermission(){
 
 // Main function to get location - handles all cases
 function tryGetLocation(centerMap=true){
+  console.log('[Location] tryGetLocation called, centerMap:', centerMap);
+  
   if(!navigator.geolocation){
+    console.log('[Location] navigator.geolocation not available');
     locationPermissionState='denied';
     showLocationDeniedIndicator();
     return;
   }
   
+  console.log('[Location] Calling getCurrentPosition...');
   navigator.geolocation.getCurrentPosition(
     pos=>{
       // Success!
+      console.log('[Location] getCurrentPosition SUCCESS:', pos.coords.latitude, pos.coords.longitude);
       locationPermissionState='granted';
       hideLocationBanner();
       hideLocationDeniedIndicator();
       lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
       updateMyDot(pos.coords.latitude,pos.coords.longitude);
       if(centerMap && map){
+        console.log('[Location] Centering map on position');
         map.setView([pos.coords.latitude,pos.coords.longitude],12);
       }
       startWatchingLocation();
     },
     err=>{
       // Error - only show denied indicator for permission denied (code 1)
+      console.log('[Location] getCurrentPosition ERROR:', err.code, err.message);
       if(err.code===1){
         locationPermissionState='denied';
         hideLocationBanner();
@@ -1656,9 +1666,14 @@ function startWatchingLocation(){
 
 // Initialize location handling - called after map is ready
 function initLocationHandling(){
+  console.log('[Location] initLocationHandling called');
+  
   // Show informational banner if not dismissed (will auto-hide on success)
   if(!hasUserDismissedLocationBanner()){
+    console.log('[Location] Showing location banner');
     showLocationBanner();
+  } else {
+    console.log('[Location] Banner previously dismissed, not showing');
   }
   
   // Try to get location - browser will prompt if needed
@@ -1667,24 +1682,30 @@ function initLocationHandling(){
 
 // Locate me button handler
 function locateMe(){
+  console.log('[Location] locateMe called, lastKnownPos:', lastKnownPos, 'permissionState:', locationPermissionState);
+  
   if(!navigator.geolocation){
+    console.log('[Location] No geolocation, showing help modal');
     showLocationHelp();
     return;
   }
   
   // If we already have a position, just center on it
   if(lastKnownPos){
+    console.log('[Location] Using cached position');
     if(map) map.setView([lastKnownPos.lat,lastKnownPos.lng],14);
     return;
   }
   
   // If permission was denied, show help
   if(locationPermissionState==='denied'){
+    console.log('[Location] Permission denied, showing help modal');
     showLocationHelp();
     return;
   }
   
   // Try to get location
+  console.log('[Location] Trying to get location');
   tryGetLocation(true);
 }
 
