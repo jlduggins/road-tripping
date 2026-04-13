@@ -342,7 +342,7 @@ window._db={
             <div class="pill-select-dropdown">
               <div class="pill-option" data-value="National Park" onclick="togglePillOption(this)">National Park</div>
               <div class="pill-option" data-value="National Forest" onclick="togglePillOption(this)">National Forest</div>
-              <div class="pill-option" data-value="State Campground" onclick="togglePillOption(this)">State Campground</div>
+              <div class="pill-option" data-value="State Park" onclick="togglePillOption(this)">State Park</div>
               <div class="pill-option" data-value="BLM" onclick="togglePillOption(this)">BLM</div>
               <div class="pill-option" data-value="Dispersed" onclick="togglePillOption(this)">Dispersed</div>
               <div class="pill-option" data-value="Private" onclick="togglePillOption(this)">Private</div>
@@ -495,7 +495,7 @@ window._db={
       <div>
         <label class="lbl">Type</label>
         <select class="inp" id="f-type-sel">
-          <option>National Park</option><option>National Forest</option><option>State Campground</option><option>BLM</option>
+          <option>National Park</option><option>National Forest</option><option>State Park</option><option>BLM</option>
           <option selected>Dispersed</option><option>Private</option><option>Other</option>
         </select>
       </div>
@@ -1559,8 +1559,20 @@ function renderMarkers(){
   if(!map) return;
   markers.forEach(m=>m.remove()); markers=[];
   entries.filter(e=>e.lat!=null&&e.lng!=null).forEach(entry=>{
+    // Pin color based on type
+    let pinColor='#ef4444'; // Default red for Dispersed
+    const type=entry.type||'';
+    if(type==='National Forest'||type==='BLM'||type==='National Park'){
+      pinColor='#2E8B57'; // Green
+    }else if(type==='State Park'||type==='State Campground'){
+      pinColor='#1E90FF'; // Blue (includes legacy "State Campground")
+    }else if(type==='Other'){
+      pinColor='#708090'; // Gray
+    }else if(type==='Private'){
+      pinColor='#ef4444'; // Red (same as Dispersed)
+    }
     const icon=L.divIcon({
-      html:`<div style="width:22px;height:32px;position:relative"><div style="width:22px;height:22px;background:#ef4444;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div></div>`,
+      html:`<div style="width:22px;height:32px;position:relative"><div style="width:22px;height:22px;background:${pinColor};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:absolute;top:0;left:0"></div></div>`,
       className:'',iconSize:[22,32],iconAnchor:[11,32],popupAnchor:[0,-34]
     });
     const m=L.marker([entry.lat,entry.lng],{icon}).addTo(map);
