@@ -3609,25 +3609,25 @@ function renderJourneys(){
         </div>
         
         <!-- Collapsible Legs preview -->
-        <div style="border-top:1px solid var(--border);padding-top:8px">
-          <button onclick="event.stopPropagation();toggleJourneyLegs('${j.id}')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0;width:100%">
-            <span id="legs-toggle-${j.id}" style="width:18px;height:18px;border-radius:50%;background:rgba(127,195,165,0.15);color:var(--teal);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center">+</span>
-            <span style="font-size:11px;color:var(--text-muted)">${legs.length} stop${legs.length!==1?'s':''}</span>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <button onclick="event.stopPropagation();toggleJourneyLegs('${j.id}')" style="width:20px;height:20px;border-radius:50%;background:rgba(127,195,165,0.15);color:var(--teal);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0">
+            <span id="legs-toggle-${j.id}">+</span>
           </button>
-          <div id="legs-content-${j.id}" style="display:none;padding-top:8px">
-            ${legs.slice(0,3).map((l,i)=>{
-              const isPast=l.departDate&&l.departDate<today;
-              const isCurrent=i===currentLegIdx;
-              return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;${isPast?'opacity:0.5;':''}">
-                <div style="width:8px;height:8px;border-radius:50%;${isCurrent?'background:var(--teal);box-shadow:0 0 0 3px rgba(127,195,165,0.3);':'background:var(--teal);opacity:0.6;'}"></div>
-                <div style="flex:1;font-size:12px;color:var(--forest);${isCurrent?'font-weight:600;':''}">
-                  ${l.destName}${isCurrent?' <span style="color:var(--teal);font-size:10px">📍 Now</span>':''}
-                </div>
-                <div style="font-size:10px;color:var(--text-muted)">${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>
-              </div>`;
-            }).join('')}
-            ${legs.length>3?`<div style="font-size:11px;color:var(--text-muted);padding:4px 0 0 16px">+${legs.length-3} more stops</div>`:''}
-          </div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div id="legs-content-${j.id}" style="display:none;padding-top:8px">
+          ${legs.slice(0,3).map((l,i)=>{
+            const isPast=l.departDate&&l.departDate<today;
+            const isCurrent=i===currentLegIdx;
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;${isPast?'opacity:0.5;':''}">
+              <div style="width:8px;height:8px;border-radius:50%;${isCurrent?'background:var(--teal);box-shadow:0 0 0 3px rgba(127,195,165,0.3);':'background:var(--teal);opacity:0.6;'}"></div>
+              <div style="flex:1;font-size:12px;color:var(--forest);${isCurrent?'font-weight:600;':''}">
+                ${l.destName}${isCurrent?' <span style="color:var(--teal);font-size:10px">📍 Now</span>':''}
+              </div>
+              <div style="font-size:10px;color:var(--text-muted)">${l.arriveDate?new Date(l.arriveDate+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>
+            </div>`;
+          }).join('')}
+          ${legs.length>3?`<div style="font-size:11px;color:var(--text-muted);padding:4px 0 0 16px">+${legs.length-3} more stops</div>`:''}
         </div>
         
         <!-- Actions -->
