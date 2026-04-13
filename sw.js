@@ -8,7 +8,7 @@
  * - Network First: API calls, dynamic data
  */
 
-const CACHE_VERSION = 'v42';
+const CACHE_VERSION = 'v50';
 const CACHE_NAME = `the-fallback-${CACHE_VERSION}`;
 
 // Files to pre-cache on install

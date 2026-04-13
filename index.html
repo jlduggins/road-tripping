@@ -493,14 +493,6 @@ window._db={
         <div id="coords-hint" style="font-size:11px;color:#7FC3A5;margin-top:3px;display:none"></div>
       </div>
       <div>
-        <label class="lbl">📅 Arrival</label>
-        <input class="inp" type="date" id="f-arrival"/>
-      </div>
-      <div>
-        <label class="lbl">📅 Departure</label>
-        <input class="inp" type="date" id="f-departure"/>
-      </div>
-      <div>
         <label class="lbl">Type</label>
         <select class="inp" id="f-type-sel">
           <option>National Park</option><option>National Forest</option><option>State Campground</option><option>BLM</option>
@@ -509,11 +501,15 @@ window._db={
       </div>
       <div>
         <label class="lbl">Status</label>
-        <select class="inp" id="f-status-sel">
+        <select class="inp" id="f-status-sel" onchange="toggleDateVisited()">
           <option value="planned">Planned</option>
           <option value="visited">Visited</option>
           <option value="saved">Saved for Later</option>
         </select>
+      </div>
+      <div id="date-visited-row" style="display:none">
+        <label class="lbl">📅 Date Visited</label>
+        <input class="inp" type="date" id="f-date-visited"/>
       </div>
       <div>
         <label class="lbl">💵 Cost/night</label>
@@ -1630,6 +1626,12 @@ function toggleDiscountPercent(){
   wrap.style.display=type?'block':'none';
 }
 
+function toggleDateVisited(){
+  const status=document.getElementById('f-status-sel').value;
+  const row=document.getElementById('date-visited-row');
+  row.style.display=status==='visited'?'block':'none';
+}
+
 function openFormPanelById(id){
   const entry=entries.find(e=>e.id===id);
   if(entry) openFormPanel(entry);
@@ -2052,10 +2054,12 @@ function openFormPanel(entry,lat,lng){
   // Always set pendingLat/Lng from entry so drag pin knows where to start
   pendingLat = (entry&&entry.lat!=null) ? entry.lat : (lat!=null?lat:null);
   pendingLng = (entry&&entry.lng!=null) ? entry.lng : (lng!=null?lng:null);
-  document.getElementById('f-arrival').value=entry?(entry.arrivalDate||''):'';
-  document.getElementById('f-departure').value=entry?(entry.departureDate||''):'';
   document.getElementById('f-type-sel').value=entry?entry.type:'Dispersed';
   document.getElementById('f-status-sel').value=entry?entry.status:'planned';
+  // Date Visited - migrate from arrivalDate if dateVisited not set
+  const dateVisitedValue = entry ? (entry.dateVisited || entry.arrivalDate || '') : '';
+  document.getElementById('f-date-visited').value = dateVisitedValue;
+  toggleDateVisited();
   document.getElementById('f-cost').value=(entry&&entry.cost!=null)?entry.cost:'';
   document.getElementById('f-discount-type').value=entry?(entry.discountType||''):'';
   document.getElementById('f-discount-percent').value=(entry&&entry.discountPercent!=null)?entry.discountPercent:'';
@@ -2362,15 +2366,15 @@ async function saveEntry(){
   const discountType=document.getElementById('f-discount-type').value;
   const discountPercentVal=document.getElementById('f-discount-percent').value;
   const linkVal=document.getElementById('f-link').value.trim();
+  const statusVal=document.getElementById('f-status-sel').value;
   const entry={
     id:editId||genId(),
     uid:window._currentUser.uid,
     createdAt:editId?(entries.find(e=>e.id===editId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
     name,address,lat:lat!=null?lat:null,lng:lng!=null?lng:null,
-    arrivalDate:document.getElementById('f-arrival').value,
-    departureDate:document.getElementById('f-departure').value,
     type:document.getElementById('f-type-sel').value,
-    status:document.getElementById('f-status-sel').value,
+    status:statusVal,
+    dateVisited:statusVal==='visited'?document.getElementById('f-date-visited').value:'',
     cost:costVal===''?null:parseInt(costVal),
     discountType:discountType||null,
     discountPercent:discountPercentVal===''?null:parseInt(discountPercentVal),
@@ -2485,10 +2489,13 @@ function renderEntries(){
     const ratingMatch=(e.rating||0)>=minRating;
     return match&&typeMatch&&statusMatch&&stateMatch&&costMatch&&ratingMatch;
   }).sort((a,b)=>{
-    if(!a.arrivalDate&&!b.arrivalDate) return 0;
-    if(!a.arrivalDate) return 1;
-    if(!b.arrivalDate) return -1;
-    return new Date(b.arrivalDate)-new Date(a.arrivalDate);
+    // Sort by dateVisited (with fallback to arrivalDate for old data)
+    const aDate=a.dateVisited||a.arrivalDate;
+    const bDate=b.dateVisited||b.arrivalDate;
+    if(!aDate&&!bDate) return 0;
+    if(!aDate) return 1;
+    if(!bDate) return -1;
+    return new Date(bDate)-new Date(aDate);
   });
   
   console.log('[renderEntries] filtered:', filtered.length);
