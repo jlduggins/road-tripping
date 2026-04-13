@@ -171,39 +171,6 @@ window._db={
 <div id="offline-banner">⚠ You're offline — your data is safe</div>
 
 <!-- Location permission banner (informational, dismissible) -->
-<div id="location-banner" style="display:none;position:fixed;z-index:650;top:calc(70px + env(safe-area-inset-top));left:0;right:0;background:linear-gradient(135deg,#586F6B,#4a5d5a);color:white;padding:12px 16px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
-  <div style="display:flex;align-items:center;gap:12px;max-width:600px;margin:0 auto">
-    <span style="font-size:20px">📍</span>
-    <div style="flex:1">
-      <div style="font-weight:600;margin-bottom:2px">Enable location for the best experience</div>
-      <div style="font-size:11px;opacity:.85">See your position on the map, track journey progress, and use "Current location" as a starting point.</div>
-    </div>
-    <button onclick="dismissLocationBanner(true)" style="background:none;border:none;color:white;opacity:.7;font-size:20px;padding:4px;cursor:pointer" aria-label="Dismiss">✕</button>
-  </div>
-</div>
-
-<!-- Location denied indicator (small, persistent) -->
-<div id="location-denied-indicator" style="display:none;position:fixed;z-index:500;top:calc(78px + env(safe-area-inset-top));left:68px;background:rgba(88,111,107,.9);color:white;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer" onclick="showLocationHelp()">
-  📍 Location off
-</div>
-
-<!-- Location help modal -->
-<div class="confirm-overlay" id="location-help-modal" onclick="if(event.target.id==='location-help-modal')closeLocationHelpModal()">
-  <div class="confirm-box" style="max-width:340px;text-align:left" onclick="event.stopPropagation()">
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;color:var(--forest)">📍 Enable Location</h3>
-    <p style="font-size:14px;color:var(--text-mid);line-height:1.5;margin-bottom:16px">Location helps you see where you are on the map and track your journey progress.</p>
-    <div style="background:var(--teal-light);border-radius:10px;padding:12px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:600;color:var(--forest);margin-bottom:8px">To enable location:</div>
-      <div id="location-help-instructions" style="font-size:12px;color:var(--text-mid);line-height:1.6"></div>
-    </div>
-    <p style="font-size:11px;color:var(--text-muted);margin-bottom:16px">The app works fully without location — you can still log spots, plan routes, and use all features.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeLocationHelpModal()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:white;font-weight:600;font-size:14px;color:var(--text-mid)">Got it</button>
-      <button onclick="retryLocationPermission()" style="padding:10px 18px;border-radius:var(--radius-sm);border:none;background:var(--teal);color:white;font-weight:700;font-size:14px">Try Again</button>
-    </div>
-  </div>
-</div>
-
 <!-- MAP (always full-screen behind everything) -->
 <div id="map-container">
   <div id="map"></div>
@@ -1361,8 +1328,8 @@ function initMap(){
 
   renderMarkers();
   
-  // Initialize location handling after map is ready
-  initLocationHandling();
+  // Get user location and center map
+  locateMe();
 }
 
 const LAYERS_SVG=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`;
@@ -1525,222 +1492,39 @@ function updateMyDot(lat,lng){
 }
 
 let lastKnownPos=null;
-let locationPermissionState='unknown'; // 'unknown', 'granted', 'denied'
-let locationWatchId=null;
 
-// Check if user has previously dismissed the location banner
-function hasUserDismissedLocationBanner(){
-  return localStorage.getItem('locationBannerDismissed')==='true';
-}
-
-// Show the location permission banner (informational only)
-function showLocationBanner(){
-  if(hasUserDismissedLocationBanner() || locationPermissionState==='granted') return;
-  document.getElementById('location-banner').style.display='block';
-}
-
-// Hide the location banner
-function hideLocationBanner(){
-  document.getElementById('location-banner').style.display='none';
-}
-
-// Dismiss the banner and remember the choice
-function dismissLocationBanner(remember){
-  hideLocationBanner();
-  if(remember){
-    localStorage.setItem('locationBannerDismissed','true');
-  }
-}
-
-// Show the small "Location off" indicator
-function showLocationDeniedIndicator(){
-  document.getElementById('location-denied-indicator').style.display='block';
-}
-
-// Hide the indicator
-function hideLocationDeniedIndicator(){
-  document.getElementById('location-denied-indicator').style.display='none';
-}
-
-// Show location help modal with platform-specific instructions
-function showLocationHelp(){
-  console.log('[Location] showLocationHelp called - MODAL SHOWING');
-  console.trace('[Location] Stack trace for modal');
-  
-  const modal=document.getElementById('location-help-modal');
-  const instructions=document.getElementById('location-help-instructions');
-  const isPWA=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
-  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  
-  if(isPWA && isIOS){
-    instructions.innerHTML=`
-      <div style="margin-bottom:6px">1. Open <strong>iPhone Settings</strong></div>
-      <div style="margin-bottom:6px">2. Scroll down to <strong>The Fallback</strong></div>
-      <div style="margin-bottom:6px">3. Tap <strong>Location</strong></div>
-      <div>4. Select <strong>While Using the App</strong></div>
-    `;
-  } else if(isIOS || isSafari){
-    instructions.innerHTML=`
-      <div style="margin-bottom:6px">1. Open macOS <strong>System Settings</strong></div>
-      <div style="margin-bottom:6px">2. Go to <strong>Privacy & Security → Location Services</strong></div>
-      <div style="margin-bottom:6px">3. Find <strong>Safari</strong> and enable it</div>
-      <div>4. Reload this page</div>
-    `;
-  } else {
-    instructions.innerHTML=`
-      <div style="margin-bottom:6px">1. Click the <strong>site settings icon</strong> in the address bar</div>
-      <div style="margin-bottom:6px">2. Find <strong>Location</strong> permission</div>
-      <div>3. Change to <strong>Allow</strong></div>
-    `;
-  }
-  
-  modal.classList.add('open');
-}
-
-function closeLocationHelpModal(){
-  document.getElementById('location-help-modal').classList.remove('open');
-}
-
-function retryLocationPermission(){
-  closeLocationHelpModal();
-  hideLocationDeniedIndicator();
-  tryGetLocation(true);
-}
-
-// Main function to get location - handles all cases
-function tryGetLocation(centerMap=true){
-  console.log('[Location] tryGetLocation called, centerMap:', centerMap);
-  
-  if(!navigator.geolocation){
-    console.log('[Location] navigator.geolocation not available');
-    locationPermissionState='denied';
-    showLocationDeniedIndicator();
-    return;
-  }
-  
-  console.log('[Location] Calling getCurrentPosition...');
-  navigator.geolocation.getCurrentPosition(
-    pos=>{
-      // Success!
-      console.log('[Location] getCurrentPosition SUCCESS:', pos.coords.latitude, pos.coords.longitude);
-      locationPermissionState='granted';
-      hideLocationBanner();
-      hideLocationDeniedIndicator();
-      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      updateMyDot(pos.coords.latitude,pos.coords.longitude);
-      if(centerMap && map){
-        console.log('[Location] Centering map on position');
-        map.setView([pos.coords.latitude,pos.coords.longitude],12);
-      }
-      startWatchingLocation();
-    },
-    err=>{
-      console.log('[Location] getCurrentPosition ERROR:', err.code, err.message);
-      if(err.code===1){
-        // Permission denied
-        locationPermissionState='denied';
-        hideLocationBanner();
-        showLocationDeniedIndicator();
-      } else if(err.code===2 || err.code===3){
-        // Position unavailable (2) or timeout (3)
-        // Permission was granted, just couldn't get position yet
-        locationPermissionState='granted';
-        hideLocationBanner(); // Hide banner - permission is granted
-        console.log('[Location] Falling back to watchPosition');
-        startWatchingLocation(centerMap);
-      }
-    },
-    {enableHighAccuracy:true,timeout:10000,maximumAge:60000}
-  );
-}
-
-// Start watching location for continuous updates
-// centerMapOnFirst: if true, center map when first position is received
-function startWatchingLocation(centerMapOnFirst=false){
-  if(!navigator.geolocation) return;
-  
-  // Clear existing watch if any
-  if(locationWatchId){
-    navigator.geolocation.clearWatch(locationWatchId);
-    locationWatchId=null;
-  }
-  
-  console.log('[Location] Starting watchPosition, centerMapOnFirst:', centerMapOnFirst);
-  let hasReceivedPosition=false;
-  
-  locationWatchId=navigator.geolocation.watchPosition(
-    pos=>{
-      console.log('[Location] watchPosition SUCCESS:', pos.coords.latitude, pos.coords.longitude);
-      locationPermissionState='granted';
-      hideLocationBanner();
-      hideLocationDeniedIndicator();
-      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      updateMyDot(pos.coords.latitude,pos.coords.longitude);
-      
-      // Center map on first position if requested
-      if(centerMapOnFirst && !hasReceivedPosition && map){
-        console.log('[Location] Centering map on first watchPosition result');
-        map.setView([pos.coords.latitude,pos.coords.longitude],12);
-      }
-      hasReceivedPosition=true;
-    },
-    err=>{
-      console.log('[Location] watchPosition ERROR:', err.code, err.message);
-      if(err.code===1){
-        locationPermissionState='denied';
-        hideLocationBanner();
-        showLocationDeniedIndicator();
-      }
-      // For other errors, keep watching - it may recover
-    },
-    {enableHighAccuracy:true,maximumAge:10000,timeout:30000}
-  );
-}
-
-// Initialize location handling - called after map is ready
-function initLocationHandling(){
-  console.log('[Location] initLocationHandling called');
-  
-  // Show informational banner if not dismissed (will auto-hide on success)
-  if(!hasUserDismissedLocationBanner()){
-    console.log('[Location] Showing location banner');
-    showLocationBanner();
-  } else {
-    console.log('[Location] Banner previously dismissed, not showing');
-  }
-  
-  // Try to get location - browser will prompt if needed
-  tryGetLocation(true);
-}
-
-// Locate me button handler
 function locateMe(){
-  console.log('[Location] locateMe called, lastKnownPos:', lastKnownPos, 'permissionState:', locationPermissionState);
-  
   if(!navigator.geolocation){
-    console.log('[Location] No geolocation, showing help modal');
-    showLocationHelp();
+    alert('Geolocation not available.');
     return;
   }
-  
-  // If we already have a position, just center on it
+  // If we already have a position from watchPosition, use it instantly
   if(lastKnownPos){
-    console.log('[Location] Using cached position');
     if(map) map.setView([lastKnownPos.lat,lastKnownPos.lng],14);
     return;
   }
-  
-  // If permission was denied, show help
-  if(locationPermissionState==='denied'){
-    console.log('[Location] Permission denied, showing help modal');
-    showLocationHelp();
-    return;
-  }
-  
-  // Try to get location
-  console.log('[Location] Trying to get location');
-  tryGetLocation(true);
+  // First time — get position
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      updateMyDot(pos.coords.latitude,pos.coords.longitude);
+      if(map) map.setView([pos.coords.latitude,pos.coords.longitude],14);
+    },
+    ()=>{},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:60000}
+  );
+}
+
+function startWatchingLocation(){
+  if(!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(
+    pos=>{
+      lastKnownPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      updateMyDot(pos.coords.latitude,pos.coords.longitude);
+    },
+    ()=>{},
+    {enableHighAccuracy:true,maximumAge:10000,timeout:30000}
+  );
 }
 
 // Draggable yellow pin
@@ -4744,7 +4528,7 @@ async function confirmDeleteJourney(journeyId){
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load',()=>{ renderAI(); });
+window.addEventListener('load',()=>{ startWatchingLocation(); renderAI(); });
 </script>
 </body>
 </html>
