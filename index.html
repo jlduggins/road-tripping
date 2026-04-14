@@ -2096,9 +2096,19 @@ async function replaceDestinationWithBackup(backupEntryId){
   // Save journey
   await window._db.saveJourney(window._currentUser.uid,journey);
   
-  // Close detail panel and refresh journey view
+  // Close detail panel and refresh
   closeLocationDetail();
-  openJourneyDetail(journeyId);
+  
+  // If dashboard is open, re-render it; otherwise open journey detail
+  if(dashboardOpen){
+    renderDashboard();
+    // Also refresh map if journey is being viewed
+    if(activeJourneyId===journeyId){
+      viewJourneyOnMap(journeyId);
+    }
+  }else{
+    openJourneyDetail(journeyId);
+  }
 }
 
 function openFormPanel(entry,lat,lng){
@@ -3471,18 +3481,24 @@ async function saveLeg(){
   let distance=0,duration=0,fuelCost=0,routeGeometry=null;
   if(fromLat&&destEntry.lat){
     try{
+      console.log('[saveLeg] Calculating route from', fromLat, fromLng, 'to', destEntry.lat, destEntry.lng);
       const route=await getRoute(fromLat,fromLng,destEntry.lat,destEntry.lng);
+      console.log('[saveLeg] Route result:', route);
       if(route){
         distance=Math.round(route.distance);
         duration=Math.round(route.duration);
         fuelCost=Math.round(calculateFuelCost(route.distance,legFuelPrice,legFuelUnit));
         routeGeometry=route.geometry; // Store the actual route path
+        console.log('[saveLeg] Route geometry type:', typeof routeGeometry, 'length:', routeGeometry?.length);
       }
     }catch(e){
+      console.error('[saveLeg] Route error:', e);
       distance=Math.round(haversineDistance(fromLat,fromLng,destEntry.lat,destEntry.lng)*1.3);
       duration=Math.round(distance/45*60);
       fuelCost=Math.round(calculateFuelCost(distance,legFuelPrice,legFuelUnit));
     }
+  }else{
+    console.log('[saveLeg] Missing coords - fromLat:', fromLat, 'destEntry.lat:', destEntry.lat);
   }
   
   const leg={
@@ -3504,6 +3520,8 @@ async function saveLeg(){
     fuelPriceUnit:legFuelUnit,
     routeGeometry:routeGeometry?JSON.stringify(routeGeometry):null // Store as JSON string for Firestore
   };
+  
+  console.log('[saveLeg] Saving leg with routeGeometry:', leg.routeGeometry ? 'present ('+leg.routeGeometry.length+' chars)' : 'NULL');
   
   // Add leg to journey
   const journey=journeys.find(j=>j.id===editingJourneyId);
@@ -4236,6 +4254,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
       journeyMarkers.push(line);
     }else if(allCoords.length>=2){
       // Fallback to straight line (no dashes - route just not calculated)
+      console.log('[Map] First leg using straight line fallback - no geometry. Leg:', legs[0]);
       const line=L.polyline([allCoords[0],allCoords[1]],{
         color:'#B855D3',
         weight:4,
@@ -4259,6 +4278,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
         journeyMarkers.push(line);
       }else{
         // Fallback to straight line if no geometry (no dashes)
+        console.log('[Map] Leg', i, 'using straight line fallback - no geometry. Leg:', leg);
         const fromCoord=allCoords[i]; // i because allCoords includes start
         const toCoord=allCoords[i+1];
         if(fromCoord&&toCoord){
@@ -4753,6 +4773,8 @@ function closeDashboard(){
 }
 
 function openDashboardBackup(entryId, journeyId, legIndex){
+  console.log('[Dashboard Backup] Opening backup:', entryId, 'for journey:', journeyId, 'leg:', legIndex);
+  
   // Set the context for viewing as a backup option
   const journeyContext={journeyId, legIndex};
   currentDetailJourneyContext=journeyContext;
@@ -4762,16 +4784,23 @@ function openDashboardBackup(entryId, journeyId, legIndex){
   if(journey && journey.legs && journey.legs[legIndex]){
     // Set current detail entry to the original destination (so backup knows what it's replacing)
     currentDetailEntryId=journey.legs[legIndex].destId;
+    console.log('[Dashboard Backup] Original destination:', currentDetailEntryId);
   }
   
-  // Position panel for dashboard context before opening
+  // Close any existing detail panel first to ensure clean state
   const panel=document.getElementById('location-detail-panel');
+  panel.classList.remove('open');
+  
+  // Position panel for dashboard context
   panel.classList.add('from-dashboard');
   panel.style.left='auto';
   panel.style.right='300px';
   
   // Open the backup location detail view (with "Save as replacement" button)
-  openBackupLocationDetail(entryId);
+  // Small delay to ensure panel closes before reopening
+  requestAnimationFrame(()=>{
+    openBackupLocationDetail(entryId);
+  });
 }
 
 function renderDashboard(){
