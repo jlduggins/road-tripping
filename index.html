@@ -1860,6 +1860,7 @@ function closeLocationDetail(){
   currentDetailEntryId=null;
   currentDetailJourneyContext=null;
   viewingBackupForEntryId=null;
+  hideBackupBackdrop();
 }
 
 function editLocationFromDetail(){
@@ -4805,11 +4806,37 @@ function openDashboardBackup(entryId, journeyId, legIndex){
   panel.style.left='auto';
   panel.style.right='300px';
   
+  // Show backdrop on mobile
+  showBackupBackdrop();
+  
   // Open the backup location detail view (with "Save as replacement" button)
   // Small delay to ensure panel closes before reopening
   requestAnimationFrame(()=>{
     openBackupLocationDetail(entryId);
   });
+}
+
+function showBackupBackdrop(){
+  // Only show on mobile
+  if(window.innerWidth > 640) return;
+  
+  let backdrop=document.getElementById('backup-backdrop');
+  if(!backdrop){
+    backdrop=document.createElement('div');
+    backdrop.id='backup-backdrop';
+    backdrop.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:1050;opacity:0;transition:opacity .2s';
+    backdrop.onclick=()=>closeLocationDetail();
+    document.body.appendChild(backdrop);
+  }
+  requestAnimationFrame(()=>backdrop.style.opacity='1');
+}
+
+function hideBackupBackdrop(){
+  const backdrop=document.getElementById('backup-backdrop');
+  if(backdrop){
+    backdrop.style.opacity='0';
+    setTimeout(()=>backdrop.remove(),200);
+  }
 }
 
 function renderDashboard(){
@@ -4887,6 +4914,8 @@ function selectCurrentJourney(journeyId){
 }
 
 function clearCurrentJourney(){
+  // Close backup detail panel if open
+  closeLocationDetail();
   saveCurrentJourneyId(null);
   renderDashboard();
 }
@@ -5047,6 +5076,7 @@ function renderDashboardFull(container,journey){
           <div style="font-size:12px;color:var(--text-muted)">En route to</div>
         </div>
         <div style="font-size:14px;font-weight:600;color:var(--forest);margin-left:16px">${nextDest||'Unknown'}</div>
+        ${nextEntry?.link?`<a href="${nextEntry.link.startsWith('http')?nextEntry.link:'https://'+nextEntry.link}" target="_blank" style="font-size:11px;color:var(--text-muted);text-decoration:none;margin-left:16px;display:block;margin-top:2px">${nextEntry.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
         ${distanceToNext?`<div style="font-size:12px;color:var(--text-muted);margin-left:16px;margin-top:4px">${distanceToNext} mi remaining${timeToNext?' · ~'+Math.round(timeToNext)+' min':''}</div>`:''}
       </div>
     `}
@@ -5055,7 +5085,7 @@ function renderDashboardFull(container,journey){
       <div style="background:var(--forest);border-radius:8px;padding:12px;margin-bottom:12px;color:white">
         <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Next destination</div>
         <div style="font-size:14px;font-weight:600;margin-bottom:4px">${nextDest}</div>
-        ${nextEntry?.website?`<a href="${nextEntry.website.startsWith('http')?nextEntry.website:'https://'+nextEntry.website}" target="_blank" style="font-size:11px;color:rgba(255,255,255,0.6);text-decoration:none">${nextEntry.website.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
+        ${nextEntry?.link?`<a href="${nextEntry.link.startsWith('http')?nextEntry.link:'https://'+nextEntry.link}" target="_blank" style="font-size:11px;color:rgba(255,255,255,0.6);text-decoration:none">${nextEntry.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
         <div style="display:flex;gap:16px;margin-top:10px">
           <div>
             <div style="font-size:18px;font-weight:600">${distanceToNext||'--'} mi</div>
