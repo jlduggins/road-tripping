@@ -2025,11 +2025,19 @@ async function replaceDestinationWithBackup(backupEntryId){
   let fromLat, fromLng, fromName;
   if(legIndex>0){
     const prevLeg=journey.legs[legIndex-1];
+    console.log('[Replace] Looking for prevLeg.destId:', prevLeg.destId, 'in entries count:', entries.length);
     const fromEntry=entries.find(e=>e.id===prevLeg.destId);
+    console.log('[Replace] fromEntry found:', fromEntry ? fromEntry.name : 'NOT FOUND');
     if(fromEntry){
       fromLat=fromEntry.lat;
       fromLng=fromEntry.lng;
       fromName=fromEntry.name;
+    }else{
+      // Entry not found - use prevLeg's stored destLat/destLng as fallback
+      console.log('[Replace] Using prevLeg destLat/Lng as fallback:', prevLeg.destLat, prevLeg.destLng);
+      fromLat=prevLeg.destLat;
+      fromLng=prevLeg.destLng;
+      fromName=prevLeg.destName||'Previous stop';
     }
   }else{
     // First leg - always use current location if available
@@ -3452,6 +3460,18 @@ async function saveLeg(){
       fromLat=fromEntry.lat; 
       fromLng=fromEntry.lng; 
       fromName=fromEntry.name;
+    }else{
+      // Entry not found in entries - fall back to stored leg coordinates
+      const journey=journeys.find(j=>j.id===editingJourneyId);
+      if(editingLegIndex!==null && editingLegIndex>0 && journey?.legs){
+        const prevLeg=journey.legs[editingLegIndex-1];
+        if(prevLeg?.destLat){
+          console.log('[saveLeg] Using prevLeg stored coords as fallback:', prevLeg.destLat, prevLeg.destLng);
+          fromLat=prevLeg.destLat;
+          fromLng=prevLeg.destLng;
+          fromName=prevLeg.destName||'Previous stop';
+        }
+      }
     }
   }
   if(!fromLat){
