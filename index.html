@@ -2015,11 +2015,6 @@ async function replaceDestinationWithBackup(backupEntryId){
   
   const leg=journey.legs[legIndex];
   
-  // Save original destination coords BEFORE overwriting (can use as fallback origin)
-  const originalDestLat=leg.destLat;
-  const originalDestLng=leg.destLng;
-  const originalDestName=leg.destName;
-  
   // Update the leg with new destination
   leg.destId=backupEntryId;
   leg.destName=backupEntry.name;
@@ -2029,24 +2024,20 @@ async function replaceDestinationWithBackup(backupEntryId){
   // Recalculate route for this leg (from previous stop or current location)
   let fromLat, fromLng, fromName;
   if(legIndex>0){
+    // Not first leg - origin is previous leg's destination
     const prevLeg=journey.legs[legIndex-1];
-    console.log('[Replace] Looking for prevLeg.destId:', prevLeg.destId, 'in entries count:', entries.length);
-    const fromEntry=entries.find(e=>e.id===prevLeg.destId);
-    console.log('[Replace] fromEntry found:', fromEntry ? fromEntry.name : 'NOT FOUND');
-    if(fromEntry){
-      fromLat=fromEntry.lat;
-      fromLng=fromEntry.lng;
-      fromName=fromEntry.name;
-    }else{
-      // Entry not found - use prevLeg's stored destLat/destLng as fallback
-      console.log('[Replace] Using prevLeg destLat/Lng as fallback:', prevLeg.destLat, prevLeg.destLng);
+    if(prevLeg?.destLat){
       fromLat=prevLeg.destLat;
       fromLng=prevLeg.destLng;
       fromName=prevLeg.destName||'Previous stop';
+    }else{
+      alert('Unable to calculate route: previous destination has no coordinates.');
+      return;
     }
   }else{
-    // First leg - try stored origin, then current location, then original destination as last resort
+    // First leg - use stored origin or current location
     if(leg.fromLat && leg.fromLng){
+      // Leg has a stored starting point
       fromLat=leg.fromLat;
       fromLng=leg.fromLng;
       fromName=leg.fromName||'Start';
@@ -2059,18 +2050,11 @@ async function replaceDestinationWithBackup(backupEntryId){
       fromLat=ll.lat;
       fromLng=ll.lng;
       fromName='Current Location';
-    }else if(originalDestLat && originalDestLng){
-      // Last resort: use original destination as origin (backup is nearby anyway)
-      console.log('[Replace] Using original destination as origin:', originalDestLat, originalDestLng);
-      fromLat=originalDestLat;
-      fromLng=originalDestLng;
-      fromName=originalDestName||'Previous destination';
+    }else{
+      // No origin available
+      alert('Your current location is not available.\n\nPlease either:\n• Allow location access in your browser settings, or\n• Edit the leg and choose a saved location as your starting point');
+      return;
     }
-  }
-  
-  if(!fromLat){
-    alert('Unable to calculate route: no starting location available.\n\nPlease set a starting point for this journey or enable location access.');
-    return;
   }
   
   if(fromLat && backupEntry.lat){
@@ -3469,38 +3453,22 @@ async function saveLeg(){
   // Get origin info
   const fromId=document.getElementById('leg-from-id').value;
   let fromLat,fromLng,fromName;
+  
   if(fromId){
+    // User selected a saved location as starting point
     const fromEntry=entries.find(e=>e.id===fromId);
-    if(fromEntry){ 
+    if(fromEntry && fromEntry.lat){ 
       fromLat=fromEntry.lat; 
       fromLng=fromEntry.lng; 
       fromName=fromEntry.name;
     }else{
-      // Entry not found in entries - fall back to stored leg coordinates
-      const journey=journeys.find(j=>j.id===editingJourneyId);
-      if(editingLegIndex!==null && editingLegIndex>0 && journey?.legs){
-        const prevLeg=journey.legs[editingLegIndex-1];
-        if(prevLeg?.destLat){
-          console.log('[saveLeg] Using prevLeg stored coords as fallback:', prevLeg.destLat, prevLeg.destLng);
-          fromLat=prevLeg.destLat;
-          fromLng=prevLeg.destLng;
-          fromName=prevLeg.destName||'Previous stop';
-        }
-      }
+      // Selected entry has no coordinates
+      alert('The selected starting location has no coordinates.\n\nPlease choose a different starting location.');
+      return;
     }
-  }
-  if(!fromLat){
-    // Try existing leg's stored origin first (when editing)
-    const journey=journeys.find(j=>j.id===editingJourneyId);
-    if(editingLegIndex!==null && journey?.legs?.[editingLegIndex]?.fromLat){
-      const existingLeg=journey.legs[editingLegIndex];
-      console.log('[saveLeg] Using existing leg stored origin:', existingLeg.fromLat, existingLeg.fromLng);
-      fromLat=existingLeg.fromLat;
-      fromLng=existingLeg.fromLng;
-      fromName=existingLeg.fromName||'Start';
-    }
-    // Then try current location
-    else if(lastKnownPos){
+  }else{
+    // No saved location selected - using "Current Location"
+    if(lastKnownPos?.lat){
       fromLat=lastKnownPos.lat; 
       fromLng=lastKnownPos.lng;
       fromName='Current Location';
@@ -3510,8 +3478,8 @@ async function saveLeg(){
       fromLng=ll.lng;
       fromName='Current Location';
     }else{
-      // No location available - warn user
-      alert('Unable to calculate route: no starting location available.\n\nPlease set a starting point for this journey or enable location access.');
+      // Current location not available
+      alert('Your current location is not available.\n\nPlease either:\n• Allow location access in your browser settings, or\n• Choose a saved location as your starting point');
       return;
     }
   }
