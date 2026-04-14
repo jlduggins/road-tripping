@@ -2040,8 +2040,12 @@ async function replaceDestinationWithBackup(backupEntryId){
       fromName=prevLeg.destName||'Previous stop';
     }
   }else{
-    // First leg - always use current location if available
-    if(lastKnownPos?.lat){
+    // First leg - use stored origin first (preserves original starting point), then fall back to current location
+    if(leg.fromLat && leg.fromLng){
+      fromLat=leg.fromLat;
+      fromLng=leg.fromLng;
+      fromName=leg.fromName||'Start';
+    }else if(lastKnownPos?.lat){
       fromLat=lastKnownPos.lat;
       fromLng=lastKnownPos.lng;
       fromName='Current Location';
@@ -2050,11 +2054,6 @@ async function replaceDestinationWithBackup(backupEntryId){
       fromLat=ll.lat;
       fromLng=ll.lng;
       fromName='Current Location';
-    }else if(leg.fromLat && leg.fromLng){
-      // Fall back to stored origin only if no current location
-      fromLat=leg.fromLat;
-      fromLng=leg.fromLng;
-      fromName=leg.fromName||'Start';
     }
   }
   
@@ -4264,7 +4263,9 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
     };
     
     // Draw route for first leg (from start to first destination)
+    console.log('[Map] First leg routeGeometry raw value:', legs[0]?.routeGeometry, 'type:', typeof legs[0]?.routeGeometry);
     const firstGeom=parseGeometry(legs[0]?.routeGeometry);
+    console.log('[Map] First leg parsed geometry:', firstGeom ? 'valid (' + firstGeom.length + ' points)' : 'null');
     if(firstGeom){
       const line=L.polyline(firstGeom,{
         color:'#B855D3',
