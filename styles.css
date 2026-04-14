@@ -1750,23 +1750,27 @@ select.inp-dark option {
   
   #location-detail-panel.open { transform: translateY(0); }
   
-  /* When opened from dashboard on mobile, slide from right instead of bottom */
+  /* When opened from dashboard on mobile, slide from right */
   #location-detail-panel.from-dashboard {
-    top: auto;
-    bottom: 0;
+    top: calc(60px + var(--safe-top));
+    bottom: auto;
     left: auto;
     right: 0;
-    width: 100%;
-    max-width: 100%;
+    width: auto;
+    min-width: 280px;
+    max-width: 85vw;
     height: auto;
-    max-height: 85vh;
-    border-radius: 20px 20px 0 0;
-    transform: translateY(100%);
-    z-index: 1100; /* Above dashboard */
+    max-height: calc(100vh - 60px - var(--safe-top) - var(--safe-bottom) - 20px);
+    border-radius: 12px 0 0 12px;
+    transform: translateX(100%);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, .2);
+    z-index: 1100;
+    resize: horizontal;
+    overflow: auto;
   }
   
   #location-detail-panel.from-dashboard.open {
-    transform: translateY(0);
+    transform: translateX(0);
   }
   
   #location-detail-header {

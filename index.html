@@ -4803,8 +4803,15 @@ function openDashboardBackup(entryId, journeyId, legIndex){
   
   // Position panel for dashboard context
   panel.classList.add('from-dashboard');
-  panel.style.left='auto';
-  panel.style.right='300px';
+  
+  // On desktop, position next to dashboard; on mobile, CSS handles positioning
+  if(window.innerWidth > 640){
+    panel.style.left='auto';
+    panel.style.right='300px';
+  }else{
+    panel.style.left='';
+    panel.style.right='';
+  }
   
   // Show backdrop on mobile for tap-to-close
   showBackupBackdrop();
