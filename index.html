@@ -180,8 +180,17 @@ window._db={
 <div id="top-bar">
   <button id="menu-btn" onclick="openDrawer()">☰</button>
   <span id="top-title"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
-  <span id="top-count">0 locations</span>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+    <span id="top-count">0 locations</span>
+    <button id="btn-dashboard" onclick="toggleDashboard()" style="background:white;border:1px solid var(--teal);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--teal);cursor:pointer;display:none">Dashboard</button>
+  </div>
 </div>
+
+<!-- Dashboard Panel -->
+<div id="dashboard-panel" style="position:fixed;top:0;right:-320px;width:300px;height:100%;background:white;z-index:1200;box-shadow:-4px 0 20px rgba(0,0,0,0.15);transition:right 0.3s ease;overflow-y:auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top))">
+  <div id="dashboard-content"></div>
+</div>
+<div id="dashboard-overlay" onclick="closeDashboard()" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:1199;display:none"></div>
 
 <!-- Map overlay buttons -->
 <!-- Left: log button -->
@@ -842,6 +851,8 @@ let firestoreUnsub=null,journeyUnsub=null,mapReady=false;
 // Journey/trip state
 let journeys=[];
 let activeJourneyId=null;
+let currentJourneyId=null; // The user's designated "current" journey for dashboard
+let dashboardOpen=false;
 let fuelSettings={
   fuelType:'Diesel',
   mpg:18,
@@ -939,6 +950,7 @@ window._subscribeFirestore=function(uid){
     console.log('[Firestore] Journeys received:', docs.length);
     journeys=docs;
     renderJourneys();
+    updateDashboardButton();
   }, err=>console.error('Firestore journeys:',err));
   
   // Load user settings (fuel, etc.)
@@ -2822,8 +2834,38 @@ async function loadUserSettings(uid){
     if(settings.pricePerGal) fuelSettings.pricePerGal=settings.pricePerGal;
     if(settings.backupRadius) fuelSettings.backupRadius=settings.backupRadius;
     else fuelSettings.backupRadius=30;
+    if(settings.currentJourneyId) currentJourneyId=settings.currentJourneyId;
     updateFuelSummary();
+    updateDashboardButton();
   }catch(e){ console.log('No saved settings yet'); }
+}
+
+function updateDashboardButton(){
+  const btn=document.getElementById('btn-dashboard');
+  if(!btn) return;
+  // Show dashboard button if there are any journeys
+  btn.style.display=journeys.length>0?'block':'none';
+  // Style based on whether current journey is set
+  if(currentJourneyId){
+    btn.style.background='var(--teal)';
+    btn.style.color='white';
+    btn.style.border='1px solid var(--teal)';
+  }else{
+    btn.style.background='white';
+    btn.style.color='var(--teal)';
+    btn.style.border='1px solid var(--teal)';
+  }
+}
+
+async function saveCurrentJourneyId(journeyId){
+  currentJourneyId=journeyId;
+  updateDashboardButton();
+  if(window._currentUser){
+    await window._db.saveSettings(window._currentUser.uid,{
+      ...fuelSettings,
+      currentJourneyId:journeyId||null
+    });
+  }
 }
 
 function updateFuelSummary(){
@@ -3541,7 +3583,7 @@ function renderJourneys(){
     const totalCost=totalFuel+totalLodging;
     
     // Find current leg - based on GPS proximity only
-    const proximityThreshold=15;
+    const proximityThreshold=2;
     let currentLegIdx=-1;
     let atStartingPoint=false;
     const userLat=lastKnownPos?.lat;
@@ -3600,15 +3642,15 @@ function renderJourneys(){
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:6px 10px;text-align:center">
             <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(totalLodging)}</div>
-            <div style="font-size:9px;color:var(--text-muted)">Lodging</div>
+            <div style="font-size:9px;color:var(--text-muted)">Est. Lodging</div>
           </div>
           <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:6px 10px;text-align:center">
             <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(totalFuel)}</div>
-            <div style="font-size:9px;color:var(--text-muted)">Fuel</div>
+            <div style="font-size:9px;color:var(--text-muted)">Est. Fuel</div>
           </div>
           <div style="flex:1;background:var(--teal);border-radius:6px;padding:6px 10px;text-align:center">
             <div style="font-size:12px;font-weight:600;color:white">$${Math.round(totalCost)}</div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.8)">Total</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.8)">Est. Total</div>
           </div>
         </div>
         
@@ -3699,7 +3741,7 @@ function openJourneyDetail(journeyId){
   // Find current leg - based on GPS proximity only
   let currentLegIdx=-1;
   let atStartingPoint=false;
-  const proximityThreshold=15; // miles
+  const proximityThreshold=2; // miles
   const userLat=lastKnownPos?.lat;
   const userLng=lastKnownPos?.lng;
   
@@ -3760,15 +3802,15 @@ function openJourneyDetail(journeyId){
       <!-- Cost summary -->
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted)">Lodging</div>
+          <div style="font-size:11px;color:var(--text-muted)">Est. Lodging</div>
           <div style="font-size:16px;font-weight:700;color:var(--forest)">$${Math.round(totalLodging)}</div>
         </div>
         <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted)">Fuel</div>
+          <div style="font-size:11px;color:var(--text-muted)">Est. Fuel</div>
           <div style="font-size:16px;font-weight:700;color:var(--forest)">$${Math.round(totalFuel)}</div>
         </div>
         <div style="flex:1;background:var(--teal);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:rgba(255,255,255,0.8)">Total</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.8)">Est. Total</div>
           <div style="font-size:16px;font-weight:700;color:white">$${Math.round(totalFuel+totalLodging)}</div>
         </div>
       </div>
@@ -4071,7 +4113,7 @@ function viewJourneyOnMap(journeyId, shouldCloseDrawer=true){
   // Find current leg - based on GPS proximity only
   let currentLegIdx=-1;
   let atStartingPoint=false;
-  const proximityThreshold=15;
+  const proximityThreshold=2;
   const userLat=lastKnownPos?.lat;
   const userLng=lastKnownPos?.lng;
   if(userLat){
@@ -4674,6 +4716,316 @@ async function confirmDeleteJourney(journeyId){
     console.error('Delete journey failed:',e);
     alert('Failed to delete journey');
   }
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+function toggleDashboard(){
+  if(dashboardOpen) closeDashboard();
+  else openDashboard();
+}
+
+function openDashboard(){
+  dashboardOpen=true;
+  document.getElementById('dashboard-panel').style.right='0';
+  document.getElementById('dashboard-overlay').style.display='block';
+  renderDashboard();
+}
+
+function closeDashboard(){
+  dashboardOpen=false;
+  document.getElementById('dashboard-panel').style.right='-320px';
+  document.getElementById('dashboard-overlay').style.display='none';
+}
+
+function renderDashboard(){
+  const container=document.getElementById('dashboard-content');
+  if(!container) return;
+  
+  // If no current journey set, show journey selection
+  if(!currentJourneyId){
+    renderDashboardSelection(container);
+    return;
+  }
+  
+  // Find the current journey
+  const journey=journeys.find(j=>j.id===currentJourneyId);
+  if(!journey){
+    // Journey was deleted, clear and show selection
+    currentJourneyId=null;
+    saveCurrentJourneyId(null);
+    renderDashboardSelection(container);
+    return;
+  }
+  
+  renderDashboardFull(container,journey);
+}
+
+function renderDashboardSelection(container){
+  const now=new Date();
+  const todayStr=now.toISOString().split('T')[0];
+  
+  // Filter journeys that overlap with current date
+  const relevantJourneys=journeys.filter(j=>{
+    const legs=j.legs||[];
+    if(legs.length===0) return false;
+    // Get first arrive date and last depart date
+    const firstArrive=legs[0]?.arriveDate;
+    const lastDepart=legs[legs.length-1]?.departDate;
+    if(!firstArrive) return true; // No dates = show it
+    // Check if today is within the journey dates (with some buffer)
+    const start=new Date(firstArrive+'T00:00');
+    const end=lastDepart?new Date(lastDepart+'T23:59'):new Date(start.getTime()+30*24*60*60*1000);
+    start.setDate(start.getDate()-7); // 7 day buffer before
+    end.setDate(end.getDate()+7); // 7 day buffer after
+    return now>=start && now<=end;
+  });
+  
+  // If no relevant journeys, show all
+  const displayJourneys=relevantJourneys.length>0?relevantJourneys:journeys.slice(0,5);
+  
+  container.innerHTML=`
+    <div style="font-size:16px;font-weight:600;color:var(--forest);margin-bottom:12px">Select current journey</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${relevantJourneys.length>0?'Based on your travel dates:':'Your journeys:'}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${displayJourneys.map(j=>{
+        const legs=j.legs||[];
+        const firstArrive=legs[0]?.arriveDate;
+        const lastDepart=legs[legs.length-1]?.departDate;
+        const dateRange=firstArrive?(firstArrive.slice(5).replace('-','/')+' – '+(lastDepart?lastDepart.slice(5).replace('-','/'):'')):('');
+        return `
+          <div onclick="selectCurrentJourney('${j.id}')" style="background:rgba(127,195,165,0.1);border-radius:8px;padding:12px;cursor:pointer">
+            <div style="font-size:13px;font-weight:600;color:var(--forest)">${j.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${dateRange?dateRange+' · ':''}${legs.length} stop${legs.length!==1?'s':''}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    ${journeys.length>displayJourneys.length?`
+      <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">+${journeys.length-displayJourneys.length} more in Trips tab</div>
+    `:''}
+  `;
+}
+
+function selectCurrentJourney(journeyId){
+  saveCurrentJourneyId(journeyId);
+  renderDashboard();
+}
+
+function clearCurrentJourney(){
+  saveCurrentJourneyId(null);
+  renderDashboard();
+}
+
+function renderDashboardFull(container,journey){
+  const legs=journey.legs||[];
+  const userLat=lastKnownPos?.lat;
+  const userLng=lastKnownPos?.lng;
+  const proximityThreshold=2;
+  
+  // Determine current location and next destination
+  let currentLocationName=null;
+  let currentLocationId=null;
+  let nextLegIndex=-1;
+  let atStartingPoint=false;
+  
+  if(userLat && legs.length>0){
+    let closestDist=Infinity;
+    
+    // Check starting point
+    const firstLeg=legs[0];
+    if(firstLeg.fromLat){
+      const distToStart=haversineDistance(userLat,userLng,firstLeg.fromLat,firstLeg.fromLng);
+      if(distToStart<=proximityThreshold){
+        closestDist=distToStart;
+        atStartingPoint=true;
+        currentLocationName=firstLeg.fromName;
+        currentLocationId=firstLeg.fromId;
+        nextLegIndex=0;
+      }
+    }
+    
+    // Check each destination
+    for(let i=0;i<legs.length;i++){
+      const l=legs[i];
+      if(l.destLat){
+        const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
+        if(dist<=proximityThreshold && dist<closestDist){
+          closestDist=dist;
+          atStartingPoint=false;
+          currentLocationName=l.destName;
+          currentLocationId=l.destId;
+          nextLegIndex=i+1; // Next leg is after this one
+        }
+      }
+    }
+  }
+  
+  // Get next destination info
+  let nextDest=null;
+  let distanceToNext=null;
+  let timeToNext=null;
+  let nextEntry=null;
+  
+  if(nextLegIndex>=0 && nextLegIndex<legs.length){
+    const nextLeg=legs[nextLegIndex];
+    nextDest=nextLeg.destName;
+    distanceToNext=nextLeg.distance;
+    timeToNext=nextLeg.duration;
+    nextEntry=entries.find(e=>e.id===nextLeg.destId);
+  }else if(!currentLocationName && legs.length>0){
+    // User is en route, not at any location - find closest upcoming destination
+    let closestLegIdx=0;
+    if(userLat){
+      let minDist=Infinity;
+      for(let i=0;i<legs.length;i++){
+        const l=legs[i];
+        if(l.destLat){
+          const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
+          if(dist<minDist){
+            minDist=dist;
+            closestLegIdx=i;
+            distanceToNext=Math.round(dist);
+            // Estimate time (assume 45mph average)
+            timeToNext=Math.round((dist/45)*60);
+          }
+        }
+      }
+    }
+    nextDest=legs[closestLegIdx]?.destName;
+    nextEntry=entries.find(e=>e.id===legs[closestLegIdx]?.destId);
+  }
+  
+  // Calculate costs - spent vs remaining based on proximity
+  let spentCost=0,remainingCost=0;
+  for(let i=0;i<legs.length;i++){
+    const l=legs[i];
+    const legCost=(l.fuelCost||0);
+    // Add lodging cost
+    const entry=entries.find(e=>e.id===l.destId);
+    let lodgingCost=0;
+    if(entry&&l.arriveDate&&l.departDate){
+      const nights=Math.round((new Date(l.departDate)-new Date(l.arriveDate))/(1000*60*60*24));
+      if(nights>0){
+        lodgingCost=(entry.cost||0)*nights;
+        if(entry.discountPercent) lodgingCost*=(1-entry.discountPercent/100);
+      }
+    }
+    const totalLegCost=legCost+lodgingCost;
+    
+    if(i<nextLegIndex || (nextLegIndex===-1 && currentLocationName)){
+      spentCost+=totalLegCost;
+    }else{
+      remainingCost+=totalLegCost;
+    }
+  }
+  const totalCost=spentCost+remainingCost;
+  
+  // Get backup options for next destination
+  let backupOptions=[];
+  if(nextEntry || (nextLegIndex>=0 && nextLegIndex<legs.length)){
+    const nextLeg=legs[nextLegIndex]||legs[0];
+    if(nextLeg?.destLat){
+      const radius=fuelSettings.backupRadius||30;
+      backupOptions=entries.filter(e=>{
+        if(!e.lat||!e.lng) return false;
+        if(e.id===nextLeg.destId) return false;
+        // Exclude locations already in journey
+        if(legs.some(l=>l.destId===e.id)) return false;
+        const dist=haversineDistance(nextLeg.destLat,nextLeg.destLng,e.lat,e.lng);
+        return dist<=radius;
+      }).map(e=>({
+        ...e,
+        distFromNext:Math.round(haversineDistance(nextLeg.destLat,nextLeg.destLng,e.lat,e.lng)*10)/10
+      })).sort((a,b)=>a.distFromNext-b.distFromNext).slice(0,3);
+    }
+  }
+  
+  // Get date range
+  const firstArrive=legs[0]?.arriveDate;
+  const lastDepart=legs[legs.length-1]?.departDate;
+  const dateRange=firstArrive?(new Date(firstArrive+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+(lastDepart?new Date(lastDepart+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')):'';
+  
+  container.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:var(--forest)">${journey.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${legs.length} stops${dateRange?' · '+dateRange:''}</div>
+      </div>
+      <div onclick="clearCurrentJourney()" style="display:flex;align-items:center;gap:6px;background:rgba(127,195,165,0.15);border-radius:12px;padding:4px 10px;cursor:pointer">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal)"></div>
+        <span style="font-size:11px;font-weight:600;color:var(--teal)">Current</span>
+      </div>
+    </div>
+    
+    ${currentLocationName?`
+      <div style="background:rgba(127,195,165,0.1);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--teal)"></div>
+          <div style="font-size:12px;color:var(--text-muted)">Currently at</div>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:var(--forest);margin-left:16px">${currentLocationName}</div>
+      </div>
+    `:`
+      <div style="background:rgba(127,195,165,0.1);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--teal)"></div>
+          <div style="font-size:12px;color:var(--text-muted)">En route to</div>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:var(--forest);margin-left:16px">${nextDest||'Unknown'}</div>
+        ${distanceToNext?`<div style="font-size:12px;color:var(--text-muted);margin-left:16px;margin-top:4px">${distanceToNext} mi remaining${timeToNext?' · ~'+Math.round(timeToNext)+' min':''}</div>`:''}
+      </div>
+    `}
+    
+    ${currentLocationName && nextDest?`
+      <div style="background:var(--forest);border-radius:8px;padding:12px;margin-bottom:12px;color:white">
+        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px">Next destination</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${nextDest}</div>
+        ${nextEntry?.website?`<a href="${nextEntry.website.startsWith('http')?nextEntry.website:'https://'+nextEntry.website}" target="_blank" style="font-size:11px;color:rgba(255,255,255,0.6);text-decoration:none">${nextEntry.website.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
+        <div style="display:flex;gap:16px;margin-top:10px">
+          <div>
+            <div style="font-size:18px;font-weight:600">${distanceToNext||'--'} mi</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.7)">distance</div>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:600">${timeToNext?Math.round(timeToNext)+' min':'--'}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.7)">drive time</div>
+          </div>
+        </div>
+      </div>
+    `:''}
+    
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:8px;text-align:center">
+        <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(spentCost)}</div>
+        <div style="font-size:9px;color:var(--text-muted)">Est. Spent</div>
+      </div>
+      <div style="flex:1;background:rgba(127,195,165,0.1);border-radius:6px;padding:8px;text-align:center">
+        <div style="font-size:12px;font-weight:600;color:var(--forest)">$${Math.round(remainingCost)}</div>
+        <div style="font-size:9px;color:var(--text-muted)">Est. Remaining</div>
+      </div>
+      <div style="flex:1;background:var(--teal);border-radius:6px;padding:8px;text-align:center">
+        <div style="font-size:12px;font-weight:600;color:white">$${Math.round(totalCost)}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.8)">Est. Total</div>
+      </div>
+    </div>
+    
+    ${backupOptions.length>0?`
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--forest);margin-bottom:8px">Backup options nearby</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${backupOptions.map(b=>`
+            <div onclick="closeDashboard();openLocationDetail('${b.id}')" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(245,158,11,0.1);border-radius:6px;cursor:pointer">
+              <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></div>
+              <div style="flex:1">
+                <div style="font-size:11px;font-weight:600;color:var(--forest)">${b.name}</div>
+                <div style="font-size:10px;color:var(--text-muted)">${b.distFromNext} mi from next stop</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `:''}
+  `;
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────
