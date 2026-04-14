@@ -4806,7 +4806,7 @@ function openDashboardBackup(entryId, journeyId, legIndex){
   panel.style.left='auto';
   panel.style.right='300px';
   
-  // Show backdrop on mobile
+  // Show backdrop on mobile for tap-to-close
   showBackupBackdrop();
   
   // Open the backup location detail view (with "Save as replacement" button)
@@ -4911,11 +4911,17 @@ function renderDashboardSelection(container){
 function selectCurrentJourney(journeyId){
   saveCurrentJourneyId(journeyId);
   renderDashboard();
+  // Show journey route on map
+  if(journeyId){
+    viewJourneyOnMap(journeyId, false); // false = don't close drawer
+  }
 }
 
 function clearCurrentJourney(){
   // Close backup detail panel if open
   closeLocationDetail();
+  // Clear journey route from map
+  clearJourneyFromMap();
   saveCurrentJourneyId(null);
   renderDashboard();
 }
