@@ -719,7 +719,7 @@ window._db={
         </div>
       </div>
       <input class="inp" type="text" id="leg-from-search" placeholder="Search or use current location..." oninput="searchLocationsForLegFrom(this.value)" onfocus="showFromOptions()" style="width:100%;display:none"/>
-      <div id="leg-from-results" style="max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
+      <div id="leg-from-results" style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;display:none;margin-top:4px"></div>
     </div>
     
     <!-- To (search/select) -->
@@ -3075,9 +3075,9 @@ function clearLegOrigin(){
 
 function showFromOptions(){
   const results=document.getElementById('leg-from-results');
-  // Show current location option + recent locations
+  // Show current location option + all locations
   let html='<div onclick="selectLegOrigin(null)" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;background:rgba(127,195,165,0.05)" onmouseover="this.style.background=\'rgba(127,195,165,0.15)\'" onmouseout="this.style.background=\'rgba(127,195,165,0.05)\'"><div style="font-size:13px;font-weight:600;color:var(--teal)">📍 Use current location</div></div>';
-  html+=entries.slice(0,6).map(e=>`
+  html+=entries.map(e=>`
     <div onclick="selectLegOrigin('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
       <div style="font-size:13px;font-weight:600;color:var(--forest)">${e.name}</div>
       <div style="font-size:11px;color:var(--text-muted)">${e.type}</div>
@@ -3099,7 +3099,7 @@ function searchLocationsForLegFrom(query){
     e.name.toLowerCase().includes(q)||
     (e.address||'').toLowerCase().includes(q)||
     e.type.toLowerCase().includes(q)
-  ).slice(0,6);
+  );
   
   html+=matches.map(e=>`
     <div onclick="selectLegOrigin('${e.id}')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(127,195,165,0.1)'" onmouseout="this.style.background='transparent'">
