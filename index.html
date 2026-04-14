@@ -182,15 +182,15 @@ window._db={
   <span id="top-title"><span style="color:#F5F5F5">The</span> <span style="color:#7FC3A5">Fallback</span></span>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
     <span id="top-count">0 locations</span>
-    <button id="btn-dashboard" onclick="toggleDashboard()" style="background:white;border:1px solid var(--teal);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--teal);cursor:pointer;display:none">Dashboard</button>
+    <button id="btn-dashboard" onclick="toggleDashboard()">Dashboard</button>
   </div>
 </div>
 
 <!-- Dashboard Panel -->
-<div id="dashboard-panel" style="position:fixed;top:0;right:-320px;width:300px;height:100%;background:white;z-index:1200;box-shadow:-4px 0 20px rgba(0,0,0,0.15);transition:right 0.3s ease;overflow-y:auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top))">
+<div id="dashboard-panel">
   <div id="dashboard-content"></div>
 </div>
-<div id="dashboard-overlay" onclick="closeDashboard()" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:1199;display:none"></div>
+<div id="dashboard-overlay" onclick="closeDashboard()"></div>
 
 <!-- Map overlay buttons -->
 <!-- Left: log button -->
@@ -1679,14 +1679,26 @@ function openLocationDetail(entryId, journeyContext=null){
   const footer=document.getElementById('location-detail-footer');
   const drawer=document.getElementById('drawer');
   
-  // Position panel to the right of the drawer (desktop only)
+  // Position panel based on context (desktop only)
   // On mobile, CSS handles positioning (slides up from bottom)
   const isMobile=window.innerWidth<=640;
   if(!isMobile){
-    const drawerWidth=drawer.offsetWidth||320;
-    panel.style.left=drawerWidth+'px';
+    if(dashboardOpen){
+      // Position to the left of the dashboard panel
+      panel.style.left='auto';
+      panel.style.right='300px'; // Dashboard width
+      panel.classList.add('from-dashboard');
+    }else{
+      // Position to the right of the drawer
+      const drawerWidth=drawer.offsetWidth||320;
+      panel.style.left=drawerWidth+'px';
+      panel.style.right='';
+      panel.classList.remove('from-dashboard');
+    }
   }else{
     panel.style.left=''; // Clear any inline left style for mobile
+    panel.style.right='';
+    panel.classList.remove('from-dashboard');
   }
   
   // Build content
@@ -2847,13 +2859,9 @@ function updateDashboardButton(){
   btn.style.display=journeys.length>0?'block':'none';
   // Style based on whether current journey is set
   if(currentJourneyId){
-    btn.style.background='var(--teal)';
-    btn.style.color='white';
-    btn.style.border='1px solid var(--teal)';
+    btn.classList.add('active');
   }else{
-    btn.style.background='white';
-    btn.style.color='var(--teal)';
-    btn.style.border='1px solid var(--teal)';
+    btn.classList.remove('active');
   }
 }
 
@@ -4726,15 +4734,33 @@ function toggleDashboard(){
 
 function openDashboard(){
   dashboardOpen=true;
-  document.getElementById('dashboard-panel').style.right='0';
-  document.getElementById('dashboard-overlay').style.display='block';
+  document.getElementById('dashboard-panel').classList.add('open');
+  document.getElementById('dashboard-overlay').classList.add('open');
   renderDashboard();
 }
 
 function closeDashboard(){
   dashboardOpen=false;
-  document.getElementById('dashboard-panel').style.right='-320px';
-  document.getElementById('dashboard-overlay').style.display='none';
+  document.getElementById('dashboard-panel').classList.remove('open');
+  document.getElementById('dashboard-overlay').classList.remove('open');
+}
+
+function openDashboardBackup(entryId, journeyId, legIndex){
+  // Set the context for viewing as a backup option
+  const journeyContext={journeyId, legIndex};
+  
+  // Get the original destination entry for this leg
+  const journey=journeys.find(j=>j.id===journeyId);
+  if(journey && journey.legs && journey.legs[legIndex]){
+    viewingBackupForEntryId=journey.legs[legIndex].destId;
+  }
+  
+  // Open location detail with journey context (this will show "Save as replacement")
+  currentDetailJourneyContext=journeyContext;
+  openLocationDetail(entryId, journeyContext);
+  
+  // Mark it as viewing a backup
+  viewingBackupForEntryId=journey?.legs?.[legIndex]?.destId || null;
 }
 
 function renderDashboard(){
@@ -5014,7 +5040,7 @@ function renderDashboardFull(container,journey){
         <div style="font-size:12px;font-weight:600;color:var(--forest);margin-bottom:8px">Backup options nearby</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           ${backupOptions.map(b=>`
-            <div onclick="closeDashboard();openLocationDetail('${b.id}')" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(245,158,11,0.1);border-radius:6px;cursor:pointer">
+            <div onclick="openDashboardBackup('${b.id}','${journey.id}',${nextLegIndex>=0?nextLegIndex:0})" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(245,158,11,0.1);border-radius:6px;cursor:pointer">
               <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></div>
               <div style="flex:1">
                 <div style="font-size:11px;font-weight:600;color:var(--forest)">${b.name}</div>
