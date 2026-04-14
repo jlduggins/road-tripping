@@ -1421,18 +1421,24 @@ select.inp-dark option {
 }
 
 #dashboard-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 1099;
   display: none;
 }
 
-#dashboard-overlay.open {
-  display: block;
+/* Location Detail Panel when opened from Dashboard */
+#location-detail-panel.from-dashboard {
+  top: calc(70px + var(--safe-top));
+  left: auto !important;
+  right: 300px;
+  transform: translateX(100%);
+  max-height: calc(100vh - 90px - var(--safe-top) - var(--safe-bottom) - 70px);
+  height: auto;
+  bottom: auto;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, .2);
+}
+
+#location-detail-panel.from-dashboard.open {
+  transform: translateX(0);
 }
 
 /* Dashboard Content Styles */

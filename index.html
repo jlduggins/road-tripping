@@ -1855,6 +1855,8 @@ function openLocationDetail(entryId, journeyContext=null){
 function closeLocationDetail(){
   const panel=document.getElementById('location-detail-panel');
   panel.classList.remove('open');
+  panel.classList.remove('from-dashboard');
+  panel.style.right='';
   currentDetailEntryId=null;
   currentDetailJourneyContext=null;
   viewingBackupForEntryId=null;
@@ -2857,12 +2859,7 @@ function updateDashboardButton(){
   if(!btn) return;
   // Show dashboard button if there are any journeys
   btn.style.display=journeys.length>0?'block':'none';
-  // Style based on whether current journey is set
-  if(currentJourneyId){
-    btn.classList.add('active');
-  }else{
-    btn.classList.remove('active');
-  }
+  // Note: active class is now toggled by openDashboard/closeDashboard based on open state
 }
 
 async function saveCurrentJourneyId(journeyId){
@@ -4735,32 +4732,41 @@ function toggleDashboard(){
 function openDashboard(){
   dashboardOpen=true;
   document.getElementById('dashboard-panel').classList.add('open');
-  document.getElementById('dashboard-overlay').classList.add('open');
+  document.getElementById('btn-dashboard').classList.add('active');
   renderDashboard();
 }
 
 function closeDashboard(){
   dashboardOpen=false;
   document.getElementById('dashboard-panel').classList.remove('open');
-  document.getElementById('dashboard-overlay').classList.remove('open');
+  document.getElementById('btn-dashboard').classList.remove('active');
+  // Also close location detail if it was opened from dashboard
+  const panel=document.getElementById('location-detail-panel');
+  if(panel.classList.contains('from-dashboard')){
+    closeLocationDetail();
+  }
 }
 
 function openDashboardBackup(entryId, journeyId, legIndex){
   // Set the context for viewing as a backup option
   const journeyContext={journeyId, legIndex};
+  currentDetailJourneyContext=journeyContext;
   
   // Get the original destination entry for this leg
   const journey=journeys.find(j=>j.id===journeyId);
   if(journey && journey.legs && journey.legs[legIndex]){
-    viewingBackupForEntryId=journey.legs[legIndex].destId;
+    // Set current detail entry to the original destination (so backup knows what it's replacing)
+    currentDetailEntryId=journey.legs[legIndex].destId;
   }
   
-  // Open location detail with journey context (this will show "Save as replacement")
-  currentDetailJourneyContext=journeyContext;
-  openLocationDetail(entryId, journeyContext);
+  // Position panel for dashboard context before opening
+  const panel=document.getElementById('location-detail-panel');
+  panel.classList.add('from-dashboard');
+  panel.style.left='auto';
+  panel.style.right='300px';
   
-  // Mark it as viewing a backup
-  viewingBackupForEntryId=journey?.legs?.[legIndex]?.destId || null;
+  // Open the backup location detail view (with "Save as replacement" button)
+  openBackupLocationDetail(entryId);
 }
 
 function renderDashboard(){
