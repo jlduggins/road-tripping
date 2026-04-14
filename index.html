@@ -3474,8 +3474,17 @@ async function saveLeg(){
     }
   }
   if(!fromLat){
-    // Try to use current location
-    if(lastKnownPos){
+    // Try existing leg's stored origin first (when editing)
+    const journey=journeys.find(j=>j.id===editingJourneyId);
+    if(editingLegIndex!==null && journey?.legs?.[editingLegIndex]?.fromLat){
+      const existingLeg=journey.legs[editingLegIndex];
+      console.log('[saveLeg] Using existing leg stored origin:', existingLeg.fromLat, existingLeg.fromLng);
+      fromLat=existingLeg.fromLat;
+      fromLng=existingLeg.fromLng;
+      fromName=existingLeg.fromName||'Start';
+    }
+    // Then try current location
+    else if(lastKnownPos){
       fromLat=lastKnownPos.lat; 
       fromLng=lastKnownPos.lng;
       fromName='Current Location';
@@ -3485,11 +3494,9 @@ async function saveLeg(){
       fromLng=ll.lng;
       fromName='Current Location';
     }else{
-      // No location available - warn user
-      const journey=journeys.find(j=>j.id===editingJourneyId);
+      // No location available - warn user only for NEW first leg
       const existingLegs=journey?.legs||[];
-      if(existingLegs.length===0){
-        // First leg requires a starting point
+      if(existingLegs.length===0 && editingLegIndex===null){
         alert('Unable to determine your current location.\n\nPlease either:\n• Enable location access, or\n• Select a saved location as your starting point');
         return;
       }
