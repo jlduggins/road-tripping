@@ -4990,26 +4990,66 @@ function renderDashboardFull(container,journey){
     timeToNext=nextLeg.duration;
     nextEntry=entries.find(e=>e.id===nextLeg.destId);
   }else if(!currentLocationName && legs.length>0){
-    // User is en route, not at any location - find closest upcoming destination
-    let closestLegIdx=0;
+    // User is en route, not at any location - find the next upcoming destination
+    // Logic: Find the first leg where user is closer to the destination than the origin
+    // (meaning they're traveling toward it, not past it)
+    let nextLegIdx=-1;
     if(userLat){
-      let minDist=Infinity;
       for(let i=0;i<legs.length;i++){
         const l=legs[i];
         if(l.destLat){
-          const dist=haversineDistance(userLat,userLng,l.destLat,l.destLng);
-          if(dist<minDist){
-            minDist=dist;
-            closestLegIdx=i;
-            distanceToNext=Math.round(dist);
-            // Estimate time (assume 45mph average)
-            timeToNext=Math.round((dist/45)*60);
+          // Get origin for this leg (previous dest or starting point)
+          let originLat, originLng;
+          if(i===0){
+            originLat=l.fromLat;
+            originLng=l.fromLng;
+          }else{
+            originLat=legs[i-1].destLat;
+            originLng=legs[i-1].destLng;
+          }
+          
+          const distToDest=haversineDistance(userLat,userLng,l.destLat,l.destLng);
+          
+          // If no origin coords, just use distance to dest
+          if(!originLat){
+            nextLegIdx=i;
+            distanceToNext=Math.round(distToDest);
+            timeToNext=Math.round((distToDest/45)*60);
+            break;
+          }
+          
+          const distToOrigin=haversineDistance(userLat,userLng,originLat,originLng);
+          
+          // User is "approaching" this destination if they're closer to dest than origin
+          // OR if they're past the origin but not yet at the dest
+          if(distToDest < distToOrigin || distToOrigin > proximityThreshold){
+            // This is the next destination
+            nextLegIdx=i;
+            distanceToNext=Math.round(distToDest);
+            timeToNext=Math.round((distToDest/45)*60);
+            break;
           }
         }
       }
+      
+      // Fallback to last leg if all others are "passed"
+      if(nextLegIdx===-1){
+        nextLegIdx=legs.length-1;
+        const lastLeg=legs[nextLegIdx];
+        if(lastLeg.destLat){
+          distanceToNext=Math.round(haversineDistance(userLat,userLng,lastLeg.destLat,lastLeg.destLng));
+          timeToNext=Math.round((distanceToNext/45)*60);
+        }
+      }
+    }else{
+      nextLegIdx=0; // No GPS, default to first
     }
-    nextDest=legs[closestLegIdx]?.destName;
-    nextEntry=entries.find(e=>e.id===legs[closestLegIdx]?.destId);
+    
+    if(nextLegIdx>=0 && nextLegIdx<legs.length){
+      nextDest=legs[nextLegIdx]?.destName;
+      nextEntry=entries.find(e=>e.id===legs[nextLegIdx]?.destId);
+      nextLegIndex=nextLegIdx; // Set for backup options
+    }
   }
   
   // Calculate costs - spent vs remaining based on proximity
